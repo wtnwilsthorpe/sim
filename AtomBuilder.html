@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atomic Builder Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f1f5f9; font-family: 'Inter', system-ui, sans-serif; }
+        .canvas-container { min-height: 480px; }
+        .bracket { border-color: #334155; border-width: 4px; width: 18px; height: 100%; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .bracket-left { border-right: 0; border-radius: 14px 0 0 14px; }
+        .bracket-right { border-left: 0; border-radius: 0 14px 14px 0; }
+        .ptable-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+        .element-btn { @apply p-1 text-[10px] font-bold rounded border transition-all flex flex-col items-center justify-center aspect-square; }
+        .element-btn:hover { @apply bg-white shadow-md scale-105; }
+        .element-active { @apply border-blue-500 bg-blue-50 ring-2 ring-blue-200; }
+        
+        .shell-label-pill {
+            @apply bg-slate-800 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="max-w-[1400px] mx-auto space-y-4">
+        <header class="flex justify-between items-center mb-2">
+            <h1 class="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-blue-500"><circle cx="12" cy="12" r="3"/><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 12 19 12"/><circle cx="19" cy="12" r="1"/></svg>
+                Atomic Builder <span class="text-blue-500">v2.2</span>
+            </h1>
+            <div id="status-badge" class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm">CALIBRATED</div>
+        </header>
+
+        <!-- Main Workspace: Horizontal Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            <!-- Panel 1: Particle Controls (Left) -->
+            <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between order-1">
+                <div class="space-y-6">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Particle Control</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Proton Control -->
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="w-1/2">
+                                <span class="block text-[10px] font-bold text-red-500 uppercase tracking-tighter">Protons (Z)</span>
+                                <span id="p-val" class="text-3xl font-black text-slate-800 leading-none">1</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="mod('p',-1)" class="w-10 h-10 rounded-lg bg-white shadow-sm border border-slate-200 font-bold hover:bg-red-50 hover:text-red-500 transition-colors">-</button>
+                                <button onclick="mod('p',1)" class="w-10 h-10 rounded-lg bg-white shadow-sm border border-slate-200 font-bold hover:bg-red-50 hover:text-red-500 transition-colors">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Neutron Control -->
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="w-1/2">
+                                <span class="block text-[10px] font-bold text-green-600 uppercase tracking-tighter">Neutrons</span>
+                                <span id="n-val" class="text-3xl font-black text-slate-800 leading-none">0</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="mod('n',-1)" class="w-10 h-10 rounded-lg bg-white shadow-sm border border-slate-200 font-bold hover:bg-green-50 hover:text-green-600 transition-colors">-</button>
+                                <button onclick="mod('n',1)" class="w-10 h-10 rounded-lg bg-white shadow-sm border border-slate-200 font-bold hover:bg-green-50 hover:text-green-600 transition-colors">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Electron Control -->
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="w-1/2">
+                                <span class="block text-[10px] font-bold text-cyan-500 uppercase tracking-tighter">Electrons</span>
+                                <span id="e-val" class="text-3xl font-black text-slate-800 leading-none">1</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="mod('e',-1)" class="w-10 h-10 rounded-lg bg-white shadow-sm border border-slate-200 font-bold hover:bg-cyan-50 hover:text-cyan-500 transition-colors">-</button>
+                                <button onclick="mod('e',1)" class="w-10 h-10 rounded-lg bg-white shadow-sm border border-slate-200 font-bold hover:bg-cyan-50 hover:text-cyan-500 transition-colors">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 p-4 bg-slate-900 text-white rounded-xl">
+                    <div class="text-[9px] font-black text-slate-400 uppercase mb-1">Nuclear Stability</div>
+                    <div id="stability-info" class="text-xs font-medium text-slate-100 leading-tight italic opacity-90">Calculating...</div>
+                </div>
+            </div>
+
+            <!-- Panel 2: Element Tile (Middle) -->
+            <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center order-2">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 self-start">Identity</h3>
+                <div id="tile-container" class="w-full max-w-[220px] aspect-square border-4 border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-between relative bg-white shadow-xl">
+                    <div id="tile-z" class="text-3xl font-black text-slate-200 absolute top-4 left-6">1</div>
+                    <div id="tile-sym" class="text-9xl font-black text-slate-800 -mb-2">H</div>
+                    <div class="text-center w-full">
+                        <div id="tile-name" class="text-base font-black uppercase tracking-widest text-slate-700 truncate">Hydrogen</div>
+                        <div class="h-1 w-full bg-slate-100 my-2 rounded-full overflow-hidden">
+                            <div id="stability-bar" class="h-full bg-emerald-400 transition-all duration-500" style="width: 100%"></div>
+                        </div>
+                        <div id="tile-mass" class="text-xs text-slate-400 font-black">1.008 AMU</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel 3: Atom Visualizer (Right) -->
+            <div class="lg:col-span-6 bg-slate-100/50 rounded-2xl shadow-inner border border-slate-200 relative flex items-center justify-center overflow-hidden canvas-container order-3">
+                <!-- Dynamic Ion Brackets -->
+                <div id="ion-wrap" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-500 opacity-0 scale-95 z-20">
+                    <div id="bracket-sizer" class="transition-all duration-500 flex justify-between items-stretch relative" style="width: 200px; height: 200px;">
+                        <div class="bracket bracket-left"></div>
+                        <div id="ion-tag" class="absolute -top-4 -right-4 bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xl font-black shadow-2xl border-4 border-white"></div>
+                        <div class="bracket bracket-right"></div>
+                    </div>
+                </div>
+
+                <canvas id="atomCanvas" width="600" height="500" class="relative z-10 cursor-crosshair"></canvas>
+                
+                <!-- Shell Information Overlay (Bottom Middle of Canvas) -->
+                <div class="absolute bottom-6 flex flex-col items-center gap-2 z-30">
+                    <div id="config-display" class="flex gap-1.5">
+                        <!-- Configuration pills injected here -->
+                    </div>
+                    <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-white/80 px-2 py-1 rounded-md backdrop-blur-sm border border-slate-100">Electronic Configuration</div>
+                </div>
+
+                <!-- Legend -->
+                <div class="absolute top-4 left-6 bg-white/80 backdrop-blur-sm p-3 rounded-xl border border-slate-200 flex flex-col gap-2 shadow-sm">
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-200"></div><span class="text-[10px] font-black text-slate-600 uppercase">Proton</span></div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-green-500 shadow-sm shadow-green-200"></div><span class="text-[10px] font-black text-slate-600 uppercase">Neutron</span></div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-cyan-400 shadow-sm shadow-cyan-200"></div><span class="text-[10px] font-black text-slate-600 uppercase">Electron</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Panel: Quick Select -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Quick Preset</h3>
+                    <p class="text-xs text-slate-500">First 20 Elements (Hydrogen to Calcium)</p>
+                </div>
+                <button onclick="setElement(1)" class="text-[10px] font-bold text-blue-500 hover:underline">Reset to Hydrogen</button>
+            </div>
+            <div id="ptable-container" class="ptable-grid">
+                <!-- Elements injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const elements = [
+            { z: 1, s: 'H', n: 'Hydrogen', m: 1.008, n_stable: 0 },
+            { z: 2, s: 'He', n: 'Helium', m: 4.002, n_stable: 2 },
+            { z: 3, s: 'Li', n: 'Lithium', m: 6.941, n_stable: 4 },
+            { z: 4, s: 'Be', n: 'Beryllium', m: 9.012, n_stable: 5 },
+            { z: 5, s: 'B', n: 'Boron', m: 10.81, n_stable: 6 },
+            { z: 6, s: 'C', n: 'Carbon', m: 12.01, n_stable: 6 },
+            { z: 7, s: 'N', n: 'Nitrogen', m: 14.01, n_stable: 7 },
+            { z: 8, s: 'O', n: 'Oxygen', m: 16.00, n_stable: 8 },
+            { z: 9, s: 'F', n: 'Fluorine', m: 19.00, n_stable: 10 },
+            { z: 10, s: 'Ne', n: 'Neon', m: 20.18, n_stable: 10 },
+            { z: 11, s: 'Na', n: 'Sodium', m: 22.99, n_stable: 12 },
+            { z: 12, s: 'Mg', n: 'Magnesium', m: 24.31, n_stable: 12 },
+            { z: 13, s: 'Al', n: 'Aluminium', m: 26.98, n_stable: 14 },
+            { z: 14, s: 'Si', n: 'Silicon', m: 28.09, n_stable: 14 },
+            { z: 15, s: 'P', n: 'Phosphorus', m: 30.97, n_stable: 16 },
+            { z: 16, s: 'S', n: 'Sulfur', m: 32.06, n_stable: 16 },
+            { z: 17, s: 'Cl', n: 'Chlorine', m: 35.45, n_stable: 18 },
+            { z: 18, s: 'Ar', n: 'Argon', m: 39.95, n_stable: 22 },
+            { z: 19, s: 'K', n: 'Potassium', m: 39.10, n_stable: 20 },
+            { z: 20, s: 'Ca', n: 'Calcium', m: 40.08, n_stable: 20 }
+        ];
+
+        let state = { p: 1, n: 0, e: 1, time: 0, nucleus: [], shells: [] };
+
+        const canvas = document.getElementById('atomCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function initPtable() {
+            const container = document.getElementById('ptable-container');
+            elements.forEach(el => {
+                const btn = document.createElement('button');
+                btn.className = 'element-btn border-slate-200 text-slate-600 bg-slate-50';
+                btn.id = `el-btn-${el.z}`;
+                btn.innerHTML = `<span class="opacity-40">${el.z}</span><span class="text-base font-black">${el.s}</span>`;
+                btn.onclick = () => setElement(el.z);
+                container.appendChild(btn);
+            });
+        }
+
+        function setElement(z) {
+            const el = elements.find(e => e.z === z);
+            if (!el) return;
+            state.p = el.z;
+            state.n = el.n_stable;
+            state.e = el.z;
+            syncNucleus();
+            updateUI();
+        }
+
+        function mod(type, amt) {
+            state[type] = Math.max(0, Math.min(type === 'e' ? 20 : 30, state[type] + amt));
+            if (type !== 'e') syncNucleus();
+            updateUI();
+        }
+
+        function syncNucleus() {
+            state.nucleus = [];
+            const total = state.p + state.n;
+            const radiusScale = Math.max(12, Math.min(30, 8 + (total * 0.5)));
+            for (let i = 0; i < total; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * radiusScale;
+                state.nucleus.push({
+                    type: i < state.p ? 'p' : 'n',
+                    x: Math.cos(angle) * r,
+                    y: Math.sin(angle) * r,
+                    z: Math.random()
+                });
+            }
+            state.nucleus.sort((a,b) => a.z - b.z);
+        }
+
+        function updateUI() {
+            document.getElementById('p-val').textContent = state.p;
+            document.getElementById('n-val').textContent = state.n;
+            document.getElementById('e-val').textContent = state.e;
+
+            const el = elements.find(e => e.z === state.p) || { z: state.p, s: '?', n: 'Unknown', m: state.p + state.n };
+            
+            // Tile
+            document.getElementById('tile-z').textContent = state.p || '';
+            document.getElementById('tile-sym').textContent = el.s;
+            document.getElementById('tile-name').textContent = el.n;
+            document.getElementById('tile-mass').textContent = (el.m ? el.m : (state.p + state.n)).toFixed(3) + " AMU";
+
+            // Stability Logic
+            const elRef = elements.find(e => e.z === state.p);
+            const stabBar = document.getElementById('stability-bar');
+            const stabInfo = document.getElementById('stability-info');
+            const badge = document.getElementById('status-badge');
+
+            if (state.p === 0) {
+                stabBar.style.width = '0%';
+                stabInfo.textContent = "Vacuum State. Add protons to begin.";
+                badge.className = "px-3 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500 border-slate-200 border";
+                badge.textContent = "VACUUM";
+            } else {
+                const nDiff = elRef ? Math.abs(state.n - elRef.n_stable) : 10;
+                const stabilityScore = Math.max(0, 100 - (nDiff * 25));
+                stabBar.style.width = `${stabilityScore}%`;
+                stabBar.className = `h-full transition-all duration-500 ${stabilityScore > 75 ? 'bg-emerald-400' : stabilityScore > 40 ? 'bg-amber-400' : 'bg-red-500'}`;
+                
+                if (stabilityScore === 100) stabInfo.textContent = "Maximum nuclear stability. Most common isotope.";
+                else if (stabilityScore > 0) stabInfo.textContent = "Isotope detected. Potential radioactive decay risk.";
+                else stabInfo.textContent = "Highly unstable. This nucleus would likely split instantly.";
+
+                // Charge/Ion badge
+                const charge = state.p - state.e;
+                if (charge === 0) {
+                    badge.className = "px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 border-emerald-200 border";
+                    badge.textContent = "NEUTRAL ATOM";
+                } else {
+                    badge.className = "px-3 py-1 rounded-full text-[10px] font-black uppercase bg-cyan-50 text-cyan-600 border-cyan-200 border";
+                    badge.textContent = charge > 0 ? `CATION (${charge}+)` : `ANION (${Math.abs(charge)}-)`;
+                }
+            }
+
+            // Shell calculation for display
+            state.shells = [];
+            let rem = state.e;
+            [2, 8, 8, 2].forEach(limit => {
+                const take = Math.min(rem, limit);
+                if (take > 0) state.shells.push(take);
+                rem -= take;
+            });
+
+            // Config Pills
+            const configContainer = document.getElementById('config-display');
+            configContainer.innerHTML = '';
+            state.shells.forEach((count, i) => {
+                const pill = document.createElement('div');
+                pill.className = 'shell-label-pill';
+                pill.textContent = count;
+                configContainer.appendChild(pill);
+            });
+
+            // Ion Overlay Resizing
+            const chargeVal = state.p - state.e;
+            const wrap = document.getElementById('ion-wrap');
+            const sizer = document.getElementById('bracket-sizer');
+            const tag = document.getElementById('ion-tag');
+            
+            if (chargeVal !== 0 && state.p > 0) {
+                const outerRadius = state.shells.length > 0 ? (70 + (state.shells.length - 1) * 60) : 40;
+                const boxSize = (outerRadius * 2) + 60; // Padding for electrons and brackets
+                
+                wrap.style.opacity = '1';
+                wrap.style.transform = 'scale(1)';
+                sizer.style.width = `${boxSize}px`;
+                sizer.style.height = `${boxSize}px`;
+                tag.textContent = chargeVal > 0 ? `${chargeVal}+` : `${Math.abs(chargeVal)}-`;
+            } else {
+                wrap.style.opacity = '0';
+                wrap.style.transform = 'scale(0.95)';
+            }
+
+            // Ptable Highlights
+            document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('element-active'));
+            const activeBtn = document.getElementById(`el-btn-${state.p}`);
+            if (activeBtn) activeBtn.classList.add('element-active');
+        }
+
+        function getPairedAngles(count, shellIdx) {
+            const angles = [];
+            if (shellIdx === 0) { 
+                if (count === 1) return [0];
+                if (count === 2) return [0, Math.PI];
+            }
+            const quadrantBases = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+            const pairOffset = 0.18; 
+            for (let i = 0; i < count; i++) {
+                const quadIdx = i % 4;
+                const isSecondInQuad = i >= 4;
+                const base = quadrantBases[quadIdx];
+                angles.push(isSecondInQuad ? base + pairOffset : base - (count > 4 ? pairOffset : 0));
+            }
+            return angles;
+        }
+
+        function draw() {
+            state.time += 0.015;
+            ctx.clearRect(0, 0, 600, 500);
+            const cx = 300, cy = 250;
+
+            // Draw Shell Circles (Darker & Bold)
+            ctx.setLineDash([]);
+            ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)'; // Darker slate
+            ctx.lineWidth = 1.5;
+            state.shells.forEach((_, i) => {
+                ctx.beginPath();
+                ctx.arc(cx, cy, 70 + (i * 60), 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            // Draw Nucleus
+            state.nucleus.forEach(n => {
+                const jitterX = Math.sin(state.time * 3 + n.z * 10) * 0.8;
+                const jitterY = Math.cos(state.time * 3.1 + n.z * 11) * 0.8;
+                const nx = cx + n.x + jitterX;
+                const ny = cy + n.y + jitterY;
+
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                ctx.beginPath();
+                ctx.arc(nx + 2, ny + 2, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = n.type === 'p' ? '#ef4444' : '#22c55e';
+                ctx.beginPath();
+                ctx.arc(nx, ny, 7.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.beginPath();
+                ctx.arc(nx - 2.5, ny - 2.5, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Electrons
+            state.shells.forEach((count, sIdx) => {
+                const r = 70 + (sIdx * 60);
+                const angles = getPairedAngles(count, sIdx);
+                const rotation = state.time * (0.8 / (sIdx + 1));
+
+                angles.forEach(angle => {
+                    const finalAngle = angle + rotation;
+                    const ex = cx + Math.cos(finalAngle) * r;
+                    const ey = cy + Math.sin(finalAngle) * r;
+
+                    const pulse = Math.sin(state.time * 4) * 2;
+                    const g = ctx.createRadialGradient(ex, ey, 0, ex, ey, 10 + pulse);
+                    g.addColorStop(0, 'rgba(34, 211, 238, 0.6)');
+                    g.addColorStop(1, 'rgba(34, 211, 238, 0)');
+                    ctx.fillStyle = g;
+                    ctx.beginPath();
+                    ctx.arc(ex, ey, 10 + pulse, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#0891b2';
+                    ctx.beginPath();
+                    ctx.arc(ex, ey, 5.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#67e8f9';
+                    ctx.beginPath();
+                    ctx.arc(ex, ey, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+
+            requestAnimationFrame(draw);
+        }
+
+        initPtable();
+        syncNucleus();
+        updateUI();
+        draw();
+    </script>
+</body>
+</html>

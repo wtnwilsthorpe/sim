@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atomic Structure - Instant Zoom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --tile-bg: #ffffff;
+            --text-dark: #1e293b;
+            --inner-electron: #3b82f6;
+            --valence-electron: #ef4444; 
+            --shell-color: rgba(30, 41, 59, 0.4);
+        }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            overflow-x: hidden;
+        }
+        .periodic-container {
+            display: grid;
+            grid-template-columns: 40px repeat(8, 1fr);
+            gap: 16px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+        .header-num, .side-num {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .element-tile {
+            background: var(--tile-bg);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            /* Transition made almost instant (0.1s) */
+            transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .element-tile:hover {
+            transform: scale(2.2);
+            z-index: 50;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.3);
+            border-color: #94a3b8;
+        }
+        .canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .label {
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            line-height: 1;
+            z-index: 10;
+        }
+        .symbol { font-weight: 800; font-size: 0.85rem; color: #0f172a; }
+        .z-num { font-size: 0.6rem; color: #94a3b8; }
+
+        /* Grid Placements */
+        .el-1  { grid-column: 2; grid-row: 2; } .el-2  { grid-column: 9; grid-row: 2; }
+        .el-3  { grid-column: 2; grid-row: 3; } .el-4  { grid-column: 3; grid-row: 3; }
+        .el-5  { grid-column: 4; grid-row: 3; } .el-6  { grid-column: 5; grid-row: 3; }
+        .el-7  { grid-column: 6; grid-row: 3; } .el-8  { grid-column: 7; grid-row: 3; }
+        .el-9  { grid-column: 8; grid-row: 3; } .el-10 { grid-column: 9; grid-row: 3; }
+        .el-11 { grid-column: 2; grid-row: 4; } .el-12 { grid-column: 3; grid-row: 4; }
+        .el-13 { grid-column: 4; grid-row: 4; } .el-14 { grid-column: 5; grid-row: 4; }
+        .el-15 { grid-column: 6; grid-row: 4; } .el-16 { grid-column: 7; grid-row: 4; }
+        .el-17 { grid-column: 8; grid-row: 4; } .el-18 { grid-column: 9; grid-row: 4; }
+        .el-19 { grid-column: 2; grid-row: 5; } .el-20 { grid-column: 3; grid-row: 5; }
+        .el-31 { grid-column: 4; grid-row: 5; } .el-32 { grid-column: 5; grid-row: 5; }
+        .el-33 { grid-column: 6; grid-row: 5; } .el-34 { grid-column: 7; grid-row: 5; }
+        .el-35 { grid-column: 8; grid-row: 5; } .el-36 { grid-column: 9; grid-row: 5; }
+    </style>
+</head>
+<body>
+
+    <header class="mb-4 text-center">
+        <h1 class="text-4xl font-black text-slate-800 tracking-tight">Quantum Shell Explorer</h1>
+        <p class="text-slate-500 font-medium mt-2">Bohr's model with intensified orbital paths and instant zoom</p>
+    </header>
+
+    <div class="periodic-container" id="table">
+        <div class="header-num" style="grid-column: 2;">1</div>
+        <div class="header-num" style="grid-column: 3;">2</div>
+        <div class="header-num" style="grid-column: 4;">3</div>
+        <div class="header-num" style="grid-column: 5;">4</div>
+        <div class="header-num" style="grid-column: 6;">5</div>
+        <div class="header-num" style="grid-column: 7;">6</div>
+        <div class="header-num" style="grid-column: 8;">7</div>
+        <div class="header-num" style="grid-column: 9;">0</div>
+
+        <div class="side-num" style="grid-row: 2; grid-column: 1;">1</div>
+        <div class="side-num" style="grid-row: 3; grid-column: 1;">2</div>
+        <div class="side-num" style="grid-row: 4; grid-column: 1;">3</div>
+        <div class="side-num" style="grid-row: 5; grid-column: 1;">4</div>
+    </div>
+
+    <script>
+        const elements = [
+            { z: 1, symbol: "H", shells: [1] }, { z: 2, symbol: "He", shells: [2] },
+            { z: 3, symbol: "Li", shells: [2, 1] }, { z: 4, symbol: "Be", shells: [2, 2] },
+            { z: 5, symbol: "B", shells: [2, 3] }, { z: 6, symbol: "C", shells: [2, 4] },
+            { z: 7, symbol: "N", shells: [2, 5] }, { z: 8, symbol: "O", shells: [2, 6] },
+            { z: 9, symbol: "F", shells: [2, 7] }, { z: 10, symbol: "Ne", shells: [2, 8] },
+            { z: 11, symbol: "Na", shells: [2, 8, 1] }, { z: 12, symbol: "Mg", shells: [2, 8, 2] },
+            { z: 13, symbol: "Al", shells: [2, 8, 3] }, { z: 14, symbol: "Si", shells: [2, 8, 4] },
+            { z: 15, symbol: "P", shells: [2, 8, 5] }, { z: 16, symbol: "S", shells: [2, 8, 6] },
+            { z: 17, symbol: "Cl", shells: [2, 8, 7] }, { z: 18, symbol: "Ar", shells: [2, 8, 8] },
+            { z: 19, symbol: "K", shells: [2, 8, 8, 1] }, { z: 20, symbol: "Ca", shells: [2, 8, 8, 2] },
+            { z: 31, symbol: "Ga", shells: [2, 8, 18, 3] }, { z: 32, symbol: "Ge", shells: [2, 8, 18, 4] },
+            { z: 33, symbol: "As", shells: [2, 8, 18, 5] }, { z: 34, symbol: "Se", shells: [2, 8, 18, 6] },
+            { z: 35, symbol: "Br", shells: [2, 8, 18, 7] }, { z: 36, symbol: "Kr", shells: [2, 8, 18, 8] }
+        ];
+
+        function createTable() {
+            const table = document.getElementById('table');
+            elements.forEach(el => {
+                const div = document.createElement('div');
+                div.className = `element-tile el-${el.z}`;
+                div.id = `tile-${el.z}`;
+                div.innerHTML = `
+                    <div class="label">
+                        <span class="z-num">${el.z}</span>
+                        <span class="symbol">${el.symbol}</span>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="canvas-${el.z}"></canvas>
+                    </div>
+                `;
+                table.appendChild(div);
+            });
+        }
+
+        function draw(time) {
+            elements.forEach(el => {
+                const tile = document.getElementById(`tile-${el.z}`);
+                const canvas = document.getElementById(`canvas-${el.z}`);
+                if (!canvas || !tile) return;
+                
+                const ctx = canvas.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                
+                const isHovered = tile.matches(':hover');
+                const atomScale = isHovered ? 2.0 : 1.0;
+
+                if (canvas.width !== rect.width * dpr) {
+                    canvas.width = rect.width * dpr;
+                    canvas.height = rect.height * dpr;
+                }
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.scale(dpr, dpr);
+
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+                
+                const baseRadius = 11 * atomScale;
+                const nucleusRadius = (isHovered ? 4 : 3) * atomScale;
+
+                // Nucleus
+                ctx.beginPath();
+                ctx.arc(cx, cy, nucleusRadius, 0, Math.PI * 2);
+                ctx.fillStyle = '#1e293b';
+                ctx.fill();
+
+                el.shells.forEach((count, sIdx) => {
+                    const radius = (sIdx + 1) * baseRadius + (5 * atomScale);
+                    const isValence = sIdx === el.shells.length - 1;
+
+                    // Shell Path
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = isHovered ? 'rgba(30, 41, 59, 0.45)' : 'rgba(30, 41, 59, 0.25)'; 
+                    ctx.lineWidth = isHovered ? 1.5 : 1;
+                    ctx.stroke();
+
+                    // Electrons
+                    for (let i = 0; i < count; i++) {
+                        let angle;
+                        if (sIdx === 0) {
+                            angle = (i / count) * Math.PI * 2;
+                        } else {
+                            const pairIndex = Math.floor(i / 2);
+                            const offsetInPair = (i % 2 === 0) ? -0.15 : 0.15;
+                            angle = (pairIndex / 4) * Math.PI * 2 + offsetInPair;
+                        }
+                        
+                        const jiggleAmplitude = 0.5 * atomScale;
+                        const jiggleX = Math.sin(time * 0.015 + (i * 1.5) + (sIdx * 2.1)) * jiggleAmplitude;
+                        const jiggleY = Math.cos(time * 0.018 + (i * 0.7) + (sIdx * 1.4)) * jiggleAmplitude;
+
+                        const ex = cx + radius * Math.cos(angle) + jiggleX;
+                        const ey = cy + radius * Math.sin(angle) + jiggleY;
+
+                        const electronRadius = (isValence ? 2.2 : 1.8) * atomScale;
+                        
+                        ctx.shadowBlur = 3 * atomScale;
+                        ctx.shadowColor = isValence ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+
+                        ctx.beginPath();
+                        ctx.arc(ex, ey, electronRadius, 0, Math.PI * 2);
+                        ctx.fillStyle = isValence ? '#ef4444' : '#3b82f6';
+                        ctx.fill();
+                        
+                        ctx.shadowBlur = 0;
+
+                        if (isValence && isHovered) {
+                            ctx.strokeStyle = 'white';
+                            ctx.lineWidth = 0.5 * atomScale;
+                            ctx.stroke();
+                        }
+                    }
+                });
+                ctx.restore();
+            });
+            requestAnimationFrame(draw);
+        }
+
+        window.onload = () => {
+            createTable();
+            requestAnimationFrame(draw);
+        };
+    </script>
+</body>
+</html>
