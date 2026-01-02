@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iron & Sulfur: Structural Transition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: white; font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        canvas { background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); border-radius: 12px; cursor: none; touch-action: none; }
+        .control-panel { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-active { background-color: #3b82f6 !important; color: white !important; border-color: #60a5fa !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+        .stage-btn { transition: all 0.2s ease-out; }
+    </style>
+</head>
+<body>
+
+    <header class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+        <div>
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <span class="text-blue-400">⚛️</span> Atomic Conservation Lab
+            </h1>
+            <p class="text-xs text-slate-400">Total Particles: 48 <span class="text-slate-200">Fe</span> + 48 <span class="text-yellow-400">S</span></p>
+        </div>
+        <div id="status-tag" class="px-4 py-1.5 rounded-full text-xs font-black bg-slate-800 border border-slate-600 tracking-wider uppercase">
+            STAGE 1
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
+        <div class="flex-1 relative bg-slate-950 rounded-xl p-2 border border-slate-800">
+            <canvas id="simCanvas"></canvas>
+            
+            <!-- Magnet Strength Indicator -->
+            <div id="magnet-ui" class="absolute top-6 right-6 bg-red-900/40 p-4 rounded-xl border border-red-500/50 pointer-events-none opacity-0 transition-all scale-75">
+                <div class="text-3xl text-center">🧲</div>
+                <div class="text-[10px] font-bold text-center mt-1 text-red-200 uppercase">Magnet Engaged</div>
+                <div class="w-full bg-red-950 h-1 mt-2 rounded-full overflow-hidden">
+                    <div id="mag-power" class="bg-red-500 h-full w-0 transition-all"></div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="w-full md:w-80 flex flex-col gap-4">
+            <section class="control-panel p-6 rounded-2xl">
+                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Structural State</h2>
+                <div class="flex flex-col gap-3">
+                    <button onclick="setStage('separate')" id="btn-separate" class="stage-btn py-3 px-4 rounded-xl border border-slate-600 bg-slate-700/50 text-sm font-bold text-left hover:border-blue-400">
+                        1. Pure Solids (Separate)
+                    </button>
+                    <button onclick="setStage('mixture')" id="btn-mixture" class="stage-btn py-3 px-4 rounded-xl border border-slate-600 bg-slate-700/50 text-sm font-bold text-left hover:border-blue-400">
+                        2. Solid Mixture (Random)
+                    </button>
+                    <button onclick="setStage('compound')" id="btn-compound" class="stage-btn py-3 px-4 rounded-xl border border-slate-600 bg-slate-700/50 text-sm font-bold text-left hover:border-blue-400">
+                        3. Iron(II) Sulfide (Lattice)
+                    </button>
+                </div>
+            </section>
+
+            <section class="control-panel p-6 rounded-2xl flex-1 overflow-y-auto">
+                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Experimental Log</h2>
+                <div id="observation-text" class="text-sm text-slate-300 leading-relaxed font-medium mb-4">
+                    The atoms are organized in pure element stacks.
+                </div>
+                
+                <div id="magnet-feedback" class="p-3 bg-red-900/20 rounded-lg border border-red-500/30 text-xs text-red-200 hidden mb-4">
+                    <span class="font-bold">Observation:</span> The magnet pulls iron atoms easily. The mixture can be separated.
+                </div>
+
+                <div class="space-y-3">
+                    <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-700 flex items-center gap-3">
+                        <div class="w-4 h-4 rounded-full bg-slate-400 shadow-[0_0_8px_rgba(148,163,184,0.5)]"></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-300">IRON (Fe)</p>
+                            <p class="text-[11px] text-slate-500 font-mono">Ferromagnetic</p>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-900/80 rounded-lg border border-slate-700 flex items-center gap-3">
+                        <div class="w-4 h-4 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.5)]"></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-yellow-500">SULFUR (S)</p>
+                            <p class="text-[11px] text-slate-500 font-mono">Non-Magnetic</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const magnetUI = document.getElementById('magnet-ui');
+        const magPowerBar = document.getElementById('mag-power');
+        const feedback = document.getElementById('magnet-feedback');
+        
+        let stage = 'separate'; 
+        let particles = [];
+        let isMagnetizing = false;
+        let mouse = { x: 0, y: 0 };
+        const radius = 10;
+        const spacing = 22;
+
+        class Particle {
+            constructor(id, type) {
+                this.id = id;
+                this.type = type;
+                this.x = Math.random() * 800;
+                this.y = Math.random() * 600;
+                this.targetX = this.x;
+                this.targetY = this.y;
+                this.vx = 0;
+                this.vy = 0;
+                this.color = type === 'Fe' ? '#94a3b8' : '#facc15';
+                this.vibrateOffset = 0;
+            }
+
+            update() {
+                const tx = this.targetX;
+                const ty = this.targetY;
+                
+                const dx = tx - this.x;
+                const dy = ty - this.y;
+                
+                if (stage === 'compound') {
+                    // Crystalline locking
+                    this.x += dx * 0.15;
+                    this.y += dy * 0.15;
+                    
+                    // Tiny vibration if magnet is near but locked
+                    if (isMagnetizing && this.type === 'Fe') {
+                        const mdx = mouse.x - this.x;
+                        const mdy = mouse.y - this.y;
+                        if (Math.sqrt(mdx*mdx + mdy*mdy) < 150) {
+                            this.x += (Math.random() - 0.5) * 0.5;
+                            this.y += (Math.random() - 0.5) * 0.5;
+                        }
+                    }
+                } else {
+                    // Movement physics
+                    this.vx += dx * 0.05;
+                    this.vy += dy * 0.05;
+
+                    // Magnetism logic
+                    if (isMagnetizing && this.type === 'Fe') {
+                        const mdx = mouse.x - this.x;
+                        const mdy = mouse.y - this.y;
+                        const dist = Math.sqrt(mdx*mdx + mdy*mdy);
+                        if (dist < 300) {
+                            const force = (1 - dist/300) * 4;
+                            this.vx += (mdx / dist) * force;
+                            this.vy += (mdy / dist) * force;
+                            // Jiggle effect for iron being pulled
+                            this.vibrateOffset = (Math.random() - 0.5) * 2;
+                        }
+                    } else {
+                        this.vibrateOffset = 0;
+                    }
+
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= 0.65;
+                    this.vy *= 0.65;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.vibrateOffset, this.vibrateOffset);
+                
+                // Shadow
+                ctx.beginPath();
+                ctx.arc(this.x + 2, this.y + 2, radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fill();
+
+                // Main body
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                
+                if (stage === 'compound') {
+                    ctx.fillStyle = this.type === 'Fe' ? '#475569' : '#ca8a04';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = this.color;
+                }
+                ctx.fill();
+
+                // Highlight
+                ctx.beginPath();
+                ctx.arc(this.x - 3, this.y - 3, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+
+        function createParticles() {
+            particles = [];
+            for(let i=0; i<48; i++) particles.push(new Particle(i, 'Fe'));
+            for(let i=0; i<48; i++) particles.push(new Particle(i + 48, 'S'));
+        }
+
+        function setStage(s) {
+            stage = s;
+            const obs = document.getElementById('observation-text');
+            const status = document.getElementById('status-tag');
+            
+            document.querySelectorAll('.stage-btn').forEach(b => b.classList.remove('btn-active'));
+            document.getElementById(`btn-${s}`).classList.add('btn-active');
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            if (s === 'separate') {
+                status.innerText = "STAGE 1: SEPARATE";
+                obs.innerText = "Iron and Sulfur are two distinct elements. They sit in their own piles, each maintaining its own physical properties like color and magnetism.";
+                feedback.classList.add('hidden');
+                
+                particles.forEach(p => {
+                    const row = p.id % 8;
+                    const col = Math.floor((p.id % 48) / 8);
+                    if (p.type === 'Fe') {
+                        p.targetX = cx - 180 + (col * spacing);
+                        p.targetY = cy - 80 + (row * spacing);
+                    } else {
+                        p.targetX = cx + 60 + (col * spacing);
+                        p.targetY = cy - 80 + (row * spacing);
+                    }
+                });
+            } 
+            else if (s === 'mixture') {
+                status.innerText = "STAGE 2: MIXTURE";
+                obs.innerText = "The elements are mixed randomly. This is a physical change, not chemical. The atoms are disordered, but the Iron can still be separated using a magnet.";
+                feedback.classList.add('hidden');
+                
+                const gridIndices = Array.from({length: 96}, (_, i) => i);
+                for (let i = gridIndices.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [gridIndices[i], gridIndices[j]] = [gridIndices[j], gridIndices[i]];
+                }
+
+                particles.forEach((p, i) => {
+                    const idx = gridIndices[i];
+                    const row = idx % 10;
+                    const col = Math.floor(idx / 10);
+                    const jitterX = (Math.random() - 0.5) * 10;
+                    const jitterY = (Math.random() - 0.5) * 10;
+                    p.targetX = cx - 110 + (col * spacing) + jitterX;
+                    p.targetY = cy - 110 + (row * spacing) + jitterY;
+                });
+            } 
+            else if (s === 'compound') {
+                status.innerText = "STAGE 3: COMPOUND";
+                obs.innerText = "Heating has caused a chemical reaction. A new substance, Iron(II) Sulfide, has formed. The atoms are bonded in a rigid chess-board lattice.";
+                feedback.classList.add('hidden');
+                
+                const gridCols = 12;
+                const gridRows = 8;
+                let feUsed = 0;
+                let sUsed = 48;
+
+                for(let r=0; r < gridRows; r++) {
+                    for(let c=0; c < gridCols; c++) {
+                        const isYellow = (r + c) % 2 === 1;
+                        let p = isYellow ? particles[sUsed++] : particles[feUsed++];
+                        if (p) {
+                            p.targetX = cx - (gridCols * spacing / 2) + (c * spacing);
+                            p.targetY = cy - (gridRows * spacing / 2) + (r * spacing);
+                        }
+                    }
+                }
+            }
+        }
+
+        function drawMagneticField() {
+            if (!isMagnetizing) return;
+            
+            const time = Date.now() / 500;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)';
+            ctx.lineWidth = 1;
+            
+            // Draw 3 elliptical field rings
+            for(let i=1; i<=3; i++) {
+                ctx.beginPath();
+                const pulse = Math.sin(time + i) * 5;
+                ctx.ellipse(mouse.x, mouse.y, 40 * i + pulse, 60 * i + pulse, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid background
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            for(let i=0; i<canvas.width; i+=40) { ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); }
+            for(let i=0; i<canvas.height; i+=40) { ctx.moveTo(0,i); ctx.lineTo(canvas.width, i); }
+            ctx.stroke();
+
+            drawMagneticField();
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            if (isMagnetizing) {
+                // Flashy magnet cursor
+                ctx.font = '40px serif';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'rgba(239,68,68,0.5)';
+                ctx.fillText('🧲', mouse.x - 20, mouse.y + 15);
+                ctx.shadowBlur = 0;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function resize() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth - 16;
+            canvas.height = container.clientHeight - 16;
+            setStage(stage);
+        }
+
+        const startMagnet = (e) => {
+            isMagnetizing = true;
+            magnetUI.style.opacity = '1';
+            magnetUI.style.transform = 'scale(1)';
+            magPowerBar.style.width = '100%';
+            
+            feedback.classList.remove('hidden');
+            if(stage === 'compound') {
+                feedback.innerHTML = `<span class="font-bold">Observation:</span> The magnet has no effect! The iron is chemically bonded to the sulfur.`;
+            } else {
+                feedback.innerHTML = `<span class="font-bold">Observation:</span> Iron atoms are attracted to the magnet. The elements can be separated physically.`;
+            }
+            updateMouse(e);
+        };
+
+        const endMagnet = () => {
+            isMagnetizing = false;
+            magnetUI.style.opacity = '0';
+            magnetUI.style.transform = 'scale(0.75)';
+            magPowerBar.style.width = '0%';
+            feedback.classList.add('hidden');
+        };
+
+        const updateMouse = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = (e.clientX || e.touches?.[0].clientX) - rect.left;
+            mouse.y = (e.clientY || e.touches?.[0].clientY) - rect.top;
+        };
+
+        canvas.addEventListener('mousedown', startMagnet);
+        window.addEventListener('mouseup', endMagnet);
+        canvas.addEventListener('mousemove', updateMouse);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startMagnet(e); });
+        window.addEventListener('touchend', endMagnet);
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); updateMouse(e); });
+
+        window.addEventListener('resize', resize);
+        window.onload = () => {
+            createParticles();
+            resize();
+            setStage('separate');
+            animate();
+        };
+    </script>
+</body>
+</html>

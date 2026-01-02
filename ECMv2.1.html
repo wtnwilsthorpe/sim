@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>States of Matter & Composition Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); }
+        .box-container { border: 2px solid #334155; border-radius: 1rem; background: #000; position: relative; overflow: hidden; aspect-ratio: 1/1; }
+        .active-btn { background-color: #3b82f6 !important; border-color: #60a5fa !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        canvas { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+    <header class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+        <div>
+            <h1 class="text-2xl font-black tracking-tight flex items-center gap-3">
+                <span class="bg-blue-600 p-1.5 rounded-lg text-white">⚗️</span> 
+                Molecular Dynamics Lab
+            </h1>
+            <p class="text-slate-400 text-sm font-medium mt-1">Comparing States of Matter vs. Chemical Composition</p>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="setComposition('element')" id="btn-element" class="px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-bold uppercase tracking-widest transition-all hover:border-blue-400 active-btn">
+                Element (Ar)
+            </button>
+            <button onclick="setComposition('mixture')" id="btn-mixture" class="px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-bold uppercase tracking-widest transition-all hover:border-blue-400">
+                Mixture (He + Ne)
+            </button>
+            <button onclick="setComposition('compound')" id="btn-compound" class="px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs font-bold uppercase tracking-widest transition-all hover:border-blue-400">
+                Compound (H₂O)
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 p-6 grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden">
+        <!-- SOLID BOX -->
+        <div class="flex flex-col gap-3">
+            <div class="flex justify-between items-end px-1">
+                <h2 class="text-lg font-bold text-blue-400">SOLID</h2>
+                <span class="text-[10px] text-slate-500 font-mono uppercase">Vibrational Motion</span>
+            </div>
+            <div class="box-container" id="container-solid">
+                <canvas id="canvas-solid"></canvas>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed p-2">
+                Particles are tightly packed in a fixed, regular pattern. Strong attractive forces keep them vibrating in place.
+            </p>
+        </div>
+
+        <!-- LIQUID BOX -->
+        <div class="flex flex-col gap-3">
+            <div class="flex justify-between items-end px-1">
+                <h2 class="text-lg font-bold text-blue-400">LIQUID</h2>
+                <span class="text-[10px] text-slate-500 font-mono uppercase">Flowing Motion</span>
+            </div>
+            <div class="box-container" id="container-liquid">
+                <canvas id="canvas-liquid"></canvas>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed p-2">
+                Particles are close together but disordered. They have enough energy to slide past one another.
+            </p>
+        </div>
+
+        <!-- GAS BOX -->
+        <div class="flex flex-col gap-3">
+            <div class="flex justify-between items-end px-1">
+                <h2 class="text-lg font-bold text-blue-400">GAS</h2>
+                <span class="text-[10px] text-slate-500 font-mono uppercase">Random Motion</span>
+            </div>
+            <div class="box-container" id="container-gas">
+                <canvas id="canvas-gas"></canvas>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed p-2">
+                Particles are far apart and move rapidly in all directions. Intermolecular forces are negligible.
+            </p>
+        </div>
+    </main>
+
+    <footer class="p-4 bg-slate-900/80 border-t border-slate-800 text-center">
+        <div id="info-display" class="text-sm font-medium text-blue-200">
+            Currently viewing: <span class="text-white">Pure Element (Argon)</span> - Monatomic particles moving as individuals.
+        </div>
+    </footer>
+
+    <script>
+        const compositions = {
+            element: {
+                name: "Pure Element (Argon)",
+                desc: "All atoms are identical (Ar). No chemical bonds or different species present.",
+                types: [{ color: '#94a3b8', size: 8, ratio: 1 }]
+            },
+            mixture: {
+                name: "Mixture (Helium & Neon)",
+                desc: "Two different elements (He in yellow, Ne in blue) occupy the same space without bonding.",
+                types: [{ color: '#fbbf24', size: 5, ratio: 0.5 }, { color: '#60a5fa', size: 9, ratio: 0.5 }]
+            },
+            compound: {
+                name: "Compound (Water - H₂O)",
+                desc: "Chemical bonds hold Oxygen (red) and Hydrogen (white) together in a specific 1:2 ratio.",
+                isCompound: true
+            }
+        };
+
+        let currentComp = 'element';
+        const states = ['solid', 'liquid', 'gas'];
+        const canvases = {};
+        const ctxs = {};
+        const particleGroups = { solid: [], liquid: [], gas: [] };
+
+        class Particle {
+            constructor(state, typeInfo, groupIndex) {
+                this.state = state;
+                this.color = typeInfo.color;
+                this.size = typeInfo.size;
+                this.groupIndex = groupIndex; // For compound bonding
+                
+                // Position and Velocity
+                this.reset();
+            }
+
+            reset() {
+                const margin = 20;
+                this.x = margin + Math.random() * (300 - margin * 2);
+                this.y = margin + Math.random() * (300 - margin * 2);
+                
+                const speed = this.state === 'gas' ? 2.5 : this.state === 'liquid' ? 0.8 : 0.1;
+                this.vx = (Math.random() - 0.5) * speed;
+                this.vy = (Math.random() - 0.5) * speed;
+                
+                this.originX = this.x;
+                this.originY = this.y;
+            }
+
+            update(comp, others) {
+                if (this.state === 'solid') {
+                    // Vibrational motion around fixed point
+                    this.x = this.originX + Math.sin(Date.now() * 0.01 + this.groupIndex) * 1.5;
+                    this.y = this.originY + Math.cos(Date.now() * 0.012 + this.groupIndex) * 1.5;
+                } else {
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Boundaries
+                    const bound = 300;
+                    if (this.x < this.size || this.x > bound - this.size) this.vx *= -1;
+                    if (this.y < this.size || this.y > bound - this.size) this.vy *= -1;
+
+                    if (this.state === 'liquid') {
+                        // Gravity/Bottom settling for liquid
+                        if (this.y < 150) this.vy += 0.02;
+                        // Keep them contained in lower half roughly
+                        if (this.y > 280) this.vy -= 0.05;
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // Highlight
+                ctx.beginPath();
+                ctx.arc(this.x - this.size*0.3, this.y - this.size*0.3, this.size*0.2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fill();
+            }
+        }
+
+        function initSim() {
+            states.forEach(state => {
+                const c = document.getElementById(`canvas-${state}`);
+                canvases[state] = c;
+                ctxs[state] = c.getContext('2d');
+                c.width = 300;
+                c.height = 300;
+            });
+            createParticles();
+            animate();
+        }
+
+        function createParticles() {
+            const data = compositions[currentComp];
+            states.forEach(state => {
+                particleGroups[state] = [];
+                const count = state === 'gas' ? 15 : 60;
+                
+                if (data.isCompound) {
+                    // Water logic: 1 Oxygen (Red), 2 Hydrogen (White)
+                    for (let i = 0; i < count / 3; i++) {
+                        const ox = new Particle(state, { color: '#ef4444', size: 7 }, i);
+                        const h1 = new Particle(state, { color: '#f8fafc', size: 4 }, i);
+                        const h2 = new Particle(state, { color: '#f8fafc', size: 4 }, i);
+                        particleGroups[state].push({ type: 'H2O', atoms: [ox, h1, h2] });
+                    }
+                } else {
+                    data.types.forEach(t => {
+                        const tCount = count * t.ratio;
+                        for (let i = 0; i < tCount; i++) {
+                            particleGroups[state].push(new Particle(state, t, i));
+                        }
+                    });
+                }
+
+                // If solid, arrange in grid
+                if (state === 'solid') {
+                    const group = particleGroups[state];
+                    const perRow = Math.ceil(Math.sqrt(group.length));
+                    const gap = 300 / (perRow + 1);
+                    group.forEach((p, idx) => {
+                        const r = Math.floor(idx / perRow);
+                        const c = idx % perRow;
+                        const tx = gap + c * gap;
+                        const ty = gap + r * gap;
+                        
+                        if (p.atoms) { // Compound
+                            p.atoms[0].originX = tx;
+                            p.atoms[0].originY = ty;
+                        } else {
+                            p.originX = tx;
+                            p.originY = ty;
+                        }
+                    });
+                }
+            });
+        }
+
+        function setComposition(type) {
+            currentComp = type;
+            document.querySelectorAll('header button').forEach(b => b.classList.remove('active-btn'));
+            document.getElementById(`btn-${type}`).classList.add('active-btn');
+            
+            const info = compositions[type];
+            document.getElementById('info-display').innerHTML = `Currently viewing: <span class="text-white">${info.name}</span> - ${info.desc}`;
+            
+            createParticles();
+        }
+
+        function animate() {
+            states.forEach(state => {
+                const ctx = ctxs[state];
+                ctx.clearRect(0, 0, 300, 300);
+                
+                const group = particleGroups[state];
+                group.forEach(p => {
+                    if (p.atoms) {
+                        // Compound physics (Keep H near O)
+                        const [o, h1, h2] = p.atoms;
+                        o.update();
+                        
+                        // Relative positioning for hydrogens
+                        const time = Date.now() * 0.005;
+                        const angle1 = 0.5;
+                        const angle2 = 2.5;
+                        const dist = 10;
+                        
+                        h1.x = o.x + Math.cos(angle1) * dist;
+                        h1.y = o.y + Math.sin(angle1) * dist;
+                        h2.x = o.x + Math.cos(angle2) * dist;
+                        h2.y = o.y + Math.sin(angle2) * dist;
+                        
+                        // Draw bonds
+                        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(o.x, o.y); ctx.lineTo(h1.x, h1.y);
+                        ctx.moveTo(o.x, o.y); ctx.lineTo(h2.x, h2.y);
+                        ctx.stroke();
+
+                        o.draw(ctx); h1.draw(ctx); h2.draw(ctx);
+                    } else {
+                        p.update();
+                        p.draw(ctx);
+                    }
+                });
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = initSim;
+    </script>
+</body>
+</html>

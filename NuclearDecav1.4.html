@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear Decay Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #020617; color: #e2e8f0; overflow: hidden; }
+        canvas { touch-action: none; }
+        .isotope-btn.active { background-color: #3b82f6; color: white; border-color: #60a5fa; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        .nuclei-eq { font-family: 'Times New Roman', serif; font-weight: 800; }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center justify-center min-h-screen font-sans">
+
+    <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Controls Sidebar -->
+        <div class="lg:col-span-1 space-y-4">
+            <div class="bg-slate-900 p-5 rounded-3xl border border-slate-800">
+                <h4 class="text-[10px] font-black text-slate-500 mb-4 uppercase tracking-[0.2em]">Select Isotope</h4>
+                
+                <div class="space-y-6">
+                    <!-- Alpha Section -->
+                    <div class="relative pl-6 border-l-2 border-orange-500/30">
+                        <span class="absolute -left-[11px] top-0 text-[10px] font-bold bg-orange-600 px-1 rounded text-white uppercase">Alpha</span>
+                        <button onclick="setBaseIsotope('Am241')" id="btn-Am241" class="isotope-btn active w-full mt-2 text-left px-4 py-3 rounded-xl text-sm font-bold bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-all">Americium-241</button>
+                    </div>
+
+                    <!-- Beta Section -->
+                    <div class="relative pl-6 border-l-2 border-blue-500/30">
+                        <span class="absolute -left-[11px] top-0 text-[10px] font-bold bg-blue-600 px-1 rounded text-white uppercase">Beta</span>
+                        <button onclick="setBaseIsotope('C14')" id="btn-C14" class="isotope-btn w-full mt-2 text-left px-4 py-3 rounded-xl text-sm font-bold bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-all">Carbon-14</button>
+                    </div>
+
+                    <!-- Gamma Section -->
+                    <div class="relative pl-6 border-l-2 border-emerald-500/30">
+                        <span class="absolute -left-[11px] top-0 text-[10px] font-bold bg-emerald-600 px-1 rounded text-white uppercase">Gamma</span>
+                        <button onclick="setBaseIsotope('Co60')" id="btn-Co60" class="isotope-btn w-full mt-2 text-left px-4 py-3 rounded-xl text-sm font-bold bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-all">Cobalt-60</button>
+                    </div>
+                </div>
+
+                <button onclick="resetSim()" class="w-full mt-8 py-2 text-xs font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 border border-slate-800 rounded-xl hover:bg-slate-800 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                    RESET NUCLEUS
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Simulation Area -->
+        <div class="lg:col-span-2 bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden flex flex-col relative shadow-2xl">
+            <!-- Equation Header (Now at the top and clearer) -->
+            <div class="bg-black/60 p-6 border-b border-slate-800 flex flex-col items-center">
+                <div id="equation-display" class="nuclei-eq text-4xl md:text-5xl tracking-tight text-white flex items-center gap-3">
+                    <!-- Dynamic Equation Content -->
+                </div>
+            </div>
+
+            <canvas id="simCanvas" width="800" height="500" class="w-full h-[380px]"></canvas>
+
+            <div class="p-6 bg-black/40 border-t border-slate-800 flex justify-between items-center">
+                <div>
+                    <h3 id="iso-name" class="text-xl font-bold text-white leading-tight">Americium-241</h3>
+                    <p id="iso-mode" class="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Type: Alpha Decay</p>
+                </div>
+                <button id="trigger-btn" onclick="triggerDecay()" class="bg-red-600 hover:bg-red-500 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-red-900/40 transition-all active:scale-95 flex items-center gap-2 text-sm">
+                    TRIGGER DECAY
+                </button>
+            </div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="lg:col-span-1 space-y-4">
+            <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 h-full">
+                <h4 class="text-[10px] font-black text-slate-500 mb-6 uppercase tracking-widest text-center">Isotope Details</h4>
+                
+                <div class="space-y-4">
+                    <div class="p-4 rounded-xl bg-slate-800/50">
+                        <h5 class="text-[10px] font-bold text-slate-400 uppercase mb-2">Process</h5>
+                        <p id="decay-desc" class="text-xs text-slate-300 leading-relaxed"></p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-4 pt-4 border-t border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-5 h-5 rounded-full bg-red-600 shadow-inner" style="background: radial-gradient(circle at 30% 30%, #ff8888, #ef4444);"></div>
+                            <span class="text-sm text-slate-300">Proton</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-5 h-5 rounded-full bg-slate-600 shadow-inner" style="background: radial-gradient(circle at 30% 30%, #94a3b8, #475569);"></div>
+                            <span class="text-sm text-slate-300">Neutron</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const isotopes = {
+            Am241: { name: 'Americium-241', mode: 'Alpha', A: 95, Z: 45, dA: 91, dZ: 43, dSym: 'Np', sym: 'Am' },
+            C14: { name: 'Carbon-14', mode: 'Beta', A: 14, Z: 6, dA: 14, dZ: 7, dSym: 'N', sym: 'C' },
+            Co60: { name: 'Cobalt-60', mode: 'Gamma', A: 60, Z: 27, dA: 60, dZ: 27, dSym: 'Co', sym: 'Co' }
+        };
+
+        let currentIsoKey = 'Am241';
+        let nucleons = [];
+        let particles = [];
+        let isDecaying = false;
+        let hasDecayed = false;
+        const nucleonRadius = 10; 
+
+        function initNucleus() {
+            nucleons = [];
+            particles = [];
+            isDecaying = false;
+            hasDecayed = false;
+            
+            const btn = document.getElementById('trigger-btn');
+            btn.disabled = false;
+            btn.innerText = 'TRIGGER DECAY';
+            btn.classList.remove('opacity-50', 'bg-slate-700');
+            btn.classList.add('bg-red-600');
+
+            const iso = isotopes[currentIsoKey];
+            const total = iso.A;
+            const protons = iso.Z;
+
+            let attempts = 0;
+            const targetDist = (nucleonRadius * 2); 
+
+            for (let i = 0; i < total; i++) {
+                let found = false;
+                while(!found && attempts < 10000) {
+                    let theta = Math.random() * Math.PI * 2;
+                    let r = Math.sqrt(Math.random()) * (Math.sqrt(total) * (nucleonRadius * 1.4));
+                    
+                    let x = r * Math.cos(theta);
+                    let y = r * Math.sin(theta);
+                    
+                    let overlap = false;
+                    for(let n of nucleons) {
+                        const dx = x - n.baseX;
+                        const dy = y - n.baseY;
+                        if(Math.sqrt(dx*dx + dy*dy) < targetDist - 1) { 
+                            overlap = true;
+                            break;
+                        }
+                    }
+                    
+                    if(!overlap) {
+                        nucleons.push({
+                            baseX: x,
+                            baseY: y,
+                            isProton: i < protons,
+                            isTransmuting: false,
+                            jitterX: 0,
+                            jitterY: 0,
+                            angle: Math.random() * Math.PI * 2
+                        });
+                        found = true;
+                    }
+                    attempts++;
+                }
+            }
+            updateUI();
+        }
+
+        function setBaseIsotope(key) {
+            currentIsoKey = key;
+            document.querySelectorAll('.isotope-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${key}`).classList.add('active');
+            initNucleus();
+        }
+
+        function updateUI() {
+            const iso = isotopes[currentIsoKey];
+            document.getElementById('iso-name').innerText = iso.name;
+            document.getElementById('iso-mode').innerText = `Type: ${iso.mode} Decay`;
+            
+            const eqBox = document.getElementById('equation-display');
+            let radPart = '';
+            if(iso.mode === 'Beta') {
+                radPart = `<span class="text-blue-400">β⁻</span>`;
+                document.getElementById('decay-desc').innerText = "A neutron transforms into a proton. An electron (beta particle) is ejected from the nucleus.";
+            } else if(iso.mode === 'Alpha') {
+                radPart = `<span class="text-orange-400">α</span>`;
+                document.getElementById('decay-desc').innerText = "The nucleus ejects a cluster of 2 protons and 2 neutrons (Helium nucleus) to reduce mass.";
+            } else {
+                radPart = `<span class="text-emerald-400">γ</span>`;
+                document.getElementById('decay-desc').innerText = "High energy electromagnetic radiation is emitted as the nucleus settles into a lower energy state.";
+            }
+
+            eqBox.innerHTML = `
+                <div class="flex items-center"><div class="flex flex-col text-[16px] leading-none mr-1 font-sans font-bold"><span>${iso.A}</span><span>${iso.Z}</span></div><span>${iso.sym}</span></div>
+                <div class="mx-2 text-slate-600">→</div>
+                <div class="flex items-center"><div class="flex flex-col text-[16px] leading-none mr-1 font-sans font-bold"><span>${iso.dA}</span><span>${iso.dZ}</span></div><span>${iso.dSym}</span></div>
+                <div class="mx-2 text-slate-600">+</div>
+                ${radPart}
+            `;
+        }
+
+        function triggerDecay() {
+            if (isDecaying || hasDecayed) return;
+            isDecaying = true;
+            const btn = document.getElementById('trigger-btn');
+            btn.disabled = true;
+            btn.innerText = 'EMITTING...';
+            btn.classList.replace('bg-red-600', 'bg-slate-700');
+
+            const iso = isotopes[currentIsoKey];
+
+            if (iso.mode === 'Beta') {
+                const neutron = nucleons.find(n => !n.isProton);
+                if (neutron) {
+                    neutron.isTransmuting = true;
+                    setTimeout(() => {
+                        neutron.isProton = true;
+                        neutron.isTransmuting = false;
+                        particles.push({ x: neutron.baseX, y: neutron.baseY, vx: 14, vy: -4, type: 'beta' });
+                        finishDecay();
+                    }, 1200);
+                }
+            } else if (iso.mode === 'Alpha') {
+                setTimeout(() => {
+                    particles.push({ x: 0, y: 0, vx: 4, vy: -1.5, type: 'alpha' });
+                    let pRem = 2, nRem = 2;
+                    nucleons = nucleons.filter(n => {
+                        if (n.isProton && pRem > 0) { pRem--; return false; }
+                        if (!n.isProton && nRem > 0) { nRem--; return false; }
+                        return true;
+                    });
+                    finishDecay();
+                }, 1000);
+            } else {
+                setTimeout(() => {
+                    particles.push({ x: 0, y: 0, vx: 18, vy: 0, type: 'gamma' });
+                    finishDecay();
+                }, 800);
+            }
+        }
+
+        function finishDecay() {
+            isDecaying = false;
+            hasDecayed = true;
+            document.getElementById('trigger-btn').innerText = 'DECAYED';
+        }
+
+        function resetSim() {
+            initNucleus();
+        }
+
+        function drawSphericalNucleon(ctx, x, y, radius, isProton, isTransmuting) {
+            // Shadow under the nucleon
+            ctx.beginPath();
+            ctx.ellipse(x, y + radius * 0.8, radius * 0.9, radius * 0.4, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fill();
+
+            // Main Sphere Gradient
+            const grad = ctx.createRadialGradient(
+                x - radius * 0.35, 
+                y - radius * 0.35, 
+                radius * 0.1, 
+                x, 
+                y, 
+                radius
+            );
+
+            if (isTransmuting) {
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.3, '#fbbf24');
+                grad.addColorStop(1, '#92400e');
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#fbbf24';
+            } else if (isProton) {
+                grad.addColorStop(0, '#ffb8b8'); // Specular highlight
+                grad.addColorStop(0.4, '#ef4444'); // Main color
+                grad.addColorStop(1, '#7f1d1d'); // Ambient shadow
+            } else {
+                grad.addColorStop(0, '#cbd5e1'); // Specular highlight
+                grad.addColorStop(0.4, '#64748b'); // Main color
+                grad.addColorStop(1, '#1e293b'); // Ambient shadow
+            }
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // High-shine specular spot (Top left)
+            ctx.beginPath();
+            ctx.ellipse(x - radius * 0.3, y - radius * 0.3, radius * 0.25, radius * 0.15, Math.PI/4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            const sortedNucleons = [...nucleons].sort((a, b) => (a.baseY + a.jitterY) - (b.baseY + b.jitterY));
+
+            sortedNucleons.forEach((n) => {
+                n.jitterX = Math.sin(Date.now() * 0.003 + n.angle) * 1.5;
+                n.jitterY = Math.cos(Date.now() * 0.002 + n.angle) * 1.5;
+                const drawX = cx + n.baseX + n.jitterX;
+                const drawY = cy + n.baseY + n.jitterY;
+                drawSphericalNucleon(ctx, drawX, drawY, nucleonRadius, n.isProton, n.isTransmuting);
+            });
+
+            particles.forEach((p, index) => {
+                p.x += p.vx;
+                p.y += p.vy;
+
+                ctx.save();
+                ctx.translate(cx + p.x, cy + p.y);
+                if (p.type === 'beta') {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#60a5fa';
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#60a5fa';
+                    ctx.fill();
+                } else if (p.type === 'alpha') {
+                    // Alpha is 4 spheres
+                    const spacing = 7;
+                    drawSphericalNucleon(ctx, -spacing, -spacing, nucleonRadius-1, true, false);
+                    drawSphericalNucleon(ctx, spacing, -spacing, nucleonRadius-1, true, false);
+                    drawSphericalNucleon(ctx, -spacing, spacing, nucleonRadius-1, false, false);
+                    drawSphericalNucleon(ctx, spacing, spacing, nucleonRadius-1, false, false);
+                } else if (p.type === 'gamma') {
+                    ctx.beginPath();
+                    ctx.moveTo(-50, 0);
+                    for(let x=-50; x<50; x++) {
+                        ctx.lineTo(x, Math.sin(x*0.3 + Date.now()*0.06)*20);
+                    }
+                    ctx.strokeStyle = '#34d399';
+                    ctx.lineWidth = 5;
+                    ctx.lineCap = 'round';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#34d399';
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                if (Math.abs(p.x) > 600 || Math.abs(p.y) > 600) particles.splice(index, 1);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        initNucleus();
+        animate();
+    </script>
+</body>
+</html>

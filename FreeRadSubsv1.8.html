@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRS Laboratory - Enhanced Visibility</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background-color: #020617; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow: hidden; }
+        canvas { display: block; margin: auto; transition: width 0.3s ease, height 0.3s ease; }
+        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .step-btn { @apply w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all text-left flex items-center justify-between border border-transparent text-xs font-semibold mb-1; }
+        .step-active { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.2) !important; }
+        .label-tag { @apply text-[9px] px-1.5 py-0.5 rounded font-bold uppercase; }
+        .chaos-btn { @apply w-full py-2 rounded-lg bg-red-600/10 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition-all text-[10px] font-black uppercase tracking-widest shadow-lg; }
+        .chaos-active { background: #dc2626 !important; color: white !important; border-color: transparent !important; box-shadow: 0 0 20px rgba(220, 38, 38, 0.4); }
+        .pop-ctrl { @apply flex items-center gap-1 bg-slate-900/50 p-1 rounded-lg border border-white/5; }
+        .pop-btn { @apply w-5 h-5 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors; }
+        input[type=range] { accent-color: #3b82f6; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col p-3">
+
+    <div class="flex gap-3 h-full w-full">
+        <!-- Sidebar -->
+        <div class="w-72 flex flex-col gap-2 shrink-0">
+            <div class="glass p-3 rounded-xl shadow-2xl">
+                <div class="flex justify-between items-center mb-3">
+                    <h1 class="text-sm font-black bg-gradient-to-r from-yellow-300 to-green-400 bg-clip-text text-transparent">FRS LABORATORY</h1>
+                    <button onclick="init()" class="text-[9px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded font-bold text-slate-300 uppercase">Reset</button>
+                </div>
+                
+                <div class="flex gap-1 mb-2">
+                    <button onclick="changeFeedstock('CH4')" id="fs-CH4" class="flex-1 py-1 text-[10px] rounded bg-blue-600 font-bold">CH₄</button>
+                    <button onclick="changeFeedstock('C2H6')" id="fs-C2H6" class="flex-1 py-1 text-[10px] rounded bg-slate-800 hover:bg-slate-700 font-bold text-slate-400">C₂H₆</button>
+                    <button onclick="changeFeedstock('C3H8')" id="fs-C3H8" class="flex-1 py-1 text-[10px] rounded bg-slate-800 hover:bg-slate-700 font-bold text-slate-400">C₃H₈</button>
+                </div>
+
+                <div class="flex gap-2 mb-3">
+                    <div class="flex-1 pop-ctrl justify-between px-2">
+                        <span class="text-[9px] font-bold text-slate-400">Alk</span>
+                        <div class="flex gap-1">
+                            <button onclick="adjustPop(feedstock, -1)" class="pop-btn">×</button>
+                            <button onclick="adjustPop(feedstock, 1)" class="pop-btn">+</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 pop-ctrl justify-between px-2">
+                        <span class="text-[9px] font-bold text-green-500">Cl₂</span>
+                        <div class="flex gap-1">
+                            <button onclick="adjustPop('Cl2', -1)" class="pop-btn">×</button>
+                            <button onclick="adjustPop('Cl2', 1)" class="pop-btn">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5 mb-3"></div>
+                
+                <div class="flex flex-col gap-1">
+                    <button id="step1" class="step-btn"><span>Initiation</span><span class="label-tag bg-yellow-500/20 text-yellow-500">UV</span></button>
+                    <button id="step2a" class="step-btn opacity-40 cursor-not-allowed" disabled><span>Prop. I</span><span class="label-tag bg-blue-500/20 text-blue-500">H-Abs</span></button>
+                    <button id="step2b" class="step-btn opacity-40 cursor-not-allowed" disabled><span>Prop. II</span><span class="label-tag bg-blue-500/20 text-blue-500">Cl-Add</span></button>
+                    <button id="step3" class="step-btn opacity-40 cursor-not-allowed" disabled><span>Termination</span><span class="label-tag bg-red-500/20 text-red-500">Quench</span></button>
+                </div>
+
+                <div class="mt-3">
+                    <button id="chaosBtn" class="chaos-btn">CHAOS MODE: OFF</button>
+                </div>
+            </div>
+
+            <div id="equationBox" class="glass p-3 rounded-xl border-emerald-500/20 border transition-all duration-300 flex-none opacity-0 translate-y-2 pointer-events-none">
+                <p class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1.5 border-b border-emerald-500/10 pb-1">Reaction Equation</p>
+                <div id="equationText" class="mono text-[13px] font-bold text-white break-words leading-tight tracking-tight"></div>
+            </div>
+
+            <div class="glass p-3 rounded-xl flex flex-col gap-3">
+                <div id="moleculeCount" class="text-[10px] font-mono text-slate-300 leading-relaxed"></div>
+                
+                <div class="h-px bg-white/5"></div>
+
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex justify-between text-[9px] font-bold text-slate-500 uppercase">
+                        <span>Vessel Size</span>
+                        <span id="sizeVal" class="text-blue-400">100%</span>
+                    </div>
+                    <input type="range" id="sizeSlider" min="30" max="100" step="5" value="100" class="w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-700">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex justify-between text-[9px] font-bold text-slate-500 uppercase">
+                        <span>Speed</span>
+                        <span id="speedVal" class="text-blue-400">1.0x</span>
+                    </div>
+                    <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1" class="w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-700">
+                </div>
+                <button id="pauseBtn" class="w-full bg-slate-800 hover:bg-slate-700 py-1.5 rounded-lg text-[9px] font-black tracking-widest border border-white/5 uppercase">Pause</button>
+            </div>
+        </div>
+
+        <!-- Vessel -->
+        <div id="vesselContainer" class="relative flex-grow glass rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center bg-slate-950/50">
+            <canvas id="sim"></canvas>
+            <div id="uvFlash" class="absolute inset-0 bg-white/30 opacity-0 pointer-events-none transition-opacity duration-150"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sim');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('vesselContainer');
+        const eqBox = document.getElementById('equationBox');
+        const eqText = document.getElementById('equationText');
+        const uvFlash = document.getElementById('uvFlash');
+        
+        let width, height;
+        let particles = [];
+        let stage = 0; 
+        let isChaos = false;
+        let isPaused = false;
+        let simSpeed = 1;
+        let vesselScale = 1;
+        let feedstock = 'CH4';
+
+        const COLORS = { C: '#94a3b8', H: '#ffffff', Cl: '#4ade80', rad: '#fbbf24', bond: 'rgba(255,255,255,0.25)' };
+        const ATOM_SIZE = 13.5; 
+        const BOND_LEN = 30; 
+
+        class Particle {
+            constructor(type, x, y, chlorines = 0) {
+                this.type = type;
+                this.chlorines = chlorines; 
+                this.x = x ?? Math.random() * (width-100) + 50;
+                this.y = y ?? Math.random() * (height-100) + 50;
+                this.vx = (Math.random() - 0.5) * 2.2;
+                this.vy = (Math.random() - 0.5) * 2.2;
+                this.angle = Math.random() * Math.PI * 2;
+                this.va = (Math.random() - 0.5) * 0.03;
+                this.carbons = this.getCarbonCount(type);
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                if (['CH4', 'C2H6', 'C3H8', 'Alkane'].includes(this.type)) {
+                    this.drawAlkaneStructure(this.carbons, false, this.chlorines);
+                } else if (this.type === 'Radical') {
+                    this.drawAlkaneStructure(this.carbons, true, this.chlorines);
+                } else if (this.type === 'Cl2') {
+                    this.drawChlorine();
+                } else if (this.type === 'Cl_rad') {
+                    this.drawRadical('Cl');
+                } else if (this.type === 'HCl') {
+                    this.drawHCl();
+                }
+                
+                ctx.restore();
+            }
+
+            getCarbonCount(t) {
+                if (t === 'CH4') return 1;
+                if (t === 'C2H6') return 2;
+                if (t === 'C3H8') return 3;
+                return this.carbons || 1;
+            }
+
+            drawAtom(label, x, y, color) {
+                ctx.beginPath(); ctx.arc(x, y, ATOM_SIZE, 0, Math.PI * 2);
+                ctx.fillStyle = '#0f172a'; ctx.fill();
+                ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = color; ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(label, x, y);
+            }
+
+            drawBond(x1, y1, x2, y2) {
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+                ctx.strokeStyle = COLORS.bond; ctx.lineWidth = 2.5; ctx.stroke();
+            }
+
+            drawAlkaneStructure(carbons, isRadical, clCount) {
+                const spacing = BOND_LEN * 1.4;
+                let drawnCl = 0;
+
+                // 1. Draw Bonds and Skeleton
+                for(let i=0; i<carbons; i++) {
+                    let cx = (i - (carbons-1)/2) * spacing;
+                    if(i < carbons-1) this.drawBond(cx, 0, cx + spacing, 0);
+
+                    // Vertical Bonds
+                    this.drawBond(cx, 0, cx, -BOND_LEN);
+                    this.drawBond(cx, 0, cx, BOND_LEN);
+                    if(i === 0) this.drawBond(cx, 0, cx - BOND_LEN, 0);
+                    if(i === carbons-1 && !isRadical) this.drawBond(cx, 0, cx + BOND_LEN, 0);
+                }
+
+                // 2. Draw Peripheral Atoms
+                drawnCl = 0;
+                for(let i=0; i<carbons; i++) {
+                    let cx = (i - (carbons-1)/2) * spacing;
+                    
+                    let topType = (drawnCl < clCount) ? 'Cl' : 'H';
+                    if (topType === 'Cl') drawnCl++;
+                    this.drawAtom(topType, cx, -BOND_LEN, COLORS[topType]);
+
+                    let botType = (drawnCl < clCount) ? 'Cl' : 'H';
+                    if (botType === 'Cl') drawnCl++;
+                    this.drawAtom(botType, cx, BOND_LEN, COLORS[botType]);
+
+                    if(i === 0) {
+                        let leftType = (drawnCl < clCount) ? 'Cl' : 'H';
+                        if (leftType === 'Cl') drawnCl++;
+                        this.drawAtom(leftType, cx - BOND_LEN, 0, COLORS[leftType]);
+                    }
+                    if(i === carbons-1 && !isRadical) {
+                        let rightType = (drawnCl < clCount) ? 'Cl' : 'H';
+                        if (rightType === 'Cl') drawnCl++;
+                        this.drawAtom(rightType, cx + BOND_LEN, 0, COLORS[rightType]);
+                    }
+                }
+
+                // 3. Draw Carbons
+                for(let i=0; i<carbons; i++) {
+                    let cx = (i - (carbons-1)/2) * spacing;
+                    this.drawAtom('C', cx, 0, COLORS.C);
+                }
+
+                // 4. Draw Radical Electron (ALWAYS ON TOP)
+                if (isRadical) {
+                    let lastCx = ((carbons-1) - (carbons-1)/2) * spacing;
+                    ctx.beginPath(); 
+                    ctx.arc(lastCx + 14, 0, 4.5, 0, Math.PI*2); 
+                    ctx.fillStyle = COLORS.rad; 
+                    ctx.fill();
+                    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+
+            drawChlorine() {
+                this.drawBond(-12, 0, 12, 0);
+                this.drawAtom('Cl', -12, 0, COLORS.Cl);
+                this.drawAtom('Cl', 12, 0, COLORS.Cl);
+            }
+
+            drawRadical(label) {
+                this.drawAtom(label, 0, 0, COLORS.Cl);
+                // Draw radical electron on top
+                ctx.beginPath(); ctx.arc(12, -12, 4.5, 0, Math.PI*2); ctx.fillStyle = COLORS.rad; ctx.fill();
+                ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+            }
+
+            drawHCl() {
+                this.drawBond(-10, 0, 10, 0);
+                this.drawAtom('H', -10, 0, COLORS.H);
+                this.drawAtom('Cl', 10, 0, COLORS.Cl);
+            }
+
+            update() {
+                if (isPaused) return;
+                this.x += this.vx * simSpeed;
+                this.y += this.vy * simSpeed;
+                this.angle += this.va * simSpeed;
+                const margin = 45;
+                if (this.x < margin || this.x > width - margin) {
+                    this.vx *= -1;
+                    this.x = Math.max(margin, Math.min(width - margin, this.x));
+                }
+                if (this.y < margin || this.y > height - margin) {
+                    this.vy *= -1;
+                    this.y = Math.max(margin, Math.min(height - margin, this.y));
+                }
+            }
+        }
+
+        function adjustPop(type, delta) {
+            if (delta > 0) {
+                particles.push(new Particle(type));
+            } else {
+                const idx = particles.findLastIndex(p => p.type === type);
+                if (idx !== -1) particles.splice(idx, 1);
+            }
+            updateCounts();
+        }
+
+        function resize() {
+            const containerW = container.offsetWidth;
+            const containerH = container.offsetHeight;
+            width = containerW * vesselScale;
+            height = containerH * vesselScale;
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.border = "2px solid rgba(255,255,255,0.1)";
+            canvas.style.borderRadius = "12px";
+        }
+
+        function changeFeedstock(type) {
+            const currentAlkanes = particles.filter(p => p.type === feedstock).length;
+            feedstock = type;
+            particles = particles.filter(p => p.type !== 'CH4' && p.type !== 'C2H6' && p.type !== 'C3H8');
+            for(let i=0; i<currentAlkanes; i++) particles.push(new Particle(type));
+            
+            ['CH4', 'C2H6', 'C3H8'].forEach(f => {
+                const btn = document.getElementById('fs-'+f);
+                btn.className = (f === type) ? 'flex-1 py-1 text-[10px] rounded bg-blue-600 font-bold' : 'flex-1 py-1 text-[10px] rounded bg-slate-800 hover:bg-slate-700 font-bold text-slate-400';
+            });
+            updateCounts();
+        }
+
+        function init() {
+            resize();
+            particles = [];
+            for(let i=0; i<6; i++) particles.push(new Particle(feedstock));
+            for(let i=0; i<10; i++) particles.push(new Particle('Cl2'));
+            stage = 0;
+            resetButtons();
+            updateCounts();
+            eqBox.style.opacity = '0';
+        }
+
+        function resetButtons() {
+            ['step1', 'step2a', 'step2b', 'step3'].forEach((id, i) => {
+                const el = document.getElementById(id);
+                el.classList.remove('step-active');
+                if (i > 0) { el.classList.add('opacity-40', 'cursor-not-allowed'); el.disabled = true; }
+                else { el.classList.remove('opacity-40', 'cursor-not-allowed'); el.disabled = false; }
+            });
+        }
+
+        function handleCollision(i, j) {
+            if (isPaused) return;
+            const p1 = particles[i];
+            const p2 = particles[j];
+
+            if (stage === 2 || isChaos) {
+                let alk = null, clr = null;
+                if(p1.type === 'Cl_rad' && (p2.type === feedstock || p2.type === 'Alkane')) { clr = i; alk = j; }
+                else if(p2.type === 'Cl_rad' && (p1.type === feedstock || p1.type === 'Alkane')) { clr = j; alk = i; }
+                
+                if(alk !== null) {
+                    const target = particles[alk];
+                    if (target.chlorines < (target.carbons * 2 + 2)) {
+                        const newP = new Particle('Radical', target.x, target.y, target.chlorines);
+                        newP.carbons = target.carbons;
+                        particles[alk] = newP;
+                        replace(clr, 'HCl');
+                        showEq(`Cl• + R-H → HCl + R•`);
+                    }
+                    return;
+                }
+            }
+
+            if (stage === 3 || isChaos) {
+                let orad = null, cl2 = null;
+                if(p1.type === 'Radical' && p2.type === 'Cl2') { orad = i; cl2 = j; }
+                else if(p2.type === 'Radical' && p1.type === 'Cl2') { orad = j; cl2 = i; }
+
+                if(orad !== null) {
+                    const target = particles[orad];
+                    const newP = new Particle('Alkane', target.x, target.y, target.chlorines + 1);
+                    newP.carbons = target.carbons;
+                    particles[orad] = newP;
+                    replace(cl2, 'Cl_rad');
+                    showEq(`R• + Cl₂ → R-Cl + Cl•`);
+                    return;
+                }
+            }
+
+            if (stage === 4 || isChaos) {
+                if(p1.type === 'Cl_rad' && p2.type === 'Cl_rad') {
+                    particles.splice(j, 1); replace(i, 'Cl2');
+                    showEq('Cl• + Cl• → Cl₂');
+                }
+                else if((p1.type === 'Radical' && p2.type === 'Cl_rad') || (p2.type === 'Radical' && p1.type === 'Cl_rad')) {
+                    const ridx = p1.type === 'Radical' ? i : j;
+                    const cidx = p1.type === 'Radical' ? j : i;
+                    const target = particles[ridx];
+                    const newP = new Particle('Alkane', target.x, target.y, target.chlorines + 1);
+                    newP.carbons = target.carbons;
+                    particles[ridx] = newP;
+                    particles.splice(cidx, 1);
+                    showEq('R• + Cl• → R-Cl');
+                }
+            }
+        }
+
+        function replace(idx, type) {
+            const old = particles[idx];
+            particles[idx] = new Particle(type, old.x, old.y);
+            updateCounts();
+        }
+
+        function showEq(text) {
+            eqBox.style.opacity = '1';
+            eqBox.style.transform = 'translateY(0)';
+            eqText.innerText = text;
+        }
+
+        function updateCounts() {
+            const counts = particles.reduce((acc, p) => { 
+                acc[p.type] = (acc[p.type] || 0) + 1; 
+                if(p.chlorines > 0) acc.sub = (acc.sub || 0) + 1;
+                return acc; 
+            }, {});
+            
+            document.getElementById('moleculeCount').innerHTML = `
+                <div class="flex justify-between"><span>Pure ${feedstock}:</span> <span class="text-white">${counts[feedstock] || 0}</span></div>
+                <div class="flex justify-between"><span>Cl₂ Gas:</span> <span class="text-green-400">${counts.Cl2 || 0}</span></div>
+                <div class="flex justify-between"><span>Radicals:</span> <span class="text-yellow-400">${(counts.Cl_rad || 0) + (counts.Radical || 0)}</span></div>
+                <div class="flex justify-between mt-1 pt-1 border-t border-white/10 font-bold text-emerald-400"><span>Products:</span> <span>${counts.sub || 0}</span></div>
+            `;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            if (!isPaused) {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+                        if (dist < (ATOM_SIZE * 4)) handleCollision(i, j);
+                    }
+                }
+            }
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        document.getElementById('step1').onclick = function() {
+            stage = 1; uvFlash.style.opacity = '1';
+            setTimeout(() => uvFlash.style.opacity = '0', 150);
+            let splitCount = 0;
+            const toAdd = [];
+            particles = particles.map(p => {
+                if (p.type === 'Cl2' && splitCount < 3) {
+                    splitCount++;
+                    toAdd.push(new Particle('Cl_rad', p.x+10, p.y+10));
+                    return new Particle('Cl_rad', p.x-10, p.y-10);
+                }
+                return p;
+            });
+            particles.push(...toAdd);
+            showEq('Cl₂ + UV → 2Cl•');
+            setActive(this); enableNext('step2a'); updateCounts();
+        };
+
+        document.getElementById('step2a').onclick = function() { stage = 2; setActive(this); enableNext('step2b'); };
+        document.getElementById('step2b').onclick = function() { stage = 3; setActive(this); enableNext('step3'); };
+        document.getElementById('step3').onclick = function() { stage = 4; setActive(this); };
+
+        document.getElementById('pauseBtn').onclick = function() {
+            isPaused = !isPaused;
+            this.innerText = isPaused ? "Resume" : "Pause";
+            this.classList.toggle('bg-green-800', isPaused);
+        };
+
+        document.getElementById('speedSlider').oninput = function() {
+            simSpeed = parseFloat(this.value);
+            document.getElementById('speedVal').innerText = simSpeed.toFixed(1) + 'x';
+        };
+
+        document.getElementById('sizeSlider').oninput = function() {
+            vesselScale = parseFloat(this.value) / 100;
+            document.getElementById('sizeVal').innerText = (vesselScale * 100).toFixed(0) + '%';
+            resize();
+            particles.forEach(p => {
+                p.x = Math.max(45, Math.min(width - 45, p.x));
+                p.y = Math.max(45, Math.min(height - 45, p.y));
+            });
+        };
+
+        document.getElementById('chaosBtn').onclick = function() {
+            isChaos = !isChaos;
+            this.innerText = isChaos ? "CHAOS MODE: ACTIVE" : "CHAOS MODE: OFF";
+            this.classList.toggle('chaos-active', isChaos);
+            if (isChaos && stage === 0) document.getElementById('step1').click();
+        };
+
+        function setActive(btn) {
+            document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('step-active'));
+            btn.classList.add('step-active');
+        }
+
+        function enableNext(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('opacity-40', 'cursor-not-allowed');
+            el.disabled = false;
+        }
+
+        window.addEventListener('resize', resize);
+        init();
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EM Spectrum Interactive Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #020617; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+        .spectrum-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #ffffff;
+            border: 3px solid #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        .region-card { transition: all 0.3s ease; }
+        canvas { filter: drop-shadow(0 0 8px rgba(255,255,255,0.2)); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <div class="max-w-5xl w-full space-y-6">
+        <header class="text-center space-y-2">
+            <h1 class="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-red-400">
+                ELECTROMAGNETIC SPECTRUM
+            </h1>
+            <p class="text-slate-400 text-sm uppercase tracking-widest">Interactive Physical Wave Simulation</p>
+        </header>
+
+        <!-- Wave Display -->
+        <div class="relative bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl h-64 flex items-center">
+            <canvas id="waveCanvas" class="w-full h-full"></canvas>
+            
+            <!-- Scale Overlay -->
+            <div id="scaleOverlay" class="absolute bottom-4 left-6 flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                <span id="scaleIcon" class="text-2xl">📡</span>
+                <span id="scaleText" class="text-xs font-bold uppercase tracking-tighter text-blue-300">Size: Building</span>
+            </div>
+
+            <!-- Labels -->
+            <div class="absolute top-4 right-6 text-right font-mono text-[10px] space-y-1 text-slate-500">
+                <div id="valFreq">Freq: 300 MHz</div>
+                <div id="valWave">Wave: 1 m</div>
+                <div id="valEnergy">Energy: 1.24 μeV</div>
+            </div>
+        </div>
+
+        <!-- Main Slider -->
+        <div class="space-y-4 py-4">
+            <input type="range" id="spectrumSlider" min="0" max="1000" value="100" 
+                class="w-full h-4 bg-slate-800 rounded-full appearance-none cursor-pointer spectrum-slider">
+            <div class="flex justify-between px-1 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span>Radio</span>
+                <span>Microwave</span>
+                <span>Infrared</span>
+                <span class="text-white">Visible</span>
+                <span>UV</span>
+                <span>X-Ray</span>
+                <span>Gamma</span>
+            </div>
+        </div>
+
+        <!-- Region Detail Card -->
+        <div id="regionCard" class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl flex flex-col md:flex-row gap-8">
+            <div class="flex-1 space-y-4">
+                <div id="regionTag" class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 uppercase tracking-widest">Radio Waves</div>
+                <h2 id="regionTitle" class="text-3xl font-bold">Broadcasting & Communication</h2>
+                <p id="regionDesc" class="text-slate-400 leading-relaxed">Radio waves have the longest wavelengths in the electromagnetic spectrum. They are used to transmit data for radios, satellites, and radar.</p>
+            </div>
+            
+            <div class="w-full md:w-64 grid grid-cols-1 gap-3">
+                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
+                    <div class="text-[10px] text-slate-500 uppercase">Wavelength</div>
+                    <div id="statWave" class="text-lg font-mono font-bold text-white">100m - 1m</div>
+                </div>
+                <div class="bg-black/30 p-4 rounded-2xl border border-white/5">
+                    <div class="text-[10px] text-slate-500 uppercase">Amplitude (Int.)</div>
+                    <input type="range" id="ampSlider" min="5" max="80" value="40" class="w-full h-1 mt-2 bg-slate-700 rounded-full appearance-none accent-white">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('spectrumSlider');
+        const ampSlider = document.getElementById('ampSlider');
+        
+        const regions = [
+            { name: "Radio", title: "Global Communication", desc: "Used for FM/AM radio, TV broadcasting, and long-range communication. Waves can be as large as buildings.", range: [0, 150], color: "#60a5fa", scale: "Building", icon: "🏢" },
+            { name: "Microwave", title: "Connectivity & Heat", desc: "Used for Wi-Fi, Bluetooth, and GPS. They can penetrate clouds and smoke, and heat water molecules.", range: [150, 300], color: "#34d399", scale: "Honeybee", icon: "🐝" },
+            { name: "Infrared", title: "Thermal Energy", desc: "Felt as heat. Remote controls and thermal imaging cameras use this part of the spectrum.", range: [300, 450], color: "#fb923c", scale: "Needle Point", icon: "📍" },
+            { name: "Visible", title: "The Rainbow", desc: "The only part of the spectrum human eyes can detect. Red has the longest wavelength; Violet the shortest.", range: [450, 600], color: "#ffffff", scale: "Protozoan", icon: "🦠" },
+            { name: "Ultraviolet", title: "Solar Radiation", desc: "Produced by the sun. Causes sunburns but also helps our bodies produce Vitamin D.", range: [600, 750], color: "#a855f7", scale: "Molecules", icon: "🧪" },
+            { name: "X-Ray", title: "Medical Imaging", desc: "High energy waves that can pass through soft tissue but are blocked by dense bone.", range: [750, 900], color: "#2dd4bf", scale: "Atoms", icon: "⚛️" },
+            { name: "Gamma", title: "Nuclear Energy", desc: "Highest energy and shortest wavelength. Created by radioactive atoms and supernovas.", range: [900, 1000], color: "#ef4444", scale: "Atomic Nucleus", icon: "💥" }
+        ];
+
+        let phase = 0;
+        let width, height;
+
+        function resize() {
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.onresize = resize;
+        resize();
+
+        function getVisibleColor(p) {
+            // p is 0 to 1 within the visible spectrum range
+            const hue = 280 - (p * 280); // 280 (violet) to 0 (red)
+            return `hsl(${hue}, 80%, 60%)`;
+        }
+
+        function updateUI(val) {
+            const current = regions.find(r => val >= r.range[0] && val <= r.range[1]) || regions[0];
+            
+            document.getElementById('regionTag').innerText = current.name;
+            document.getElementById('regionTitle').innerText = current.title;
+            document.getElementById('regionDesc').innerText = current.desc;
+            document.getElementById('scaleText').innerText = `Scale: ${current.scale}`;
+            document.getElementById('scaleIcon').innerText = current.icon;
+            
+            let waveColor = current.color;
+            if (current.name === "Visible") {
+                const visibleP = (val - 450) / 150;
+                waveColor = getVisibleColor(visibleP);
+            }
+            
+            document.getElementById('regionTag').style.backgroundColor = waveColor + '33';
+            document.getElementById('regionTag').style.color = waveColor;
+
+            // Physical data (Mocked relative values)
+            const freqBase = Math.pow(10, (val / 100) + 6);
+            const waveBase = 3e8 / freqBase;
+            document.getElementById('valFreq').innerText = `Freq: ${freqBase.toExponential(2)} Hz`;
+            document.getElementById('valWave').innerText = `Wave: ${waveBase.toExponential(2)} m`;
+            document.getElementById('statWave').innerText = waveBase.toExponential(2) + " m";
+            document.getElementById('valEnergy').innerText = `Energy: ${(freqBase * 4.14e-15).toExponential(2)} eV`;
+
+            return waveColor;
+        }
+
+        function animate() {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, width, height);
+
+            const val = parseInt(slider.value);
+            const amp = parseInt(ampSlider.value);
+            const waveColor = updateUI(val);
+
+            // Calculate Frequency (Spatial)
+            // Gamma (val=1000) should be very high frequency, Radio (val=0) very low
+            const freq = 0.01 + (val / 1000) * 0.45;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = waveColor;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const centerY = height / 2;
+            
+            for (let x = 0; x < width; x++) {
+                // Modulate frequency across the screen for "transition" feel
+                const y = centerY + Math.sin(x * freq - phase) * amp;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+
+            // Glow effect for visible and high energy
+            if (val > 450) {
+                ctx.globalAlpha = 0.2;
+                ctx.lineWidth = 12;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
+
+            // Phase movement speed relative to frequency (v = f * lambda)
+            // To keep movement looking natural, higher frequencies move faster
+            phase += 0.05 + (val/1000) * 0.2;
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

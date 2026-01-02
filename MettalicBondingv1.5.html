@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE Chemistry: Metallic vs Non-Metal Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; overflow: hidden; touch-action: none; }
+        canvas { border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); background: #020617; cursor: crosshair; }
+        .panel { background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        input[type="range"] { accent-color: #3b82f6; cursor: pointer; }
+        .mode-btn { transition: all 0.2s; }
+    </style>
+</head>
+<body class="flex flex-col h-screen p-4">
+    <div class="max-w-[1400px] mx-auto w-full flex flex-col h-full gap-4">
+        
+        <header class="flex justify-between items-center p-4 panel rounded-xl">
+            <div>
+                <h1 class="text-xl font-bold text-blue-400">GCSE Bonding Lab</h1>
+                <p class="text-slate-400 text-xs">Metallic vs Non-Metal Comparison</p>
+            </div>
+            <div id="modeDisplay" class="px-4 py-1 rounded-full bg-blue-500/20 border border-blue-500 text-[10px] font-bold text-blue-300 uppercase tracking-widest">
+                Standard Lattice
+            </div>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-4 flex-grow overflow-hidden">
+            <!-- Main Sim Area -->
+            <div class="relative flex-grow rounded-xl overflow-hidden border border-slate-700 bg-black">
+                <canvas id="simCanvas"></canvas>
+                
+                <div id="malleableHint" class="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 transition-opacity duration-500 bg-blue-500/20 px-4 py-2 rounded-full border border-blue-400/30 text-xs font-bold hidden">
+                    DRAG ACROSS THE LATTICE TO SHIFT LAYERS
+                </div>
+
+                <div id="heatSource" class="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-red-600/60 to-transparent opacity-0 transition-opacity pointer-events-none flex items-center justify-start pl-2">
+                    <span class="rotate-[-90deg] text-[10px] font-black text-red-200">HEAT SOURCE</span>
+                </div>
+            </div>
+
+            <!-- Sidebar Controls -->
+            <aside class="lg:w-80 panel p-5 rounded-xl flex flex-col gap-6 overflow-y-auto">
+                <section class="space-y-2">
+                    <h2 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Lab Modules</h2>
+                    <div class="grid grid-cols-1 gap-1.5">
+                        <button onclick="setMode('static')" id="btn-static" class="mode-btn text-left py-2 px-3 rounded bg-blue-600 text-xs font-bold">1. Standard Lattice</button>
+                        <button onclick="setMode('electricity')" id="btn-electricity" class="mode-btn text-left py-2 px-3 rounded bg-slate-800 text-xs font-bold hover:bg-slate-700">2. Electrical Flow</button>
+                        <button onclick="setMode('malleable')" id="btn-malleable" class="mode-btn text-left py-2 px-3 rounded bg-slate-800 text-xs font-bold hover:bg-slate-700">3. Malleability</button>
+                        <button onclick="setMode('conduction')" id="btn-conduction" class="mode-btn text-left py-2 px-3 rounded bg-slate-800 text-xs font-bold hover:bg-slate-700">4. Heat Conduction</button>
+                        <button onclick="setMode('melt')" id="btn-melt" class="mode-btn text-left py-2 px-3 rounded bg-slate-800 text-xs font-bold hover:bg-slate-700">5. Melting Point</button>
+                        <button onclick="setMode('nonmetal')" id="btn-nonmetal" class="mode-btn text-left py-2 px-3 rounded bg-red-900/40 border border-red-700 text-xs font-bold">6. Compare: Non-Metal</button>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h2 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Controls</h2>
+                    
+                    <div id="tempControl">
+                        <label class="flex justify-between text-[10px] text-slate-300 font-bold mb-1">TEMPERATURE <span id="tempLabel">20°C</span></label>
+                        <input type="range" id="tempRange" min="0" max="100" value="10" class="w-full h-1">
+                    </div>
+
+                    <div>
+                        <label class="flex justify-between text-[10px] text-slate-300 font-bold mb-1">ION RADIUS <span id="radiusLabel">20px</span></label>
+                        <input type="range" id="radiusRange" min="15" max="32" value="22" class="w-full h-1">
+                    </div>
+                </section>
+
+                <div id="infoText" class="mt-auto p-4 bg-black/40 rounded-lg text-[11px] leading-relaxed text-slate-400 border border-white/5">
+                    Standard state: Metal ions vibrate slightly in a regular arrangement.
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const tempRange = document.getElementById('tempRange');
+        const radiusRange = document.getElementById('radiusRange');
+        
+        let width, height;
+        let ions = [];
+        let electrons = [];
+        let mode = 'static';
+        let isDragging = false;
+        let mouseX = 0, mouseY = 0;
+
+        class Ion {
+            constructor(x, y) {
+                this.baseX = x;
+                this.baseY = y;
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.localHeat = 0; // 0 to 1
+            }
+
+            update() {
+                const globalTemp = parseFloat(tempRange.value) / 20;
+                const radius = parseInt(radiusRange.value);
+                const buffer = radius * 2.3;
+
+                // 1. Behavior by mode
+                if (mode === 'nonmetal') {
+                    // Slight jiggle
+                    this.vx += (Math.random() - 0.5) * (globalTemp * 0.2);
+                    this.vy += (Math.random() - 0.5) * (globalTemp * 0.2);
+                    
+                    // Non-metal melts much earlier
+                    const meltT = parseFloat(tempRange.value);
+                    if (meltT > 40) {
+                        this.vx += (Math.random() - 0.5) * 1.5;
+                        this.vy += (Math.random() - 0.5) * 1.5;
+                        // Lose lattice return force
+                    } else {
+                        this.vx += (this.baseX - this.x) * 0.05;
+                        this.vy += (this.baseY - this.y) * 0.05;
+                    }
+                } else if (mode === 'melt') {
+                    const meltT = parseFloat(tempRange.value);
+                    if (meltT > 90) { // Metal melts high
+                        this.vx += (Math.random() - 0.5) * 1.5;
+                        this.vy += (Math.random() - 0.5) * 1.5;
+                    } else {
+                        this.vx += (Math.random() - 0.5) * (globalTemp * 1.2);
+                        this.vy += (Math.random() - 0.5) * (globalTemp * 1.2);
+                        this.vx += (this.baseX - this.x) * 0.05;
+                        this.vy += (this.baseY - this.y) * 0.05;
+                    }
+                } else if (mode === 'conduction') {
+                    // Heat transfer: Slow progression
+                    if (this.x < 100) this.localHeat = Math.min(1, this.localHeat + 0.005);
+                    
+                    // Jiggle based on local heat
+                    const heatJiggle = this.localHeat * 4;
+                    this.vx += (Math.random() - 0.5) * heatJiggle;
+                    this.vy += (Math.random() - 0.5) * heatJiggle;
+                    
+                    this.vx += (this.baseX - this.x) * 0.05;
+                    this.vy += (this.baseY - this.y) * 0.05;
+                } else {
+                    this.vx += (Math.random() - 0.5) * globalTemp;
+                    this.vy += (Math.random() - 0.5) * globalTemp;
+                    this.vx += (this.baseX - this.x) * 0.05;
+                    this.vy += (this.baseY - this.y) * 0.05;
+                }
+
+                // 2. Malleability Visual Effect
+                if (mode === 'malleable' && isDragging) {
+                    const dx = this.x - mouseX;
+                    const dy = this.y - mouseY;
+                    const d = Math.sqrt(dx*dx + dy*dy);
+                    if (d < 80) {
+                        // Gently move the base coordinate to create a permanent shift
+                        const shift = (80 - d) * 0.015;
+                        const ang = Math.atan2(dy, dx);
+                        this.baseX += Math.cos(ang) * shift;
+                        this.baseY += Math.sin(ang) * shift;
+                    }
+                }
+
+                // 3. Movement
+                this.vx *= 0.85;
+                this.vy *= 0.85;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 4. Collision (Soft buffer to keep ions distinct)
+                ions.forEach(other => {
+                    if (other === this) return;
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < buffer) {
+                        const angle = Math.atan2(dy, dx);
+                        const force = (buffer - dist) * 0.1;
+                        this.x -= Math.cos(angle) * force;
+                        this.y -= Math.sin(angle) * force;
+                        other.x += Math.cos(angle) * force;
+                        other.y += Math.sin(angle) * force;
+                    }
+                });
+            }
+
+            draw() {
+                const radius = parseInt(radiusRange.value);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                
+                // Color change for thermal conduction
+                if (mode === 'conduction') {
+                    const r = 234 + (this.localHeat * 21);
+                    const g = 179 - (this.localHeat * 150);
+                    const b = 8 + (this.localHeat * 20);
+                    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                } else {
+                    ctx.fillStyle = mode === 'nonmetal' ? '#475569' : '#eab308';
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = mode === 'nonmetal' ? '#94a3b8' : '#fef08a';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${radius * 0.7}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(mode === 'nonmetal' ? 'C' : '+', this.x, this.y);
+
+                if (mode === 'nonmetal') {
+                    // Localized Orbiting Electrons
+                    for(let i=0; i<2; i++) {
+                        const ang = (Date.now() / 800) + (i * Math.PI);
+                        const ex = this.x + Math.cos(ang) * (radius * 1.5);
+                        const ey = this.y + Math.sin(ang) * (radius * 1.5);
+                        ctx.beginPath();
+                        ctx.arc(ex, ey, 2, 0, Math.PI * 2);
+                        ctx.fillStyle = '#38bdf8';
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        class Electron {
+            constructor() { this.reset(); this.localHeat = 0; }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+            }
+            update() {
+                if (mode === 'electricity') {
+                    this.vx += 0.05; 
+                    if (this.vx > 1.5) this.vx = 1.5;
+                } else if (mode === 'conduction') {
+                    // Electrons pick up heat from left and carry it
+                    if (this.x < 120) this.localHeat = 1;
+                    
+                    // Speed based on heat
+                    const speed = 1.5 + (this.localHeat * 3);
+                    const mag = Math.sqrt(this.vx**2 + this.vy**2);
+                    this.vx = (this.vx/mag) * speed;
+                    this.vy = (this.vy/mag) * speed;
+
+                    // Pass heat to ions they collide with
+                    ions.forEach(ion => {
+                        const d = Math.sqrt((this.x-ion.x)**2 + (this.y-ion.y)**2);
+                        if (d < 30) {
+                            ion.localHeat = Math.max(ion.localHeat, this.localHeat * 0.8);
+                        }
+                    });
+                } else {
+                    this.vx *= 0.99; this.vy *= 0.99;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x > width) this.x = 0; if (this.x < 0) this.x = width;
+                if (this.y > height) this.y = 0; if (this.y < 0) this.y = height;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = this.localHeat > 0.5 ? '#f87171' : '#38bdf8';
+                ctx.fill();
+            }
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.replace('bg-blue-600', 'bg-slate-800'));
+            const btn = document.getElementById(`btn-${m}`);
+            if(btn) btn.classList.replace('bg-slate-800', 'bg-blue-600');
+            
+            document.getElementById('modeDisplay').innerText = m.replace('melt','Melting').replace('nonmetal','Non-Metal').toUpperCase();
+            document.getElementById('malleableHint').classList.toggle('hidden', m !== 'malleable');
+            document.getElementById('malleableHint').style.opacity = m === 'malleable' ? '1' : '0';
+            document.getElementById('heatSource').style.opacity = m === 'conduction' ? '1' : '0';
+            
+            const info = {
+                static: "Standard Lattice: regular pattern, slight vibration.",
+                electricity: "Conductivity: Delocalized electrons drift to the positive terminal.",
+                malleable: "Malleability: Metal layers can slide over each other without breaking the bonds.",
+                conduction: "Thermal Conduction: Vibrations and electrons slowly transfer energy through the metal.",
+                melt: "Melting: Metal lattice breaks down at high temperatures.",
+                nonmetal: "Non-Metal: Electrons are fixed in orbits. Melts much easier than metal."
+            };
+            document.getElementById('infoText').innerText = info[m];
+            initSim();
+        }
+
+        function initSim() {
+            ions = [];
+            electrons = [];
+            const r = parseInt(radiusRange.value);
+            const space = r * 3;
+            for (let x = space; x < width - space/2; x += space) {
+                for (let y = space; y < height - space/2; y += space) {
+                    ions.push(new Ion(x, y));
+                }
+            }
+            if (mode !== 'nonmetal') {
+                for (let i = 0; i < ions.length * 2.5; i++) electrons.push(new Electron());
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            document.getElementById('tempLabel').innerText = tempRange.value + '°C';
+            document.getElementById('radiusLabel').innerText = radiusRange.value + 'px';
+
+            // Neighbor heat transfer (Conduction)
+            if (mode === 'conduction') {
+                for (let i = 0; i < ions.length; i++) {
+                    const ionA = ions[i];
+                    for (let j = i + 1; j < ions.length; j++) {
+                        const ionB = ions[j];
+                        const d = Math.sqrt((ionA.x - ionB.x)**2 + (ionA.y - ionB.y)**2);
+                        if (d < 70) {
+                            // Very slow transfer between neighbors
+                            const transfer = (ionA.localHeat - ionB.localHeat) * 0.002;
+                            ionA.localHeat -= transfer;
+                            ionB.localHeat += transfer;
+                        }
+                    }
+                }
+            }
+
+            ions.forEach(ion => {
+                ion.update();
+                ion.draw();
+            });
+
+            electrons.forEach(e => { e.update(); e.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        const updateMouse = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            mouseX = clientX - rect.left;
+            mouseY = clientY - rect.top;
+        };
+
+        canvas.addEventListener('mousedown', (e) => { isDragging = true; updateMouse(e); });
+        window.addEventListener('mouseup', () => isDragging = false);
+        window.addEventListener('mousemove', updateMouse);
+        canvas.addEventListener('touchstart', (e) => { isDragging = true; updateMouse(e); }, {passive: false});
+        window.addEventListener('touchmove', (e) => { updateMouse(e); }, {passive: false});
+        window.addEventListener('touchend', () => isDragging = false);
+        
+        radiusRange.addEventListener('input', initSim);
+
+        window.addEventListener('resize', () => {
+            width = canvas.parentElement.clientWidth;
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+            initSim();
+        });
+
+        window.onload = () => { window.dispatchEvent(new Event('resize')); setMode('static'); animate(); };
+    </script>
+</body>
+</html>

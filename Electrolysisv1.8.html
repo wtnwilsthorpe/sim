@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE Electrolysis Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
+        :root {
+            --bg-main: #f8fafc;
+            --text-main: #1e293b;
+            --panel-bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --border-col: #e2e8f0;
+            --wire-col: #475569;
+        }
+
+        .dark-mode {
+            --bg-main: #0f172a;
+            --text-main: #f8fafc;
+            --panel-bg: #1e293b;
+            --card-bg: #1e293b;
+            --border-col: #334155;
+            --wire-col: #94a3b8;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-main); 
+            color: var(--text-main); 
+            transition: background-color 0.3s ease, color 0.3s ease; 
+        }
+        
+        #app {
+            background-color: var(--card-bg);
+            border-color: var(--border-col);
+        }
+
+        .sidebar {
+            background-color: var(--panel-bg);
+            border-color: var(--border-col);
+        }
+
+        .beaker-gradient { background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(200,230,255,0.3) 100%); }
+        .dark-mode .beaker-gradient { background: linear-gradient(180deg, rgba(30,41,59,0.5) 0%, rgba(51,65,85,0.8) 100%); }
+
+        .electrode { width: 24px; height: 220px; background: #334155; border-radius: 4px; position: absolute; z-index: 5; transition: background 0.3s; }
+        .dark-mode .electrode { background: #64748b; }
+
+        .ion-particle { 
+            position: absolute; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold; 
+            color: white; 
+            z-index: 50; 
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 10px;
+            transition: opacity 0.3s;
+        }
+
+        .electron { width: 6px; height: 6px; background: #fbbf24; border-radius: 50%; position: absolute; box-shadow: 0 0 5px #fbbf24; z-index: 100; pointer-events: none; }
+        
+        #wirePath { stroke: var(--wire-col); transition: stroke 0.3s; }
+        #powerRect { stroke: var(--wire-col); fill: var(--card-bg); transition: all 0.3s; }
+    </style>
+</head>
+<body class="p-4 md:p-8 h-screen flex flex-col overflow-hidden">
+    <div id="app" class="max-w-7xl mx-auto w-full h-full rounded-2xl shadow-2xl border overflow-hidden flex flex-col md:flex-row transition-all duration-300">
+        
+        <!-- Sidebar Controls -->
+        <div class="sidebar w-full md:w-80 p-6 border-b md:border-b-0 md:border-r flex flex-col gap-6 overflow-y-auto shrink-0 transition-all duration-300">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Electrolysis Lab</h1>
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-700 hover:scale-110 transition text-lg">🌓</button>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold opacity-70 mb-2">Power Supply</label>
+                <button id="powerBtn" class="w-full py-3 px-4 rounded-lg font-bold transition-all bg-red-500 text-white hover:bg-red-600 shadow-md">
+                    OFF
+                </button>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold opacity-70 mb-2">Select Substance</label>
+                <select id="substanceSelect" class="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg outline-none bg-white dark:bg-slate-800 transition-colors">
+                    <optgroup label="Molten">
+                        <option value="molten_nacl">Molten NaCl</option>
+                        <option value="molten_cucl2">Molten CuCl₂</option>
+                        <option value="molten_pbbr2">Molten PbBr₂</option>
+                        <option value="molten_mgo">Molten MgO</option>
+                    </optgroup>
+                    <optgroup label="Aqueous (in Water)">
+                        <option value="aq_nacl">Aqueous NaCl</option>
+                        <option value="aq_cucl2">Aqueous CuCl₂</option>
+                        <option value="aq_na2so4">Aqueous Na₂SO₄</option>
+                        <option value="aq_cuso4">Aqueous CuSO₄</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="zoomTo('negative')" class="w-full py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded hover:bg-blue-200 transition text-sm font-bold border border-blue-200 dark:border-blue-800">
+                    Zoom: Negative Electrode
+                </button>
+                <button onclick="zoomTo('positive')" class="w-full py-2 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded hover:bg-red-200 transition text-sm font-bold border border-red-200 dark:border-red-800">
+                    Zoom: Positive Electrode
+                </button>
+            </div>
+
+            <div class="mt-auto p-4 bg-white/50 dark:bg-black/20 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                <h3 class="font-bold mb-2 uppercase tracking-wider opacity-60">Status</h3>
+                <div id="statusText" class="opacity-80">Ready to start.</div>
+            </div>
+        </div>
+
+        <!-- Animation Area -->
+        <div class="flex-1 relative overflow-hidden transition-colors duration-300 flex flex-col" id="mainArea">
+            
+            <div id="circuit" class="absolute inset-0 pointer-events-none z-20">
+                <svg width="100%" height="100%" class="absolute top-0 left-0">
+                    <path id="wirePath" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                    <rect id="powerRect" width="100" height="50" rx="6" stroke-width="2" />
+                    <text id="powerText" text-anchor="middle" class="fill-slate-400 font-mono text-[10px] font-bold">DC POWER</text>
+                    <circle id="termLeft" r="4" class="fill-slate-600" />
+                    <circle id="termRight" r="4" class="fill-slate-600" />
+                </svg>
+                <div id="electronContainer" class="absolute inset-0"></div>
+            </div>
+
+            <div class="relative w-full h-full flex items-end justify-center pb-12">
+                <div class="relative w-[520px] h-[360px]">
+                    <div id="negElectrode" class="electrode left-20 top-[-40px]">
+                        <div class="absolute -top-12 -left-10 font-black text-blue-600 text-3xl bg-white dark:bg-slate-700 border-2 border-blue-100 dark:border-blue-900 shadow-md w-10 h-10 flex items-center justify-center rounded-lg">-</div>
+                    </div>
+                    <div id="posElectrode" class="electrode right-20 top-[-40px]">
+                        <div class="absolute -top-12 -right-10 font-black text-red-600 text-3xl bg-white dark:bg-slate-700 border-2 border-red-100 dark:border-red-900 shadow-md w-10 h-10 flex items-center justify-center rounded-lg">+</div>
+                    </div>
+                    <div class="absolute bottom-0 w-full h-[320px] border-x-4 border-b-4 border-slate-300 dark:border-slate-600 rounded-b-3xl bg-white/5 z-10 pointer-events-none"></div>
+                    <div id="electrolyteLevel" class="absolute bottom-1 w-[98%] left-[1%] h-[300px] rounded-b-[20px] beaker-gradient z-0 overflow-hidden">
+                        <div id="ionContainer" class="absolute inset-0 z-50"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zoom Modal -->
+            <div id="zoomOverlay" class="hidden absolute inset-0 bg-white dark:bg-slate-900 z-[200] p-10 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
+                <button onclick="closeZoom()" class="absolute top-6 right-6 opacity-50 hover:opacity-100 font-bold text-4xl transition-opacity">&times;</button>
+                <div id="zoomContent" class="text-center w-full max-w-4xl">
+                    <h2 id="zoomTitle" class="text-3xl font-black mb-6 uppercase tracking-tight">Electrode Analysis</h2>
+                    <div class="flex flex-col lg:flex-row justify-center items-stretch gap-8">
+                        <div id="zoomGraphicWrapper" class="w-full lg:w-48 h-72 bg-slate-100 dark:bg-slate-800 rounded-xl relative overflow-hidden shadow-inner border-2 border-slate-200 dark:border-slate-700 shrink-0">
+                             <div id="zoomElectrode" class="absolute top-0 bottom-0 w-10 bg-slate-400 dark:bg-slate-600 z-10"></div>
+                             <div id="zoomParticles" class="absolute inset-0 z-20"></div>
+                        </div>
+                        <div class="text-left bg-slate-50 dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 flex-1 shadow-lg flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 mb-3 uppercase tracking-widest">Chemical Process</h3>
+                                <p id="zoomDescription" class="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed"></p>
+                            </div>
+                            <div class="space-y-3">
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-widest">Half Equation</h3>
+                                <div class="p-5 bg-slate-900 text-green-400 rounded-xl font-mono text-center text-xl border border-slate-700 shadow-inner" id="halfEquation"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appData = {
+            molten_nacl: { pos: 'Na⁺', neg: 'Cl⁻', aq: false },
+            molten_cucl2: { pos: 'Cu²⁺', neg: 'Cl⁻', aq: false },
+            molten_pbbr2: { pos: 'Pb²⁺', neg: 'Br⁻', aq: false },
+            molten_mgo: { pos: 'Mg²⁺', neg: 'O²⁻', aq: false },
+            aq_nacl: { pos: 'Na⁺', neg: 'Cl⁻', aq: true },
+            aq_cucl2: { pos: 'Cu²⁺', neg: 'Cl⁻', aq: true },
+            aq_na2so4: { pos: 'Na⁺', neg: 'SO₄²⁻', aq: true },
+            aq_cuso4: { pos: 'Cu²⁺', neg: 'SO₄²⁻', aq: true }
+        };
+
+        let isPowerOn = false;
+        let particles = [];
+        let electrons = [];
+        let zoomInterval;
+        let wirePathPoints = {}; 
+        
+        const powerBtn = document.getElementById('powerBtn');
+        const substanceSelect = document.getElementById('substanceSelect');
+        const ionContainer = document.getElementById('ionContainer');
+        const electronContainer = document.getElementById('electronContainer');
+        const zoomOverlay = document.getElementById('zoomOverlay');
+        const themeToggle = document.getElementById('themeToggle');
+        const statusText = document.getElementById('statusText');
+
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            alignWires();
+        });
+
+        powerBtn.addEventListener('click', () => {
+            isPowerOn = !isPowerOn;
+            powerBtn.textContent = isPowerOn ? 'ON' : 'OFF';
+            powerBtn.className = isPowerOn 
+                ? 'w-full py-3 px-4 rounded-lg font-bold transition-all bg-green-500 text-white hover:bg-green-600 shadow-lg scale-105'
+                : 'w-full py-3 px-4 rounded-lg font-bold transition-all bg-red-500 text-white hover:bg-red-600 shadow-md';
+            statusText.textContent = isPowerOn ? "Ions are migrating toward electrodes." : "Power off. Thermal motion only.";
+            if (isPowerOn) startElectrons();
+        });
+
+        substanceSelect.addEventListener('change', initParticles);
+
+        function alignWires() {
+            const mainRect = document.getElementById('mainArea').getBoundingClientRect();
+            const negRect = document.getElementById('negElectrode').getBoundingClientRect();
+            const posRect = document.getElementById('posElectrode').getBoundingClientRect();
+            const x1 = negRect.left + negRect.width/2 - mainRect.left;
+            const y1 = negRect.top - mainRect.top;
+            const x2 = posRect.left + posRect.width/2 - mainRect.left;
+            const y2 = posRect.top - mainRect.top;
+            const yTop = 60; 
+            const powerX = mainRect.width / 2;
+            const pathStr = `M ${x1},${y1} L ${x1},${yTop} L ${powerX - 50},${yTop} M ${powerX + 50},${yTop} L ${x2},${yTop} L ${x2},${y2}`;
+            document.getElementById('wirePath').setAttribute('d', pathStr);
+            document.getElementById('powerRect').setAttribute('x', powerX - 50);
+            document.getElementById('powerRect').setAttribute('y', 35);
+            document.getElementById('powerText').setAttribute('x', powerX);
+            document.getElementById('powerText').setAttribute('y', 65);
+            document.getElementById('termLeft').setAttribute('cx', x1);
+            document.getElementById('termLeft').setAttribute('cy', y1);
+            document.getElementById('termRight').setAttribute('cx', x2);
+            document.getElementById('termRight').setAttribute('cy', y2);
+            wirePathPoints = { x1, y1, x2, y2, yTop, powerX };
+        }
+
+        function initParticles() {
+            particles = [];
+            ionContainer.innerHTML = '';
+            const config = appData[substanceSelect.value];
+            for(let i=0; i<15; i++) {
+                spawnParticle(config.pos, 'positive');
+                spawnParticle(config.neg, 'negative');
+            }
+            if (config.aq) {
+                for(let i=0; i<8; i++) {
+                    spawnParticle('H⁺', 'h-plus');
+                    spawnParticle('OH⁻', 'oh-minus');
+                }
+            }
+        }
+
+        function spawnParticle(symbol, type) {
+            const el = document.createElement('div');
+            el.className = `ion-particle`;
+            el.style.width = '24px';
+            el.style.height = '24px';
+            if (type === 'positive' || type === 'h-plus') {
+                el.style.backgroundColor = type === 'h-plus' ? '#7dd3fc' : '#3b82f6';
+                if (type === 'h-plus') el.style.border = '1px solid #0369a1';
+            } else {
+                el.style.backgroundColor = type === 'oh-minus' ? '#f9a8d4' : '#ef4444';
+                if (type === 'oh-minus') el.style.border = '1px solid #9d174d';
+            }
+            el.innerHTML = symbol;
+            ionContainer.appendChild(el);
+            
+            // Random target depth for "front/back" effect
+            const offset = (Math.random() - 0.5) * 30; 
+
+            particles.push({ 
+                el, type, 
+                x: Math.random() * 480 + 20, 
+                y: Math.random() * 260 + 20, 
+                vx: (Math.random()-0.5)*0.5, 
+                vy: (Math.random()-0.5)*0.5,
+                targetOffset: offset
+            });
+        }
+
+        function startElectrons() {
+            if (electrons.length > 0) return;
+            for(let i=0; i<12; i++) setTimeout(() => createElectron(), i * 200);
+        }
+
+        function createElectron() {
+            const el = document.createElement('div');
+            el.className = 'electron hidden';
+            electronContainer.appendChild(el);
+            electrons.push({ el, progress: 0 });
+        }
+
+        function update() {
+            if (isPowerOn && wirePathPoints.x1) {
+                const { x1, y1, x2, y2, yTop, powerX } = wirePathPoints;
+                const segs = [Math.abs(yTop-y2), Math.abs((powerX+50)-x2), 100, Math.abs((powerX-50)-x1), Math.abs(yTop-y1)];
+                const total = segs.reduce((a,b)=>a+b);
+                electrons.forEach(e => {
+                    e.progress += 2.5; if (e.progress > total) e.progress = 0;
+                    let c = e.progress, x, y;
+                    if (c < segs[0]) { x=x2; y=y2-c; }
+                    else if (c < segs[0]+segs[1]) { x=x2-(c-segs[0]); y=yTop; }
+                    else if (c < segs[0]+segs[1]+segs[2]) { x=(powerX+50)-(c-(segs[0]+segs[1])); y=yTop; }
+                    else if (c < segs[0]+segs[1]+segs[2]+segs[3]) { x=(powerX-50)-(c-(segs[0]+segs[1]+segs[2])); y=yTop; }
+                    else { x=x1; y=yTop+(c-(segs[0]+segs[1]+segs[2]+segs[3])); }
+                    e.el.style.left = x + 'px'; e.el.style.top = y + 'px'; e.el.style.display = 'block';
+                });
+            } else { electrons.forEach(e => e.el.style.display = 'none'); }
+
+            particles.forEach(p => {
+                const isPos = (p.type === 'positive' || p.type === 'h-plus');
+                
+                if (isPowerOn) {
+                    // Constant migration speed
+                    const targetX = (isPos ? 92 : 412) + p.targetOffset;
+                    const dx = targetX - p.x;
+                    const dist = Math.abs(dx);
+                    
+                    if (dist > 2) {
+                        p.vx = (dx / dist) * 0.8; 
+                    } else {
+                        p.vx *= 0.5; // Decelerate when "arrived" at surface
+                    }
+                    
+                    // Slow downward drift to simulate settling
+                    p.vy += 0.005;
+                    p.vy *= 0.95;
+                } else {
+                    // Random Brownian motion
+                    p.vx += (Math.random()-0.5)*0.1; 
+                    p.vy += (Math.random()-0.5)*0.1;
+                    p.vx *= 0.9; p.vy *= 0.9;
+                }
+                
+                p.x += p.vx; p.y += p.vy;
+                
+                // Beaker Constraints (No Bouncing, just soft clamping)
+                if (p.x < 10) p.x = 10; if (p.x > 500) p.x = 500;
+                if (p.y < 10) p.y = 10; if (p.y > 280) p.y = 280;
+                
+                p.el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+            });
+            requestAnimationFrame(update);
+        }
+
+        function zoomTo(type) {
+            clearInterval(zoomInterval);
+            const config = appData[substanceSelect.value];
+            const overlay = document.getElementById('zoomOverlay');
+            const title = document.getElementById('zoomTitle');
+            const desc = document.getElementById('zoomDescription');
+            const eq = document.getElementById('halfEquation');
+            const elect = document.getElementById('zoomElectrode');
+            overlay.classList.remove('hidden');
+            document.getElementById('zoomParticles').innerHTML = '';
+
+            if (type === 'negative') {
+                title.textContent = "Negative Electrode (-)";
+                title.className = "text-3xl font-black mb-6 uppercase text-blue-500";
+                elect.style.left = '0'; elect.style.right = 'auto';
+                
+                let discharging = config.pos;
+                let reaction = "";
+                let explanation = "Positive ions are attracted here. They **gain electrons** (Reduction).";
+
+                if (config.aq) {
+                    if (config.pos.includes('Na') || config.pos.includes('Mg')) {
+                        discharging = 'H⁺';
+                        explanation += ` Since ${config.pos.replace('⁺','')} is more reactive than hydrogen, **Hydrogen ions** are reduced to gas.`;
+                        reaction = `2H⁺(aq) + 2e⁻ → H₂(g)`;
+                    } else {
+                        reaction = `${config.pos}(aq) + ${config.pos.includes('2') ? '2' : ''}e⁻ → ${config.pos.replace(/[⁺\d]/g, '')}(s)`;
+                        explanation += ` Since ${config.pos.replace('⁺','')} is less reactive than hydrogen, it is reduced to metal.`;
+                    }
+                } else {
+                    reaction = `${config.pos}(l) + ${config.pos.includes('2') ? '2' : ''}e⁻ → ${config.pos.replace(/[⁺\d]/g, '')}(l/s)`;
+                }
+                eq.innerHTML = reaction; desc.innerHTML = explanation;
+                startZoomAnimation(discharging, 'blue', 'left');
+            } else {
+                title.textContent = "Positive Electrode (+)";
+                title.className = "text-3xl font-black mb-6 uppercase text-red-500";
+                elect.style.right = '0'; elect.style.left = 'auto';
+
+                let discharging = config.neg;
+                let reaction = "";
+                let explanation = "Negative ions are attracted here. They **lose electrons** (Oxidation).";
+
+                if (config.aq) {
+                    if (config.neg.includes('Cl') || config.neg.includes('Br')) {
+                        reaction = `2${config.neg}(aq) → ${config.neg.replace(/[⁻\d]/g, '')}₂(g) + 2e⁻`;
+                        explanation += " Halide ions are oxidized to form halogen gas.";
+                    } else {
+                        discharging = 'OH⁻';
+                        explanation += " Hydroxide ions are oxidized to produce oxygen gas.";
+                        reaction = `4OH⁻(aq) → O₂(g) + 2H₂O(l) + 4e⁻`;
+                    }
+                } else {
+                    if (config.neg.includes('O')) reaction = `2O²⁻(l) → O₂(g) + 4e⁻`;
+                    else reaction = `2${config.neg}(l) → ${config.neg.replace(/[⁻\d]/g, '')}₂(g) + 2e⁻`;
+                }
+                eq.innerHTML = reaction; desc.innerHTML = explanation;
+                startZoomAnimation(discharging, 'red', 'right');
+            }
+        }
+
+        function startZoomAnimation(symbol, color, side) {
+            const container = document.getElementById('zoomParticles');
+            const isLeft = side === 'left';
+            zoomInterval = setInterval(() => {
+                const ion = document.createElement('div');
+                ion.className = `absolute w-8 h-8 rounded-full bg-${color}-500 flex items-center justify-center text-white font-bold text-xs shadow-lg z-30`;
+                ion.innerText = symbol;
+                ion.style.top = Math.random() * 200 + 40 + 'px';
+                ion.style.left = isLeft ? '180px' : '-20px';
+                
+                const targetX = isLeft ? 10 : 140;
+                ion.animate([{ left: isLeft ? '180px' : '-20px', opacity: 0 }, { left: targetX + 'px', opacity: 1 }], { duration: 2000, fill: 'forwards' }).onfinish = () => {
+                    const e = document.createElement('div');
+                    e.className = 'absolute w-2 h-2 bg-yellow-400 rounded-full z-50 shadow-[0_0_5px_gold]';
+                    e.style.left = targetX + 'px';
+                    if (isLeft) {
+                        e.style.top = '-10px'; e.animate([{top: '-10px'}, {top: ion.style.top}], {duration: 600});
+                    } else {
+                        e.style.top = ion.style.top; e.animate([{top: ion.style.top}, {top: '-10px'}], {duration: 600});
+                    }
+                    container.appendChild(e);
+                    ion.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(0)' }], { duration: 800, delay: 600 }).onfinish = () => { ion.remove(); e.remove(); };
+                };
+                container.appendChild(ion);
+            }, 1200);
+        }
+
+        function closeZoom() { zoomOverlay.classList.add('hidden'); clearInterval(zoomInterval); }
+
+        window.addEventListener('resize', alignWires);
+        setTimeout(alignWires, 100);
+        initParticles();
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>
+```

@@ -1,0 +1,294 @@
+!DOCTYPE html
+html lang=en
+head
+    meta charset=UTF-8
+    meta name=viewport content=width=device-width, initial-scale=1.0
+    titleLab Filtration Beaker to Flasktitle
+    script src=httpscdn.tailwindcss.comscript
+    style
+        body { background-color #f1f5f9; font-family sans-serif; }
+        canvas { background transparent; touch-action none; }
+        .glass-glow { filter drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
+    style
+head
+body class=flex flex-col items-center justify-center min-h-screen p-4
+
+    div class=max-w-5xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col mdflex-row
+        
+        !-- Controls Sidebar --
+        div class=w-full mdw-80 p-8 bg-slate-50 border-r border-slate-200 flex flex-col space-y-6
+            div
+                h1 class=text-2xl font-black text-slate-800 leading-tightFiltration Labh1
+                p class=text-slate-500 text-sm mt-2Simulating particle separation via molecular size.p
+            div
+
+            div class=space-y-3
+                label class=text-xs font-bold text-slate-400 uppercase tracking-widestSelect Mixturelabel
+                button onclick=setMode('solution') id=btn-sol class=w-full py-3 rounded-xl font-bold transition-all bg-blue-600 text-white shadow-lg
+                    Salt Solution
+                button
+                button onclick=setMode('suspension') id=btn-sus class=w-full py-3 rounded-xl font-bold transition-all bg-white text-slate-600 border-2 border-slate-200 hoverborder-slate-400
+                    Sandy Suspension
+                button
+            div
+
+            div class=p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4
+                button onclick=pourBeaker() id=pour-btn class=w-full py-4 bg-emerald-500 hoverbg-emerald-600 text-white font-black rounded-xl shadow-md transition-all transform activescale-95
+                    POUR BEAKER
+                button
+                button onclick=resetLab() class=w-full py-2 text-slate-400 text-sm font-medium hovertext-slate-600 transition-colors
+                    Reset Apparatus
+                button
+            div
+
+            div class=bg-slate-800 rounded-2xl p-5 text-white
+                h3 class=text-xs font-bold text-slate-400 mb-3 uppercaseReal-time Analysish3
+                div class=space-y-2 text-sm
+                    div class=flex justify-betweenspan class=text-slate-400In Flask (Filtrate)span span id=count-filtrate class=font-mono text-blue-4000spandiv
+                    div class=flex justify-betweenspan class=text-slate-400On Paper (Residue)span span id=count-residue class=font-mono text-orange-4000spandiv
+                div
+            div
+        div
+
+        !-- Main Lab View --
+        div class=flex-1 relative bg-white p-4 flex items-center justify-center
+            canvas id=labCanvascanvas
+            
+            !-- Labels --
+            div class=absolute top-10 right-10 text-right pointer-events-none
+                div class=text-xs font-bold text-slate-300STEP 1 POUR MIXTUREdiv
+                div class=text-xs font-bold text-slate-300STEP 2 OBSERVE RESIDUEdiv
+            div
+        div
+    div
+
+    script
+        const canvas = document.getElementById('labCanvas');
+        const ctx = canvas.getContext('2d');
+        const countFiltrate = document.getElementById('count-filtrate');
+        const countResidue = document.getElementById('count-residue');
+
+        let particles = [];
+        let mode = 'solution'; 
+        let isPouring = false;
+        let beakerAngle = 0;
+        
+        const PORE_SIZE = 14;
+        const PARTICLE_UNIT = 5;
+        const GRAVITY = 0.18;
+
+        function resize() {
+            canvas.width = 600;
+            canvas.height = 600;
+        }
+        resize();
+
+        class Particle {
+            constructor(x, y, isLarge) {
+                this.x = x;
+                this.y = y;
+                this.isLarge = isLarge;  Large means 2x2 cluster
+                this.vx = (Math.random() - 0.5)  2;
+                this.vy = 0;
+                this.status = 'beaker';  beaker, falling, funnel, flask
+                this.color = isLarge  '#94a3b8'  '#3b82f6';
+                this.size = PARTICLE_UNIT;
+            }
+
+            update() {
+                if (this.status === 'beaker') {
+                     Stay in beaker until poured
+                    return;
+                }
+
+                this.vy += GRAVITY;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                const funnelY = 240;
+                const filterSlope = 0.8;  Triangle funnel shape
+                const centerX = canvas.width  2;
+
+                 Hit FunnelFilter Paper
+                if (this.status === 'falling' && this.y  funnelY) {
+                    const distFromCenter = Math.abs(this.x - centerX);
+                    const funnelLimit = (this.y - funnelY)  filterSlope + 40; 
+                    
+                    if (distFromCenter  80) {  Inside funnel width
+                        this.status = 'funnel';
+                    }
+                }
+
+                if (this.status === 'funnel') {
+                    const filterBottomY = 320;
+                    const poreX = Math.floor(this.x  15)  15 + 7;
+                    const isOverPore = Math.abs(this.x - poreX)  PORE_SIZE2;
+
+                     Logic for passing through filter
+                    if (this.y = filterBottomY) {
+                        if (!this.isLarge && isOverPore) {
+                            this.status = 'flask';
+                        } else {
+                             Stuck on paper
+                            this.y = filterBottomY;
+                            this.vy = 0;
+                            this.vx = 0;
+                        }
+                    } else {
+                         Sliding down the funnel sides
+                        const targetX = centerX + (this.x  centerX  5  -5);
+                        this.vx += (centerX - this.x)  0.02;
+                    }
+                }
+
+                 Flask bottom
+                if (this.status === 'flask' && this.y  520) {
+                    this.y = 520;
+                    this.vy = -0.1;
+                    this.vx = 0.9;
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                if (!this.isLarge) {
+                     Single small particle
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI  2);
+                    ctx.fill();
+                } else {
+                     2x2 Cluster
+                    const s = this.size  1.8;
+                    ctx.fillRect(this.x - s, this.y - s, s, s);
+                    ctx.fillRect(this.x, this.y - s, s, s);
+                    ctx.fillRect(this.x - s, this.y, s, s);
+                    ctx.fillRect(this.x, this.y, s, s);
+                }
+            }
+        }
+
+        function drawApparatus() {
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            const cx = canvas.width  2;
+
+             1. Conical Flask (Erlenmeyer)
+            ctx.beginPath();
+            ctx.moveTo(cx - 30, 350);
+            ctx.lineTo(cx - 30, 420);
+            ctx.lineTo(cx - 100, 540);
+            ctx.lineTo(cx + 100, 540);
+            ctx.lineTo(cx + 30, 420);
+            ctx.lineTo(cx + 30, 350);
+            ctx.stroke();
+
+             2. Funnel
+            ctx.beginPath();
+            ctx.moveTo(cx - 80, 220);
+            ctx.lineTo(cx + 80, 220);
+            ctx.lineTo(cx + 15, 330);
+            ctx.lineTo(cx + 15, 380);
+            ctx.lineTo(cx - 15, 380);
+            ctx.lineTo(cx - 15, 330);
+            ctx.closePath();
+            ctx.stroke();
+
+             3. Filter Paper (V shape inside funnel)
+            ctx.setLineDash([5, 3]);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.beginPath();
+            ctx.moveTo(cx - 70, 230);
+            ctx.lineTo(cx, 325);
+            ctx.lineTo(cx + 70, 230);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+             4. Beaker (The one we pour)
+            ctx.save();
+            ctx.translate(120, 150);
+            ctx.rotate(beakerAngle);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.beginPath();
+            ctx.moveTo(-40, -60);
+            ctx.lineTo(-40, 40);
+            ctx.lineTo(40, 40);
+            ctx.lineTo(40, -60);
+            ctx.stroke();
+             Spout
+            ctx.beginPath();
+            ctx.moveTo(35, -60);
+            ctx.lineTo(50, -65);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('btn-sol').className = mode === 'solution'  'w-full py-3 rounded-xl font-bold transition-all bg-blue-600 text-white shadow-lg'  'w-full py-3 rounded-xl font-bold transition-all bg-white text-slate-600 border-2 border-slate-200';
+            document.getElementById('btn-sus').className = mode === 'suspension'  'w-full py-3 rounded-xl font-bold transition-all bg-slate-600 text-white shadow-lg'  'w-full py-3 rounded-xl font-bold transition-all bg-white text-slate-600 border-2 border-slate-200';
+            resetLab();
+        }
+
+        function resetLab() {
+            particles = [];
+            beakerAngle = 0;
+            isPouring = false;
+            document.getElementById('pour-btn').disabled = false;
+            document.getElementById('pour-btn').innerText = POUR BEAKER;
+
+            const count = mode === 'solution'  80  40;
+            for (let i = 0; i  count; i++) {
+                particles.push(new Particle(
+                    90 + Math.random()  60,
+                    140 + Math.random()  40,
+                    mode === 'suspension'
+                ));
+            }
+        }
+
+        function pourBeaker() {
+            isPouring = true;
+            document.getElementById('pour-btn').disabled = true;
+            document.getElementById('pour-btn').innerText = POURING...;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (isPouring && beakerAngle  Math.PI  2.2) {
+                beakerAngle += 0.02;
+                 Release particles based on angle
+                particles.forEach((p, idx) = {
+                    if (p.status === 'beaker' && Math.random()  0.05) {
+                        p.status = 'falling';
+                        p.x = 160; 
+                        p.y = 120;
+                        p.vx = 1 + Math.random()  2;
+                    }
+                });
+            }
+
+            drawApparatus();
+
+            let fCount = 0;
+            let rCount = 0;
+
+            particles.forEach(p = {
+                p.update();
+                p.draw();
+                if (p.status === 'flask') fCount++;
+                if (p.status === 'funnel' && p.vy === 0) rCount++;
+            });
+
+            countFiltrate.innerText = fCount;
+            countResidue.innerText = rCount;
+
+            requestAnimationFrame(animate);
+        }
+
+        resetLab();
+        animate();
+    script
+body
+html

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon Allotropes: Graphite vs Diamond</title>
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Deep blue/navy background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        #main-container {
+            width: 100%;
+            max-width: 1200px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+        }
+        #simulations-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .sim-container {
+            width: 100%;
+            aspect-ratio: 1.5 / 1; 
+            background-color: #0f172a; 
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        @media (min-width: 768px) {
+            #simulations-wrapper {
+                flex-direction: row;
+            }
+            .sim-container {
+                width: calc(50% - 10px);
+            }
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-container">
+        <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-2">
+            The Power of Allotropes: Graphite vs Diamond
+        </h1>
+        <p class="text-center text-sm text-gray-600 mb-4">
+            Drag the simulation area to **Rotate**. Observe how bond geometry affects properties.
+        </p>
+
+        <!-- Temperature Control -->
+        <div class="flex flex-col md:flex-row justify-center items-center mb-6 p-4 bg-gray-100 rounded-lg shadow-inner">
+            <div class="w-full md:w-2/3">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="tempRange" class="font-bold text-lg text-blue-700">
+                        Shared Temperature ($\text{T}$): 
+                    </label>
+                    <span id="tempValue" class="text-xl font-mono bg-blue-100 p-2 rounded-md transition duration-150">0 K</span>
+                </div>
+                <input type="range" id="tempRange" min="0" max="4000" step="1" value="0" 
+                       class="w-full h-3 bg-blue-500 rounded-lg appearance-none cursor-pointer range-lg mt-2 transition duration-150">
+                <p class="text-xs text-center text-gray-500 mt-1">
+                    Graphite melting (layer separation) starts near 3900 K. Diamond is extremely rigid.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Simulation Panels Wrapper -->
+        <div id="simulations-wrapper">
+            
+            <!-- Graphite Panel -->
+            <div class="sim-container" id="graphite-canvas-container">
+                <div class="absolute top-2 left-2 p-2 bg-gray-800 bg-opacity-70 text-white rounded-md text-sm font-semibold">
+                    GRAPHITE ($\text{sp}^2$ Hybridization)
+                </div>
+                 <div class="absolute bottom-2 right-2 p-2 bg-gray-800 bg-opacity-70 text-white rounded-md text-xs">
+                    <p><span class="text-green-400 font-bold mr-1">&#8212;</span> Strong Covalent (In-plane)</p>
+                    <p><span class="text-yellow-400 font-bold mr-1">---</span> Weak van der Waals (Inter-layer)</p>
+                    <p><span class="inline-block w-2 h-2 bg-white rounded-full mr-1"></span> Free Electrons (Conductor)</p>
+                </div>
+            </div>
+
+            <!-- Diamond Panel -->
+            <div class="sim-container" id="diamond-canvas-container">
+                <div class="absolute top-2 left-2 p-2 bg-gray-800 bg-opacity-70 text-white rounded-md text-sm font-semibold">
+                    DIAMOND ($\text{sp}^3$ Hybridization)
+                </div>
+                <div class="absolute bottom-2 right-2 p-2 bg-gray-800 bg-opacity-70 text-white rounded-md text-xs">
+                    <p><span class="text-red-400 font-bold mr-1">&#8212;</span> Strong Covalent (Tetrahedral)</p>
+                    <p><span class="text-white font-bold mr-1">---</span> No Free Electrons (Insulator)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        
+        // Graphite Configuration
+        const G_LATTICE_WIDTH = 4; // Smaller for performance
+        const G_NUM_LAYERS = 3; 
+        const G_HEX_SPACING = 2.5; 
+        const G_LAYER_SPACING = 4.0; 
+        const G_NUM_ELECTRONS_PER_LAYER = 20;
+        const G_COVALENT_STIFFNESS = 0.08;
+        const G_VDW_ATTRACTION = 0.0005; 
+        const G_VDW_REPULSION = 0.005; 
+
+        // Diamond Configuration
+        const D_UNIT_CELLS = 2; // Number of unit cells wide
+        const D_LATTICE_PARAM = 5.0; // The 'a' parameter for the cubic cell
+        const D_BOND_STIFFNESS = 0.3; // Much stiffer than graphite
+        const D_MIN_BOND_DIST = Math.sqrt(3) / 4 * D_LATTICE_PARAM * 1.05; // Ideal bond length is 4/sqrt(3) * L.P
+
+        // Common Configuration
+        const C_RADIUS = 0.4;
+        const E_RADIUS = 0.1;
+        const DAMPING = 0.98;
+        const SIMULATION_SPEED_FACTOR = 0.005; 
+        const C_COLOR = 0x475569; // Slate/Gray (Carbon)
+        const E_COLOR = 0xffffff; // White (Electron)
+        const G_COVALENT_COLOR = 0x10b981; // Green (Graphite In-plane)
+        const D_COVALENT_COLOR = 0xf87171; // Red (Diamond Tetrahedral)
+        const VDW_COLOR = 0xf59e0b; // Amber/Yellow (Graphite Inter-layer)
+
+        // Calculate boundary size for rendering/positioning
+        const BOUNDARY_SIZE = 20; 
+
+        // --- GLOBAL STATE (THREE.JS) ---
+        let graphite = { scene: null, camera: null, renderer: null, atoms: [], electrons: [], inPlaneLines: null, interLayerLines: null };
+        let diamond = { scene: null, camera: null, renderer: null, atoms: [], inPlaneLines: null };
+        
+        let orbit = { isDragging: false, target: null, previousX: 0, previousY: 0 };
+        
+        const tempRange = document.getElementById('tempRange');
+        const tempValueDisplay = document.getElementById('tempValue');
+
+        // --- PARTICLE CLASS ---
+
+        class CarbonAtom extends THREE.Mesh {
+            constructor(x, y, z, structureType, originalNeighbors = []) {
+                super(
+                    new THREE.SphereGeometry(C_RADIUS, 16, 16),
+                    new THREE.MeshLambertMaterial({ color: C_COLOR })
+                );
+                this.originalPos = new THREE.Vector3(x, y, z);
+                this.position.set(x, y, z);
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.structureType = structureType; // 'G' or 'D'
+                this.neighbors = originalNeighbors; // References to neighboring atoms
+            }
+
+            applyForces(thermalMagnitude) {
+                let F = new THREE.Vector3(0, 0, 0);
+                const currentPos = this.position;
+                const config = this.structureType === 'G' ? 
+                    { stiffness: G_COVALENT_STIFFNESS, idealDist: G_HEX_SPACING } : 
+                    { stiffness: D_BOND_STIFFNESS, idealDist: D_MIN_BOND_DIST };
+
+                // 1. Covalent/Tetrahedral Bond (Spring Force to maintain ideal distance)
+                for (const neighbor of this.neighbors) {
+                    const dispVec = neighbor.position.clone().sub(currentPos);
+                    const currentDist = dispVec.length();
+                    
+                    const error = currentDist - config.idealDist; 
+                    const direction = dispVec.normalize();
+                    const forceMag = config.stiffness * error; 
+                    
+                    F.add(direction.multiplyScalar(forceMag));
+                }
+                
+                // 2. Graphite Specific: Inter-Layer van der Waals Forces
+                if (this.structureType === 'G') {
+                    // Attraction towards original Z-plane
+                    const zDisp = this.originalPos.z - currentPos.z;
+                    F.z += zDisp * G_VDW_ATTRACTION;
+                    
+                    // Repulsion (Soft bounds to prevent layer collapse)
+                    const layerZ = this.originalPos.z;
+                    const halfLayerDist = G_LAYER_SPACING / 2;
+                    if (currentPos.z > layerZ + halfLayerDist) {
+                        F.z -= G_VDW_REPULSION * (currentPos.z - (layerZ + halfLayerDist));
+                    }
+                    if (currentPos.z < layerZ - halfLayerDist) {
+                         F.z += G_VDW_REPULSION * ((layerZ - halfLayerDist) - currentPos.z);
+                    }
+                }
+                
+                // 3. Apply Thermal Kinetic Energy (Noise)
+                const thermalNoise = 0.008 * (thermalMagnitude * thermalMagnitude + thermalMagnitude); 
+                F.x += (Math.random() - 0.5) * thermalNoise;
+                F.y += (Math.random() - 0.5) * thermalNoise;
+                F.z += (Math.random() - 0.5) * thermalNoise;
+                
+                this.velocity.add(F);
+            }
+            
+            update() {
+                this.velocity.multiplyScalar(DAMPING);
+                const delta = this.velocity.clone().multiplyScalar(SIMULATION_SPEED_FACTOR);
+                this.position.add(delta);
+            }
+        }
+        
+        class Electron extends THREE.Mesh {
+            constructor(x, y, z, layerZ) {
+                super(
+                    new THREE.SphereGeometry(E_RADIUS, 8, 8),
+                    new THREE.MeshBasicMaterial({ color: E_COLOR })
+                );
+                this.position.set(x, y, z);
+                const baseVel = 0.08;
+                this.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * baseVel, 
+                    (Math.random() - 0.5) * baseVel, 
+                    0 
+                );
+                this.layerZ = z; 
+            }
+            
+            update() {
+                const ELECTRON_DAMPING = 0.999;
+                const ELECTRON_VELOCITY = 0.08;
+                const CONFINEMENT_SIZE = 8; // Confinement for electrons (smaller than boundary)
+
+                this.velocity.multiplyScalar(ELECTRON_DAMPING);
+                if (this.velocity.lengthSq() < (ELECTRON_VELOCITY * ELECTRON_VELOCITY * 0.5)) {
+                    const currentVel = this.velocity.clone().setZ(0).normalize();
+                    this.velocity.copy(currentVel.multiplyScalar(ELECTRON_VELOCITY));
+                }
+                
+                this.position.add(this.velocity);
+                this.position.z = this.layerZ;
+
+                // Wall reflection
+                const padding = E_RADIUS + 0.1;
+                const maxBound = CONFINEMENT_SIZE; 
+                const minBound = -CONFINEMENT_SIZE;
+
+                if (this.position.x > maxBound - padding) { this.velocity.x *= -1; this.position.x = maxBound - padding; } 
+                else if (this.position.x < minBound + padding) { this.velocity.x *= -1; this.position.x = minBound + padding; }
+
+                if (this.position.y > maxBound - padding) { this.velocity.y *= -1; this.position.y = maxBound - padding; } 
+                else if (this.position.y < minBound + padding) { this.velocity.y *= -1; this.position.y = minBound + padding; }
+            }
+        }
+        
+        // --- STRUCTURE GENERATION ---
+
+        function initGraphiteStructure() {
+            const H = G_HEX_SPACING * Math.sqrt(3) / 2; // Height of equilateral triangle in hexagon
+            const G_ATOMS = [];
+            
+            for (let layer = 0; layer < G_NUM_LAYERS; layer++) {
+                const zPos = (layer - (G_NUM_LAYERS - 1) / 2) * G_LAYER_SPACING;
+                let layerAtoms = [];
+                
+                // Create Hexagonal Grid
+                for (let i = 0; i < G_LATTICE_WIDTH; i++) {
+                    for (let j = 0; j < G_LATTICE_WIDTH; j++) {
+                        const x1 = i * G_HEX_SPACING * 1.5;
+                        const y1 = j * 2 * H + (i % 2) * H;
+                        layerAtoms.push(new CarbonAtom(x1, y1, zPos, 'G'));
+                        
+                        const x2 = x1 + G_HEX_SPACING * 0.5;
+                        const y2 = y1 + H;
+                        layerAtoms.push(new CarbonAtom(x2, y2, zPos, 'G'));
+                    }
+                }
+                
+                // Center the lattice
+                const centerX = (G_LATTICE_WIDTH * G_HEX_SPACING * 1.5) / 2;
+                const centerY = (G_LATTICE_WIDTH * 2 * H) / 2;
+                const offset = new THREE.Vector3(-centerX, -centerY, 0);
+                
+                layerAtoms.forEach(atom => {
+                    atom.position.add(offset);
+                    atom.originalPos.add(offset);
+                    G_ATOMS.push(atom);
+                    graphite.scene.add(atom);
+                });
+                
+                // Set neighbors and electrons
+                const electronBounds = BOUNDARY_SIZE * 0.4;
+                for (let k = 0; k < G_NUM_ELECTRONS_PER_LAYER; k++) {
+                    const eX = (Math.random() - 0.5) * electronBounds * 2;
+                    const eY = (Math.random() - 0.5) * electronBounds * 2;
+                    const electron = new Electron(eX, eY, zPos, zPos);
+                    graphite.electrons.push(electron);
+                    graphite.scene.add(electron);
+                }
+            }
+
+            // Find in-plane neighbors (for spring forces)
+            for (let i = 0; i < G_ATOMS.length; i++) {
+                for (let j = i + 1; j < G_ATOMS.length; j++) {
+                    const dist = G_ATOMS[i].originalPos.distanceTo(G_ATOMS[j].originalPos);
+                    // In-plane bond check (Graphite layers are far apart, so Z difference filters)
+                    if (Math.abs(G_ATOMS[i].originalPos.z - G_ATOMS[j].originalPos.z) < 0.1 && dist > 0.1 && dist < G_HEX_SPACING * 1.2) {
+                        G_ATOMS[i].neighbors.push(G_ATOMS[j]);
+                        G_ATOMS[j].neighbors.push(G_ATOMS[i]);
+                    }
+                }
+            }
+            graphite.atoms = G_ATOMS;
+        }
+        
+        function initDiamondStructure() {
+            const D_ATOMS = [];
+            const A = D_LATTICE_PARAM;
+            
+            // Define atoms in the unit cell (FCC + 4 internal atoms)
+            const unitCellPositions = [
+                // FCC lattice points
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(A / 2, A / 2, 0),
+                new THREE.Vector3(A / 2, 0, A / 2),
+                new THREE.Vector3(0, A / 2, A / 2),
+                
+                // Internal tetrahedral atoms (offset from each FCC point by (A/4, A/4, A/4))
+                new THREE.Vector3(A / 4, A / 4, A / 4),
+                new THREE.Vector3(3 * A / 4, 3 * A / 4, A / 4),
+                new THREE.Vector3(3 * A / 4, A / 4, 3 * A / 4),
+                new THREE.Vector3(A / 4, 3 * A / 4, 3 * A / 4),
+            ];
+            
+            let allDiamondPos = [];
+            for (let i = 0; i < D_UNIT_CELLS; i++) {
+                for (let j = 0; j < D_UNIT_CELLS; j++) {
+                    for (let k = 0; k < D_UNIT_CELLS; k++) {
+                        const offset = new THREE.Vector3(i * A, j * A, k * A);
+                        unitCellPositions.forEach(pos => {
+                            const newPos = pos.clone().add(offset);
+                            allDiamondPos.push(newPos);
+                        });
+                    }
+                }
+            }
+            
+            // Remove duplicates (due to shared FCC points between cells)
+            const positionsMap = new Map();
+            allDiamondPos.forEach(pos => {
+                const key = `${pos.x.toFixed(3)},${pos.y.toFixed(3)},${pos.z.toFixed(3)}`;
+                if (!positionsMap.has(key)) {
+                    positionsMap.set(key, pos);
+                }
+            });
+            
+            const centeredOffset = new THREE.Vector3(
+                -(D_UNIT_CELLS * A) / 2 + A/4,
+                -(D_UNIT_CELLS * A) / 2 + A/4,
+                -(D_UNIT_CELLS * A) / 2 + A/4
+            );
+
+            positionsMap.forEach(pos => {
+                const atom = new CarbonAtom(pos.x + centeredOffset.x, pos.y + centeredOffset.y, pos.z + centeredOffset.z, 'D');
+                D_ATOMS.push(atom);
+                diamond.scene.add(atom);
+            });
+            
+            // Find tetrahedral neighbors (4 neighbors at D_MIN_BOND_DIST)
+            for (let i = 0; i < D_ATOMS.length; i++) {
+                for (let j = i + 1; j < D_ATOMS.length; j++) {
+                    const dist = D_ATOMS[i].originalPos.distanceTo(D_ATOMS[j].originalPos);
+                    // Check for bond length within a small tolerance (1.1 * min ideal dist)
+                    if (dist > 0.1 && dist < D_MIN_BOND_DIST * 1.1) {
+                        if (D_ATOMS[i].neighbors.length < 4) D_ATOMS[i].neighbors.push(D_ATOMS[j]);
+                        if (D_ATOMS[j].neighbors.length < 4) D_ATOMS[j].neighbors.push(D_ATOMS[i]);
+                    }
+                }
+            }
+            diamond.atoms = D_ATOMS;
+        }
+
+        // --- DRAWING LINES (BONDS) ---
+
+        function drawGraphiteBonds() {
+            if (graphite.inPlaneLines) graphite.scene.remove(graphite.inPlaneLines);
+            if (graphite.interLayerLines) graphite.scene.remove(graphite.interLayerLines);
+
+            const inPlanePoints = [];
+            const interLayerPoints = [];
+            
+            for (let i = 0; i < graphite.atoms.length; i++) {
+                const p1 = graphite.atoms[i];
+                
+                // 1. In-Plane Covalent Bonds
+                for (const neighbor of p1.neighbors) {
+                    if (p1.uuid < neighbor.uuid) { 
+                        inPlanePoints.push(p1.position.clone());
+                        inPlanePoints.push(neighbor.position.clone());
+                    }
+                }
+
+                // 2. Inter-Layer van der Waals Forces (Weak connection to closest atom in next layer)
+                if (p1.originalPos.z < graphite.atoms[graphite.atoms.length - 1].originalPos.z) {
+                    let closestAtom = null;
+                    let minDistanceSq = Infinity;
+                    
+                    for (let j = 0; j < graphite.atoms.length; j++) {
+                        const p2 = graphite.atoms[j];
+                        // Find atoms in the next layer, approximately LAYER_SPACING away
+                        if (p2.originalPos.z > p1.originalPos.z + G_LAYER_SPACING - 0.5 && p2.originalPos.z < p1.originalPos.z + G_LAYER_SPACING + 0.5) {
+                            const distSq = p1.position.distanceToSquared(p2.position);
+                            if (distSq < minDistanceSq) {
+                                minDistanceSq = distSq;
+                                closestAtom = p2;
+                            }
+                        }
+                    }
+                    
+                    if (closestAtom && Math.sqrt(minDistanceSq) < G_LAYER_SPACING * 1.5) {
+                        interLayerPoints.push(p1.position.clone());
+                        interLayerPoints.push(closestAtom.position.clone());
+                    }
+                }
+            }
+
+            // In-Plane Lines (Solid, Green)
+            if (inPlanePoints.length > 0) {
+                const geometry = new THREE.BufferGeometry().setFromPoints(inPlanePoints);
+                const material = new THREE.LineBasicMaterial({ color: G_COVALENT_COLOR, linewidth: 2 });
+                graphite.inPlaneLines = new THREE.LineSegments(geometry, material);
+                graphite.scene.add(graphite.inPlaneLines);
+            }
+            
+            // Inter-Layer Lines (Dashed, Yellow)
+            if (interLayerPoints.length > 0) {
+                const geometry = new THREE.BufferGeometry().setFromPoints(interLayerPoints);
+                const material = new THREE.LineDashedMaterial({
+                    color: VDW_COLOR,
+                    linewidth: 1,
+                    scale: 1,
+                    dashSize: 0.2,
+                    gapSize: 0.3,
+                });
+                graphite.interLayerLines = new THREE.LineSegments(geometry, material);
+                graphite.interLayerLines.computeLineDistances(); 
+                graphite.scene.add(graphite.interLayerLines);
+            }
+        }
+
+        function drawDiamondBonds() {
+            if (diamond.inPlaneLines) diamond.scene.remove(diamond.inPlaneLines);
+
+            const points = [];
+            for (const atom of diamond.atoms) {
+                for (const neighbor of atom.neighbors) {
+                    if (atom.uuid < neighbor.uuid) { 
+                        points.push(atom.position.clone());
+                        points.push(neighbor.position.clone());
+                    }
+                }
+            }
+
+            if (points.length > 0) {
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ color: D_COVALENT_COLOR, linewidth: 3 });
+                diamond.inPlaneLines = new THREE.LineSegments(geometry, material);
+                diamond.scene.add(diamond.inPlaneLines);
+            }
+        }
+
+        // --- THREE.JS INITIALIZATION ---
+
+        function setupScene(containerId, simObject) {
+            const container = document.getElementById(containerId);
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            simObject.scene = new THREE.Scene();
+            simObject.scene.background = new THREE.Color(0x0f172a); 
+
+            simObject.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
+            simObject.camera.position.z = BOUNDARY_SIZE * 0.7; 
+            simObject.camera.position.y = BOUNDARY_SIZE * 0.1; 
+
+            simObject.renderer = new THREE.WebGLRenderer({ antialias: true });
+            simObject.renderer.setSize(width, height);
+            container.appendChild(simObject.renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); 
+            simObject.scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            directionalLight.position.set(5, 10, 7.5);
+            simObject.scene.add(directionalLight);
+        }
+
+        function init3D() {
+            setupScene('graphite-canvas-container', graphite);
+            initGraphiteStructure();
+
+            setupScene('diamond-canvas-container', diamond);
+            initDiamondStructure();
+
+            setupInteraction();
+            window.addEventListener('resize', onWindowResize, false);
+        }
+        
+        // --- ANIMATION LOOPS ---
+        
+        function animateGraphite(thermalMagnitude) {
+            // Update Carbon Atoms (Structure and Vibration)
+            for (const atom of graphite.atoms) {
+                atom.applyForces(thermalMagnitude);
+            }
+            for (const atom of graphite.atoms) {
+                atom.update();
+            }
+
+            // Update Electrons (Fast Movement)
+            for (const electron of graphite.electrons) {
+                electron.update();
+            }
+
+            drawGraphiteBonds();
+            graphite.renderer.render(graphite.scene, graphite.camera);
+        }
+
+        function animateDiamond(thermalMagnitude) {
+            // Update Carbon Atoms (Structure and Vibration)
+            for (const atom of diamond.atoms) {
+                atom.applyForces(thermalMagnitude);
+            }
+            for (const atom of diamond.atoms) {
+                atom.update();
+            }
+            
+            drawDiamondBonds();
+            diamond.renderer.render(diamond.scene, diamond.camera);
+        }
+
+        function animate() {
+            const tempK = parseFloat(tempRange.value);
+            const thermalMagnitude = tempK / parseInt(tempRange.max); 
+            
+            tempValueDisplay.textContent = `${tempK} K`;
+
+            animateGraphite(thermalMagnitude);
+            animateDiamond(thermalMagnitude);
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- INTERACTION & RESIZE ---
+
+        function setupInteraction() {
+            const containerG = document.getElementById('graphite-canvas-container');
+            const containerD = document.getElementById('diamond-canvas-container');
+
+            function handleMouseDown(e, targetScene) {
+                orbit.isDragging = true;
+                orbit.target = targetScene;
+                orbit.previousX = e.clientX;
+                orbit.previousY = e.clientY;
+            }
+
+            containerG.addEventListener('mousedown', (e) => handleMouseDown(e, graphite.scene));
+            containerD.addEventListener('mousedown', (e) => handleMouseDown(e, diamond.scene));
+
+            window.addEventListener('mouseup', () => {
+                orbit.isDragging = false;
+                orbit.target = null;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!orbit.isDragging || !orbit.target) return;
+
+                const deltaX = e.clientX - orbit.previousX;
+                const deltaY = e.clientY - orbit.previousY;
+
+                const rotationFactor = 0.008;
+
+                // Rotate the targeted scene object
+                orbit.target.rotation.y += deltaX * rotationFactor;
+                orbit.target.rotation.x += deltaY * rotationFactor;
+
+                orbit.previousX = e.clientX;
+                orbit.previousY = e.clientY;
+            });
+        }
+        
+        function onWindowResize() {
+            const containerG = document.getElementById('graphite-canvas-container');
+            const containerD = document.getElementById('diamond-canvas-container');
+
+            // Handle Graphite
+            const widthG = containerG.clientWidth;
+            const heightG = containerG.clientHeight;
+            graphite.camera.aspect = widthG / heightG;
+            graphite.camera.updateProjectionMatrix();
+            graphite.renderer.setSize(widthG, heightG);
+
+            // Handle Diamond
+            const widthD = containerD.clientWidth;
+            const heightD = containerD.clientHeight;
+            diamond.camera.aspect = widthD / heightD;
+            diamond.camera.updateProjectionMatrix();
+            diamond.renderer.setSize(widthD, heightD);
+        }
+
+        // --- INITIALIZATION START ---
+        
+        window.onload = function () {
+            init3D();
+            
+            tempRange.addEventListener('input', () => {
+                // Smoothly return atoms to original position when cooling down
+                if (parseInt(tempRange.value) < 500) {
+                     [...graphite.atoms, ...diamond.atoms].forEach(atom => {
+                        atom.position.lerp(atom.originalPos, 0.05);
+                     });
+                }
+            });
+            
+            tempValueDisplay.textContent = `${tempRange.value} K`;
+            animate();
+        }
+    </script>
+</body>
+</html>

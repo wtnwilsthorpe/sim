@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Light Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: #020617; 
+            color: #ffffff; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        
+        .light-beam {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            filter: blur(50px);
+            mix-blend-mode: screen;
+            pointer-events: none;
+            z-index: 20; 
+            transition: opacity 0.1s ease;
+        }
+
+        #subject {
+            width: 240px;
+            height: 240px;
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            animation: morph 6s infinite alternate ease-in-out; /* Increased speed and scale in keyframes */
+            z-index: 10; 
+            position: relative;
+            transition: background-color 0.1s ease;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+
+        @keyframes morph {
+            0% { 
+                border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; 
+                transform: scale(0.9) rotate(-10deg) translate(-10px, -10px); 
+            }
+            50% {
+                border-radius: 50% 50% 20% 80% / 25% 80% 20% 75%;
+                transform: scale(1.1) rotate(5deg) translate(15px, 5px);
+            }
+            100% { 
+                border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; 
+                transform: scale(1) rotate(15deg) translate(-5px, 20px); 
+            }
+        }
+
+        .control-panel {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 50;
+        }
+
+        .drag-handle {
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 50%;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 60;
+            transform: translate(-50%, -50%);
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .drag-handle:hover { border-color: white; background: rgba(255,255,255,0.1); }
+        .drag-handle::after { content: '✥'; color: white; opacity: 0.5; font-size: 20px; }
+
+        .swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+        }
+        .swatch.active { border-color: white; transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+
+        input[type=range] {
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <div id="play-area" class="relative flex-grow flex items-center justify-center overflow-hidden">
+        <!-- The Blob (Subject) -->
+        <div id="subject" style="display: none;"></div>
+        
+        <!-- Light Beams -->
+        <div id="beam-red" class="light-beam" style="background: radial-gradient(circle, #ff0000 0%, transparent 70%);"></div>
+        <div id="beam-green" class="light-beam" style="background: radial-gradient(circle, #00ff00 0%, transparent 70%);"></div>
+        <div id="beam-blue" class="light-beam" style="background: radial-gradient(circle, #0000ff 0%, transparent 70%);"></div>
+
+        <!-- Interactive Handles -->
+        <div id="handle-red" class="drag-handle" style="top: 15%; left: 15%;"></div>
+        <div id="handle-green" class="drag-handle" style="top: 15%; left: 85%;"></div>
+        <div id="handle-blue" class="drag-handle" style="top: 85%; left: 50%;"></div>
+    </div>
+
+    <div class="control-panel p-6">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 items-center gap-8">
+            
+            <!-- Blob Controls -->
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleBlob()" id="toggle-btn" class="whitespace-nowrap px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
+                        <span id="eye-icon">👁️‍🗨️</span> Show Blob
+                    </button>
+                    <div class="flex flex-wrap gap-1.5 bg-slate-900/50 p-1.5 rounded-xl max-w-[180px]">
+                        <button onclick="setBaseColor('white', this)" class="swatch bg-white active" title="White"></button>
+                        <button onclick="setBaseColor('red', this)" class="swatch bg-red-600" title="Red"></button>
+                        <button onclick="setBaseColor('green', this)" class="swatch bg-green-600" title="Green"></button>
+                        <button onclick="setBaseColor('blue', this)" class="swatch bg-blue-600" title="Blue"></button>
+                        <button onclick="setBaseColor('cyan', this)" class="swatch bg-cyan-400" title="Cyan"></button>
+                        <button onclick="setBaseColor('magenta', this)" class="swatch bg-magenta-500" style="background-color: #ff00ff;" title="Magenta"></button>
+                        <button onclick="setBaseColor('yellow', this)" class="swatch bg-yellow-400" title="Yellow"></button>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Surface Reflectivity (Blob Brightness)</label>
+                    <input type="range" id="blob-brightness" min="0" max="1" step="0.01" value="1" oninput="updateSimulation()">
+                </div>
+            </div>
+
+            <!-- Global Light Controls -->
+            <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Spotlight Intensity</label>
+                    <input type="range" id="light-intensity" min="0" max="1" step="0.01" value="0.8" oninput="updateSimulation()">
+                </div>
+            </div>
+
+            <!-- Labels -->
+            <div class="text-right hidden md:block">
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Physics Simulation</p>
+                <p class="text-slate-300 text-sm">Light Addition & Surface Absorption</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const subject = document.getElementById('subject');
+        const playArea = document.getElementById('play-area');
+        const lightIntensitySlider = document.getElementById('light-intensity');
+        const blobBrightnessSlider = document.getElementById('blob-brightness');
+        
+        let draggingHandle = null;
+        let blobVisible = false;
+        let baseColor = { r: 255, g: 255, b: 255 };
+
+        const state = {
+            red: { x: 15, y: 15 },
+            green: { x: 85, y: 15 },
+            blue: { x: 50, y: 85 }
+        };
+
+        const colorMap = {
+            white: { r: 255, g: 255, b: 255 },
+            red: { r: 255, g: 0, b: 0 },
+            green: { r: 0, g: 255, b: 0 },
+            blue: { r: 0, g: 0, b: 255 },
+            cyan: { r: 0, g: 255, b: 255 },
+            magenta: { r: 255, g: 0, b: 255 },
+            yellow: { r: 255, g: 255, b: 0 }
+        };
+
+        function updateSimulation() {
+            const rect = playArea.getBoundingClientRect();
+            const blobRect = subject.getBoundingClientRect();
+            const blobCenterX = blobRect.left + blobRect.width / 2;
+            const blobCenterY = blobRect.top + blobRect.height / 2;
+
+            const globalIntensity = parseFloat(lightIntensitySlider.value);
+            const reflectivity = parseFloat(blobBrightnessSlider.value);
+
+            let incomingLight = { r: 0, g: 0, b: 0 };
+
+            Object.keys(state).forEach(color => {
+                const handle = document.getElementById(`handle-${color}`);
+                const beam = document.getElementById(`beam-${color}`);
+                
+                handle.style.left = `${state[color].x}%`;
+                handle.style.top = `${state[color].y}%`;
+                beam.style.left = `calc(${state[color].x}% - 200px)`;
+                beam.style.top = `calc(${state[color].y}% - 200px)`;
+                beam.style.opacity = globalIntensity;
+
+                const beamX = (state[color].x / 100) * rect.width + rect.left;
+                const beamY = (state[color].y / 100) * rect.height + rect.top;
+                
+                const dist = Math.sqrt(Math.pow(beamX - blobCenterX, 2) + Math.pow(beamY - blobCenterY, 2));
+                
+                const reach = 220 * (0.5 + globalIntensity * 0.5);
+                const intensity = Math.max(0, 1 - (dist / reach)) * globalIntensity; 
+                
+                if (color === 'red') incomingLight.r = 255 * intensity;
+                if (color === 'green') incomingLight.g = 255 * intensity;
+                if (color === 'blue') incomingLight.b = 255 * intensity;
+            });
+
+            const finalR = Math.round((baseColor.r / 255) * incomingLight.r * reflectivity);
+            const finalG = Math.round((baseColor.g / 255) * incomingLight.g * reflectivity);
+            const finalB = Math.round((baseColor.b / 255) * incomingLight.b * reflectivity);
+
+            subject.style.backgroundColor = `rgb(${finalR}, ${finalG}, ${finalB})`;
+        }
+
+        function toggleBlob() {
+            blobVisible = !blobVisible;
+            subject.style.display = blobVisible ? 'block' : 'none';
+            document.getElementById('toggle-btn').innerHTML = blobVisible ? '🚫 Hide Blob' : '👁️‍🗨️ Show Blob';
+            updateSimulation();
+        }
+
+        function setBaseColor(name, el) {
+            baseColor = colorMap[name];
+            document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            if(!blobVisible) toggleBlob();
+            updateSimulation();
+        }
+
+        function handleStart(e, color) {
+            draggingHandle = color;
+            e.preventDefault();
+        }
+
+        ['red', 'green', 'blue'].forEach(color => {
+            const handle = document.getElementById(`handle-${color}`);
+            handle.addEventListener('mousedown', (e) => handleStart(e, color));
+            handle.addEventListener('touchstart', (e) => handleStart(e, color), { passive: false });
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!draggingHandle) return;
+            const rect = playArea.getBoundingClientRect();
+            state[draggingHandle].x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+            state[draggingHandle].y = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
+            updateSimulation();
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!draggingHandle) return;
+            const rect = playArea.getBoundingClientRect();
+            const touch = e.touches[0];
+            state[draggingHandle].x = Math.max(5, Math.min(95, ((touch.clientX - rect.left) / rect.width) * 100));
+            state[draggingHandle].y = Math.max(5, Math.min(95, ((touch.clientY - rect.top) / rect.height) * 100));
+            updateSimulation();
+        }, { passive: false });
+
+        window.addEventListener('mouseup', () => draggingHandle = null);
+        window.addEventListener('touchend', () => draggingHandle = null);
+
+        updateSimulation();
+        // Constant update loop for smooth morphing physics interaction
+        setInterval(updateSimulation, 30);
+    </script>
+</body>
+</html>

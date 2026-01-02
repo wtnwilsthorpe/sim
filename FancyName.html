@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Grand Name Flourisher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Bungee+Shade&family=Monoton&family=Pacifico&family=Orbitron:wght@900&family=Playfair+Display:ital,wght@1,900&family=Righteous&family=Rubik+Glitch&family=UnifrakturMaguntia&family=Creepster&family=Lobster&family=Staatliches&family=Permanent+Marker&family=Fascinate+Inline&family=Megrim&family=Silkscreen&family=Special+Elite&family=Abril+Fatface&family=Bebas+Neue&family=Comfortaa:wght@700&family=Press+Start+2P&family=Shadows+Into+Light&family=Zilla+Slab+Highlight:wght@700&family=Ultra&family=Alumni+Sans+Inline+One&family=Kablammo&family=Nabla&family=Honk&family=Bungee+Spice&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-color: #050505; }
+        body { background-color: var(--bg-color); color: white; overflow: hidden; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; margin: 0; }
+        #canvas-container { position: relative; width: 100%; height: 70vh; display: flex; align-items: center; justify-content: center; overflow: visible; }
+        .name-display { font-size: 7rem; text-align: center; transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none; z-index: 10; opacity: 0; transform: scale(0.8) translateY(50px); filter: blur(10px); }
+        .name-display.active { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
+        #particle-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .input-wrapper { position: fixed; bottom: 60px; z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); padding: 18px 40px; border-radius: 100px; color: white; font-size: 1.4rem; outline: none; width: 350px; text-align: center; backdrop-filter: blur(12px); transition: all 0.4s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input:focus { width: 450px; border-color: rgba(255,255,255,0.5); background: rgba(255, 255, 255, 0.1); }
+        .hint { color: rgba(255,255,255,0.4); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* 30 DETAILED STYLES */
+        .s0 { font-family: 'Dancing Script'; color: #ff007f; text-shadow: 0 0 20px #ff007f; }
+        .s1 { font-family: 'Bungee Shade'; color: #00ffcc; filter: drop-shadow(4px 4px #ff00ff); }
+        .s2 { font-family: 'Monoton'; color: #fff; text-shadow: 0 0 10px #00f, 0 0 20px #00f; }
+        .s3 { font-family: 'Pacifico'; background: linear-gradient(45deg, #f09, #3023ae); -webkit-background-clip: text; color: transparent; }
+        .s4 { font-family: 'Orbitron'; color: #0ff; text-shadow: 0 0 30px #0ff; letter-spacing: 15px; }
+        .s5 { font-family: 'Playfair Display'; font-style: italic; color: #d4af37; text-shadow: 2px 2px 0px #5e4d1d; }
+        .s6 { font-family: 'Righteous'; color: #ff4500; animation: shake 0.5s infinite; }
+        .s7 { font-family: 'Rubik Glitch'; color: #fff; text-shadow: 3px 0 red, -3px 0 blue; }
+        .s8 { font-family: 'UnifrakturMaguntia'; color: #eee; border-bottom: 4px double #eee; }
+        .s9 { font-family: 'Creepster'; color: #39ff14; filter: url(#goo); }
+        .s10 { font-family: 'Lobster'; color: #ff5722; text-shadow: 5px 5px 0 #263238; }
+        .s11 { font-family: 'Staatliches'; -webkit-text-stroke: 2px white; color: transparent; letter-spacing: 5px; }
+        .s12 { font-family: 'Permanent Marker'; color: #fff; transform: rotate(-3deg) scale(1.1); }
+        .s13 { font-family: 'Fascinate Inline'; color: #e91e63; }
+        .s14 { font-family: 'Megrim'; color: #00e5ff; font-weight: 100; }
+        .s15 { font-family: 'Silkscreen'; color: #32cd32; text-transform: uppercase; letter-spacing: -2px; }
+        .s16 { font-family: 'Special Elite'; color: #aaa; background: rgba(255,255,255,0.1); padding: 0 20px; }
+        .s17 { font-family: 'Abril Fatface'; color: #fff; border-left: 20px solid #fff; padding-left: 20px; }
+        .s18 { font-family: 'Bebas Neue'; color: #fff; background: #ff0000; padding: 0 30px; line-height: 1; }
+        .s19 { font-family: 'Comfortaa'; color: #ff80ab; filter: drop-shadow(0 0 15px #ff80ab); }
+        .s20 { font-family: 'Press Start 2P'; color: #ffff00; font-size: 3rem; line-height: 1.5; }
+        .s21 { font-family: 'Shadows Into Light'; color: #fff; text-decoration: underline wavy #00ffcc; }
+        .s22 { font-family: 'Zilla Slab Highlight'; color: #000; background: #fff; }
+        .s23 { font-family: 'Ultra'; color: #444; text-shadow: 1px 1px white, -1px -1px #111; }
+        .s24 { font-family: 'Alumni Sans Inline One'; color: #fff; transform: skewX(-20deg); font-size: 10rem; }
+        .s25 { font-family: 'Kablammo'; color: #ff00ff; }
+        .s26 { font-family: 'Nabla'; font-size: 9rem; } /* Special Color Font */
+        .s27 { font-family: 'Honk'; font-size: 9rem; }  /* Special Color Font */
+        .s28 { font-family: 'Bungee Spice'; font-size: 8rem; } /* Special Color Font */
+        .s29 { font-family: 'Orbitron'; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.3); animation: float 4s infinite ease-in-out; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="particle-canvas"></canvas>
+        <div id="name-target" class="name-display"></div>
+    </div>
+
+    <div class="input-wrapper">
+        <input type="text" id="name-input" placeholder="Type name & hit Enter" autocomplete="off" maxlength="25">
+        <span class="hint">Press Enter to flourish</span>
+    </div>
+
+    <svg style="display:none"><filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" /><feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" /><feBlend in="SourceGraphic" in2="goo" /></filter></svg>
+
+    <script>
+        const input = document.getElementById('name-input');
+        const target = document.getElementById('name-target');
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let particles = [];
+        let animationId;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 6 + 2;
+                this.speedX = (Math.random() - 0.5) * 15;
+                this.speedY = (Math.random() - 0.5) * 15;
+                this.life = 1;
+                this.decay = Math.random() * 0.015 + 0.005;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.speedY += 0.1; // Gravity
+                this.life -= this.decay;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Deterministic Hash Function
+        function getStyleFromName(str) {
+            let hash = 0;
+            const cleanStr = str.trim().toLowerCase();
+            for (let i = 0; i < cleanStr.length; i++) {
+                hash = cleanStr.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return Math.abs(hash) % 30; // 30 Styles
+        }
+
+        function triggerFlourish() {
+            const val = input.value.trim();
+            if (!val) return;
+
+            const styleId = getStyleFromName(val);
+            
+            // Reset target
+            target.classList.remove('active');
+            
+            setTimeout(() => {
+                target.innerText = val;
+                target.className = `name-display active s${styleId}`;
+                
+                // Spawn bursts based on name length
+                const colors = ['#fff', '#0ff', '#f0f', '#ff0', '#0f0'];
+                for(let b = 0; b < 3; b++) {
+                    setTimeout(() => {
+                        for (let i = 0; i < 40; i++) {
+                            particles.push(new Particle(
+                                window.innerWidth / 2 + (Math.random() - 0.5) * 200,
+                                window.innerHeight / 2 - 50,
+                                colors[Math.floor(Math.random() * colors.length)]
+                            ));
+                        }
+                    }, b * 100);
+                }
+            }, 100);
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                triggerFlourish();
+            }
+        });
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+        input.focus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Wave Laboratory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --accent: #38bdf8;
+            --border: #334155;
+        }
+        .light-mode {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --accent: #0284c7;
+            --border: #e2e8f0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+        }
+        canvas {
+            border-radius: 1rem;
+            background: rgba(0,0,0,0.2);
+            width: 100%;
+            height: 200px;
+        }
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .btn-active {
+            background-color: var(--accent) !important;
+            color: white !important;
+            box-shadow: 0 0 15px var(--accent);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col items-center">
+
+    <div class="max-w-4xl w-full space-y-6">
+        <header class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black tracking-tighter uppercase">Wave Physics</h1>
+                <p class="text-xs uppercase tracking-widest opacity-60">Adjustable Wavelength & Pitch</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="themeToggle" class="p-3 rounded-xl bg-slate-800 text-white border border-slate-700 hover:scale-105 transition-transform">
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Visualization Areas -->
+        <div class="grid grid-cols-1 gap-6">
+            <!-- Transverse -->
+            <div class="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border)] shadow-xl">
+                <div class="flex justify-between items-end mb-2">
+                    <h3 class="text-sm font-bold uppercase opacity-70">Transverse Wave</h3>
+                    <span class="text-[10px] font-mono">Displacement is Perpendicular</span>
+                </div>
+                <canvas id="transverseCanvas"></canvas>
+            </div>
+
+            <!-- Longitudinal -->
+            <div class="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border)] shadow-xl">
+                <div class="flex justify-between items-end mb-2">
+                    <h3 class="text-sm font-bold uppercase opacity-70">Longitudinal (Sound)</h3>
+                    <span class="text-[10px] font-mono">Displacement is Parallel</span>
+                </div>
+                <canvas id="longitudinalCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--border)] shadow-2xl grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs font-bold uppercase">
+                    <label>Frequency</label>
+                    <span id="freqVal">100 Hz</span>
+                </div>
+                <input type="range" id="freqSlider" min="100" max="2000" value="100" class="w-full h-2 bg-slate-700 rounded-lg appearance-none slider-thumb">
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs font-bold uppercase">
+                    <label>Amplitude</label>
+                    <span id="ampVal">50%</span>
+                </div>
+                <input type="range" id="ampSlider" min="0" max="100" value="50" class="w-full h-2 bg-slate-700 rounded-lg appearance-none slider-thumb">
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <button id="audioToggle" class="w-full py-4 rounded-2xl bg-slate-700 font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-3">
+                    <span id="speakerIcon">🔈</span>
+                    <span id="audioText">Play Sound</span>
+                </button>
+                <p class="text-[9px] text-center opacity-50 uppercase">Web Audio API Sine Wave</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let isDarkMode = true;
+        let isPlaying = false;
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+        
+        const tCanvas = document.getElementById('transverseCanvas');
+        const lCanvas = document.getElementById('longitudinalCanvas');
+        const tCtx = tCanvas.getContext('2d');
+        const lCtx = lCanvas.getContext('2d');
+        
+        const freqSlider = document.getElementById('freqSlider');
+        const ampSlider = document.getElementById('ampSlider');
+        const freqLabel = document.getElementById('freqVal');
+        const ampLabel = document.getElementById('ampVal');
+        
+        let phase = 0;
+        const numParticles = 80;
+
+        function resize() {
+            [tCanvas, lCanvas].forEach(c => {
+                c.width = c.offsetWidth * window.devicePixelRatio;
+                c.height = c.offsetHeight * window.devicePixelRatio;
+            });
+        }
+        window.onresize = resize;
+        resize();
+
+        // Theme Toggle
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('light-mode', !isDarkMode);
+            document.getElementById('themeIcon').innerText = isDarkMode ? "🌙" : "☀️";
+        });
+
+        // Audio Logic
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            oscillator.start();
+        }
+
+        document.getElementById('audioToggle').addEventListener('click', function() {
+            if (!audioCtx) initAudio();
+            
+            isPlaying = !isPlaying;
+            this.classList.toggle('btn-active', isPlaying);
+            document.getElementById('audioText').innerText = isPlaying ? "Mute Sound" : "Play Sound";
+            document.getElementById('speakerIcon').innerText = isPlaying ? "🔊" : "🔈";
+            
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const targetGain = isPlaying ? (ampSlider.value / 250) : 0;
+            gainNode.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.05);
+        });
+
+        function updateAudioParams() {
+            if (!oscillator || !gainNode) return;
+            oscillator.frequency.setTargetAtTime(parseFloat(freqSlider.value), audioCtx.currentTime, 0.05);
+            if (isPlaying) {
+                gainNode.gain.setTargetAtTime(ampSlider.value / 250, audioCtx.currentTime, 0.05);
+            }
+        }
+
+        function draw() {
+            const f = parseFloat(freqSlider.value);
+            const a = parseFloat(ampSlider.value);
+            freqLabel.innerText = `${f} Hz`;
+            ampLabel.innerText = `${a}%`;
+            
+            updateAudioParams();
+
+            const accentColor = getComputedStyle(document.body).getPropertyValue('--accent');
+            
+            // MATH ADJUSTMENTS FOR LONGER WAVELENGTH
+            // Decreased the frequency coefficient in visual space. 
+            // Previous was f / 1500, now f / 4500 (3x reduction in spatial frequency = 3x increase in wavelength)
+            const spatialFreq = f / 4500;
+            const visualAmp = (a / 100) * (tCanvas.height * 0.4);
+            const lVisualAmp = (a / 100) * (lCanvas.width * 0.08);
+
+            // --- Transverse Drawing ---
+            tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+            tCtx.beginPath();
+            tCtx.strokeStyle = accentColor;
+            tCtx.lineWidth = 4;
+            
+            const centerY = tCanvas.height / 2;
+
+            for (let x = 0; x < tCanvas.width; x++) {
+                const y = centerY + Math.sin(x * spatialFreq - phase) * visualAmp;
+                if (x === 0) tCtx.moveTo(x, y);
+                else tCtx.lineTo(x, y);
+            }
+            tCtx.stroke();
+
+            // --- Longitudinal Drawing ---
+            lCtx.clearRect(0, 0, lCanvas.width, lCanvas.height);
+            const lCenterY = lCanvas.height / 2;
+
+            for (let i = 0; i < numParticles; i++) {
+                const baseX = (i / (numParticles - 1)) * lCanvas.width;
+                const displacement = Math.sin(baseX * spatialFreq - phase) * lVisualAmp;
+                const x = baseX + displacement;
+                
+                // Color molecules based on density
+                // Using the derivative (cosine) to find compression points
+                const density = Math.cos(baseX * spatialFreq - phase);
+                const alpha = 0.3 + (density + 1) * 0.35; 
+                
+                lCtx.fillStyle = accentColor;
+                lCtx.globalAlpha = alpha;
+                lCtx.beginPath();
+                lCtx.arc(x, lCenterY, 5, 0, Math.PI * 2);
+                lCtx.fill();
+            }
+            lCtx.globalAlpha = 1.0;
+
+            // Update phase relative to frequency to simulate wave speed (v = f * lambda)
+            // Since lambda is constant visually relative to slider f, we step phase by f
+            phase += (f / 1000) * 0.8; 
+            requestAnimationFrame(draw);
+        }
+
+        requestAnimationFrame(draw);
+    </script>
+</body>
+</html>

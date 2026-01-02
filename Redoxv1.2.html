@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ion Formation & Molecular Reversion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #080a0f; color: #f8fafc; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+        canvas { display: block; touch-action: none; cursor: crosshair; }
+        .controls-panel { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px); }
+        select option { background: #0f172a; }
+        .equation-text { font-variant-numeric: tabular-nums; text-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen">
+
+    <div class="w-full max-w-5xl p-4 md:p-8 flex flex-col items-center">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-black mb-2 bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">Bohr Redox Laboratory</h1>
+            <p class="text-slate-400">Observe molecular overlap and ionic separation in redox processes.</p>
+        </header>
+
+        <div class="controls-panel w-full p-6 rounded-3xl border border-slate-800 shadow-2xl mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Select Reaction Type</label>
+                    <select id="equationSelect" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        <optgroup label="Oxidation (Loss of e⁻)">
+                            <option value="Na_to_Na+">Na → [Na]⁺ + e⁻</option>
+                            <option value="Mg_to_Mg2+">Mg → [Mg]²⁺ + 2e⁻</option>
+                            <option value="2Cl-_to_Cl2">2[Cl]⁻ → Cl₂ + 2e⁻ (Ion to Molecule)</option>
+                        </optgroup>
+                        <optgroup label="Reduction (Gain of e⁻)">
+                            <option value="Cl2_to_2Cl-">Cl₂ + 2e⁻ → 2[Cl]⁻ (Molecule to Ion)</option>
+                            <option value="O2_to_2O2-">O₂ + 4e⁻ → 2[O]²⁻</option>
+                            <option value="Na+_to_Na">[Na]⁺ + e⁻ → Na (Ion to Atom)</option>
+                            <option value="Mg2+_to_Mg">[Mg]²⁺ + 2e⁻ → Mg</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button id="runBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl transition-all transform active:scale-95 shadow-lg shadow-blue-900/20">
+                        Start Reaction
+                    </button>
+                    <button id="resetBtn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-6 rounded-xl transition-all active:scale-95 border border-slate-700">
+                        Reset
+                    </button>
+                </div>
+            </div>
+            <div id="equationDisplay" class="mt-6 text-2xl font-mono text-center text-blue-300 font-bold tracking-tight equation-text"></div>
+        </div>
+
+        <div id="canvasContainer" class="relative w-full aspect-[16/9] bg-[#020408] rounded-3xl border border-slate-800 overflow-hidden shadow-inner">
+            <canvas id="simCanvas"></canvas>
+            <div id="statusLabel" class="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-[10px] font-bold uppercase tracking-widest text-blue-400">
+                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                System Ready
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvasContainer');
+        const eqSelect = document.getElementById('equationSelect');
+        const eqDisplay = document.getElementById('equationDisplay');
+        const runBtn = document.getElementById('runBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusLabel = document.getElementById('statusLabel');
+
+        let atoms = [];
+        let width, height;
+        let reactionActive = false;
+        let reactionComplete = false;
+
+        const ATOM_DATA = {
+            Na: { p: 11, shells: [2, 8, 1], color: '#facc15' },
+            Mg: { p: 12, shells: [2, 8, 2], color: '#e2e8f0' },
+            Cl: { p: 17, shells: [2, 8, 7], color: '#4ade80' },
+            O:  { p: 8,  shells: [2, 6],    color: '#f87171' }
+        };
+
+        const EQUATIONS = {
+            'Na_to_Na+':  { startIon: false, endIon: true, atom: 'Na', res: 'Na', charge: '+', count: 1, trans: -1, text: 'Na → [Na]⁺ + e⁻' },
+            'Mg_to_Mg2+': { startIon: false, endIon: true, atom: 'Mg', res: 'Mg', charge: '2+', count: 1, trans: -2, text: 'Mg → [Mg]²⁺ + 2e⁻' },
+            'Cl2_to_2Cl-': { startIon: false, endIon: true, atom: 'Cl', res: 'Cl', charge: '-', count: 2, trans: 1, text: 'Cl₂ + 2e⁻ → 2[Cl]⁻' },
+            'O2_to_2O2-': { startIon: false, endIon: true, atom: 'O', res: 'O', charge: '2-', count: 2, trans: 2, text: 'O₂ + 4e⁻ → 2[O]²⁻' },
+            'Na+_to_Na':  { startIon: true, endIon: false, atom: 'Na', res: 'Na', charge: '+', count: 1, trans: 1, text: '[Na]⁺ + e⁻ → Na' },
+            'Mg2+_to_Mg': { startIon: true, endIon: false, atom: 'Mg', res: 'Mg', charge: '2+', count: 1, trans: 2, text: '[Mg]²⁺ + 2e⁻ → Mg' },
+            '2Cl-_to_Cl2': { startIon: true, endIon: false, atom: 'Cl', res: 'Cl', charge: '-', count: 2, trans: -1, text: '2[Cl]⁻ → Cl₂ + 2e⁻' }
+        };
+
+        class Electron {
+            constructor(shellIdx, pairIdx, isPaired, parent) {
+                this.shellIdx = shellIdx;
+                this.pairIdx = pairIdx;
+                this.isSecondInPair = isPaired; 
+                this.parent = parent;
+                this.baseDist = (shellIdx + 1) * 45 + 15;
+                this.removed = false;
+                this.incoming = false;
+                this.x = 0; this.y = 0;
+                this.velX = 0; this.velY = 0;
+            }
+
+            getTargetAngle() {
+                if (this.shellIdx === 0) return (this.parent.rotation + (this.pairIdx * Math.PI));
+                const baseAngle = (this.pairIdx * (Math.PI / 2)) + this.parent.rotation;
+                return baseAngle + (this.isSecondInPair ? 0.22 : -0.22);
+            }
+
+            update() {
+                if (this.removed) {
+                    this.x += this.velX;
+                    this.y += this.velY;
+                    this.velY += 0.15; 
+                    return;
+                }
+                const targetAngle = this.getTargetAngle();
+                const tx = this.parent.x + Math.cos(targetAngle) * this.baseDist;
+                const ty = this.parent.y + Math.sin(targetAngle) * this.baseDist;
+
+                if (this.incoming) {
+                    this.x += (tx - this.x) * 0.08;
+                    this.y += (ty - this.y) * 0.08;
+                    if (Math.hypot(tx - this.x, ty - this.y) < 1.5) this.incoming = false;
+                } else {
+                    this.x = tx;
+                    this.y = ty;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#60a5fa';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#3b82f6';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        class Atom {
+            constructor(x, y, symbol, initialShells, targetX, isIon, charge) {
+                this.x = x;
+                this.y = y;
+                this.targetX = targetX;
+                this.symbol = symbol;
+                this.shells = [...initialShells];
+                this.electrons = [];
+                this.rotation = Math.random() * Math.PI;
+                this.color = ATOM_DATA[symbol].color;
+                this.isIon = isIon;
+                this.charge = charge;
+                this.initElectrons();
+            }
+
+            initElectrons() {
+                this.electrons = [];
+                this.shells.forEach((count, sIdx) => {
+                    for (let i = 0; i < count; i++) {
+                        let pairIdx = (sIdx === 0) ? i : i % 4;
+                        let isPaired = (sIdx === 0) ? false : i >= 4;
+                        this.electrons.push(new Electron(sIdx, pairIdx, isPaired, this));
+                    }
+                });
+            }
+
+            draw() {
+                this.rotation += 0.005;
+                if (reactionComplete) {
+                    this.x += (this.targetX - this.x) * 0.04;
+                }
+
+                // Shells
+                ctx.lineWidth = 1;
+                this.shells.forEach((_, i) => {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, (i + 1) * 45 + 15, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+                    ctx.stroke();
+                });
+
+                // Nucleus
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 15px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.symbol, this.x, this.y);
+
+                this.electrons.forEach(e => {
+                    e.update();
+                    e.draw();
+                });
+
+                if (this.isIon) this.drawBrackets();
+            }
+
+            drawBrackets() {
+                const maxR = this.shells.length * 45 + 30;
+                const bSize = 25;
+                ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+                ctx.lineWidth = 2.5;
+
+                ctx.beginPath();
+                ctx.moveTo(this.x - maxR + bSize, this.y - maxR);
+                ctx.lineTo(this.x - maxR, this.y - maxR);
+                ctx.lineTo(this.x - maxR, this.y + maxR);
+                ctx.lineTo(this.x - maxR + bSize, this.y + maxR);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(this.x + maxR - bSize, this.y - maxR);
+                ctx.lineTo(this.x + maxR, this.y - maxR);
+                ctx.lineTo(this.x + maxR, this.y + maxR);
+                ctx.lineTo(this.x + maxR - bSize, this.y + maxR);
+                ctx.stroke();
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 22px monospace';
+                ctx.textAlign = 'left';
+                ctx.fillText(this.charge, this.x + maxR + 5, this.y - maxR + 10);
+            }
+
+            loseElectron() {
+                const outerIdx = this.shells.length - 1;
+                const e = this.electrons.findLast(e => e.shellIdx === outerIdx && !e.removed);
+                if (e) {
+                    e.removed = true;
+                    e.velX = 10; e.velY = -3;
+                    this.shells[outerIdx]--;
+                    if (this.shells[outerIdx] === 0) this.shells.pop();
+                    return true;
+                }
+                return false;
+            }
+
+            gainElectron() {
+                const outerIdx = this.shells.length - 1;
+                // If current shell full, create new one
+                let targetShell = outerIdx;
+                if ((targetShell === 0 && this.shells[0] >= 2) || (targetShell > 0 && this.shells[targetShell] >= 8)) {
+                   this.shells.push(0);
+                   targetShell++;
+                }
+                
+                const count = this.shells[targetShell];
+                this.shells[targetShell]++;
+                const pIdx = (targetShell === 0) ? count : count % 4;
+                const isP = (targetShell === 0) ? false : count >= 4;
+                
+                const e = new Electron(targetShell, pIdx, isP, this);
+                e.incoming = true;
+                e.x = (this.x < width/2) ? -100 : width + 100;
+                e.y = Math.random() * height;
+                this.electrons.push(e);
+            }
+        }
+
+        function resize() {
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+            reset();
+        }
+
+        function reset() {
+            reactionActive = false;
+            reactionComplete = false;
+            const config = EQUATIONS[eqSelect.value];
+            eqDisplay.innerText = config.text;
+            statusLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> System Ready`;
+            
+            atoms = [];
+            const data = ATOM_DATA[config.atom];
+            const startShells = [...data.shells];
+            
+            // Adjust starting shells if starting as an ion
+            if (config.startIon) {
+                let s = [...data.shells];
+                if (config.trans > 0) { // e.g. Na+ starting: remove 1 from outer
+                   s[s.length-1] -= config.trans;
+                   if (s[s.length-1] <= 0) s.pop();
+                } else { // e.g. Cl- starting: add 1 to outer
+                   s[s.length-1] += Math.abs(config.trans);
+                }
+                startShells.splice(0, startShells.length, ...s);
+            }
+
+            const maxR = startShells.length * 45 + 15;
+
+            if (config.count === 1) {
+                atoms.push(new Atom(width/2, height/2, config.atom, startShells, width/2, config.startIon, config.charge));
+            } else {
+                // If molecule (not starting as ion), overlap slightly
+                // If starting as ions, separate them
+                let startDist = config.startIon ? maxR * 3 : maxR * 1.85; 
+                let endDist = config.endIon ? maxR * 3 : maxR * 1.85;
+
+                atoms.push(new Atom(width/2 - startDist/2, height/2, config.atom, startShells, width/2 - endDist/2, config.startIon, config.charge));
+                atoms.push(new Atom(width/2 + startDist/2, height/2, config.atom, startShells, width/2 + endDist/2, config.startIon, config.charge));
+            }
+        }
+
+        async function run() {
+            if (reactionActive) return;
+            reactionActive = true;
+            const config = EQUATIONS[eqSelect.value];
+            statusLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500 animate-ping"></span> Reacting...`;
+
+            const steps = Math.abs(config.trans);
+            for (let i = 0; i < steps; i++) {
+                atoms.forEach(a => {
+                    if (config.trans < 0) a.loseElectron(); // Negative trans = loss
+                    else a.gainElectron(); // Positive trans = gain
+                });
+                await new Promise(r => setTimeout(r, 700));
+            }
+
+            reactionComplete = true;
+            atoms.forEach(a => {
+                a.isIon = config.endIon;
+                a.charge = config.endIon ? config.charge : '';
+            });
+            
+            statusLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Final State Achieved`;
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, width, height);
+            atoms.forEach(a => a.draw());
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('resize', resize);
+        eqSelect.addEventListener('change', reset);
+        runBtn.addEventListener('click', run);
+        resetBtn.addEventListener('click', reset);
+
+        resize();
+        loop();
+    </script>
+</body>
+</html>

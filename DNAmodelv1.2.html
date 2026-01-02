@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labeled Molecular DNA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; background: #08080a; overflow: hidden; font-family: 'Inter', sans-serif; }
+        canvas { display: block; }
+        .info-card {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(15, 15, 20, 0.9);
+            border: 1px solid #2d2d39;
+            padding: 20px;
+            border-radius: 12px;
+            color: #fff;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="info-card">
+        <h1 class="text-xl font-bold text-blue-400 mb-2">Structural DNA Explorer</h1>
+        <p class="text-sm text-gray-400 mb-4">Flat-ring projection for geometric clarity.</p>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2" style="background: #ef4444"></span> Adenine (A)</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2" style="background: #fbbf24"></span> Thymine (T)</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2" style="background: #10b981"></span> Guanine (G)</div>
+            <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2" style="background: #3b82f6"></span> Cytosine (C)</div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, dnaGroup;
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+
+        const ATOM_COLORS = { C: 0x888888, N: 0x3050F8, O: 0xFF0D0D, P: 0xFF8000, HBOND: 0xFFFFFF };
+        const BASE_COLORS = { 'A': 0xef4444, 'T': 0xfbbf24, 'G': 0x10b981, 'C': 0x3b82f6 };
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(20, 10, 30);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x08080a);
+            document.body.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            dnaGroup = new THREE.Group();
+            buildDNA();
+            scene.add(dnaGroup);
+
+            window.addEventListener('mousedown', (e) => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
+            window.addEventListener('mouseup', () => isDragging = false);
+            window.addEventListener('mousemove', onMouseMove);
+            window.onresize = onResize;
+        }
+
+        function createAtom(type, pos, size = 0.18) {
+            const geo = new THREE.SphereGeometry(size, 16, 16);
+            const mat = new THREE.MeshPhongMaterial({ color: ATOM_COLORS[type] || 0xffffff, shininess: 100 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            dnaGroup.add(mesh);
+            return mesh;
+        }
+
+        function createBond(p1, p2, isHBond = false) {
+            const dist = p1.distanceTo(p2);
+            const geo = new THREE.CylinderGeometry(isHBond ? 0.02 : 0.05, isHBond ? 0.02 : 0.05, dist, 8);
+            const mat = new THREE.MeshPhongMaterial({ 
+                color: isHBond ? 0x666666 : 0xdddddd, 
+                transparent: isHBond, 
+                opacity: isHBond ? 0.4 : 1.0 
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(p1).lerp(p2, 0.5);
+            mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), p2.clone().sub(p1).normalize());
+            dnaGroup.add(mesh);
+        }
+
+        function createLabel(text, pos, color) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 128;
+            ctx.fillStyle = '#' + new THREE.Color(color).getHexString();
+            ctx.font = 'Bold 80px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 64, 90);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.copy(pos);
+            sprite.scale.set(1.5, 1.5, 1);
+            dnaGroup.add(sprite);
+        }
+
+        function buildSugar(center, angle, flip = false) {
+            const rot = new THREE.Euler(0, angle, 0);
+            const scale = flip ? -1 : 1;
+            
+            // Flattened pentagon points (XY plane relative to center)
+            const pts = [];
+            for(let i=0; i<5; i++) {
+                const a = (i / 5) * Math.PI * 2 - Math.PI/2;
+                pts.push(new THREE.Vector3(Math.cos(a) * 0.7 * scale, Math.sin(a) * 0.7, 0).applyEuler(rot).add(center));
+            }
+
+            const atoms = pts.map((p, i) => createAtom(i === 4 ? 'O' : 'C', p));
+            for(let i=0; i<5; i++) createBond(atoms[i].position, atoms[(i+1)%5].position);
+
+            return { c1: atoms[0], c3: atoms[2], c4: atoms[3], c5: atoms[4] };
+        }
+
+        function buildBase(type, start, direction, angle) {
+            const color = BASE_COLORS[type];
+            const atoms = [];
+            const isPurine = (type === 'A' || type === 'G');
+            const ringCount = isPurine ? 9 : 6;
+
+            for(let i=0; i < ringCount; i++) {
+                const seg = i < 6 ? (i/6) * Math.PI * 2 : ((i-6)/3) * Math.PI * 2;
+                const offset = i < 6 ? 0.8 : 1.6;
+                const p = direction.clone().multiplyScalar(offset).applyAxisAngle(new THREE.Vector3(0,1,0), (i%6)*0.2);
+                p.add(start).add(new THREE.Vector3(0, Math.sin(i)*0.1, 0)); // Slight depth for 3D feel but mostly flat
+                
+                const atom = createAtom(i % 2 === 0 ? 'C' : 'N', p, 0.15);
+                atom.material.color.set(color);
+                atoms.push(atom);
+            }
+
+            // Bonds for base
+            for(let i=0; i<5; i++) createBond(atoms[i].position, atoms[i+1].position);
+            createBond(atoms[5].position, atoms[0].position);
+
+            return atoms;
+        }
+
+        function buildDNA() {
+            const seq = ['A', 'G', 'C', 'T', 'A', 'C', 'G', 'T'];
+            const pairs = { 'A':'T', 'T':'A', 'G':'C', 'C':'G' };
+            const step = 3.5;
+            const twist = 0.6;
+
+            let lastS1 = null, lastS2 = null;
+
+            for(let i=0; i < seq.length; i++) {
+                const angle = i * twist;
+                const y = (i - seq.length/2) * step;
+
+                const p1 = new THREE.Vector3(Math.cos(angle) * 7, y, Math.sin(angle) * 7);
+                const p2 = new THREE.Vector3(Math.cos(angle + Math.PI) * 7, y, Math.sin(angle + Math.PI) * 7);
+
+                const s1 = buildSugar(p1, angle, false);
+                const s2 = buildSugar(p2, angle + Math.PI, true);
+
+                // Labels near backbone
+                createLabel(seq[i], p1.clone().add(new THREE.Vector3(0, 1.2, 0)), BASE_COLORS[seq[i]]);
+                createLabel(pairs[seq[i]], p2.clone().add(new THREE.Vector3(0, 1.2, 0)), BASE_COLORS[pairs[seq[i]]]);
+
+                // Backbone Bonds (Phosphate represented as Orange spheres)
+                if(lastS1) {
+                    const mid1 = lastS1.c3.position.clone().lerp(s1.c4.position, 0.5);
+                    const phos1 = createAtom('P', mid1, 0.25);
+                    createBond(lastS1.c3.position, phos1.position);
+                    createBond(phos1.position, s1.c4.position);
+
+                    const mid2 = lastS2.c3.position.clone().lerp(s2.c4.position, 0.5);
+                    const phos2 = createAtom('P', mid2, 0.25);
+                    createBond(lastS2.c3.position, phos2.position);
+                    createBond(phos2.position, s2.c4.position);
+                }
+
+                // Bases and Hydrogen Bonds
+                const b1 = buildBase(seq[i], s1.c1.position, p2.clone().sub(p1).normalize(), angle);
+                const b2 = buildBase(pairs[seq[i]], s2.c1.position, p1.clone().sub(p2).normalize(), angle + Math.PI);
+                
+                createBond(s1.c1.position, b1[0].position);
+                createBond(s2.c1.position, b2[0].position);
+
+                // Central Hydrogen Bonds
+                createBond(b1[3].position, b2[3].position, true);
+                createBond(b1[4].position, b2[4].position, true);
+
+                lastS1 = s1;
+                lastS2 = s2;
+            }
+        }
+
+        function onMouseMove(e) {
+            if(!isDragging) return;
+            const dx = e.clientX - prevMouse.x;
+            const dy = e.clientY - prevMouse.y;
+            dnaGroup.rotation.y += dx * 0.01;
+            dnaGroup.rotation.x += dy * 0.01;
+            prevMouse = { x: e.clientX, y: e.clientY };
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if(!isDragging) dnaGroup.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            init();
+            animate();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enzyme Action Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; color: white; overflow: hidden; font-family: sans-serif; }
+        .canvas-container { position: relative; width: 100vw; height: 100vh; }
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            width: 320px;
+            z-index: 10;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #334155;
+            transition: all 0.2s;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        .btn:hover { background: #475569; }
+        .btn.active { background: #3b82f6; color: white; border-color: #60a5fa; }
+        .info-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95);
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: 1px solid #3b82f6;
+            text-align: center;
+            max-width: 80%;
+            z-index: 10;
+        }
+        #stage { cursor: crosshair; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h2 class="text-xl font-bold mb-4 text-blue-400">Enzyme Simulation</h2>
+        
+        <div class="mb-6">
+            <p class="text-xs uppercase text-slate-400 font-bold mb-2">Models</p>
+            <button class="btn active" onclick="setMode('lockKey')">1. Lock & Key Model</button>
+            <button class="btn" onclick="setMode('inducedFit')">2. Induced Fit Model</button>
+        </div>
+
+        <div>
+            <p class="text-xs uppercase text-slate-400 font-bold mb-2">Digestion (Breakdown)</p>
+            <button class="btn" onclick="setMode('carbs')">Carbohydrates (Amylase)</button>
+            <button class="btn" onclick="setMode('proteins')">Proteins (Protease)</button>
+            <button class="btn" onclick="setMode('fats')">Fats (Lipase)</button>
+        </div>
+    </div>
+
+    <div class="info-box" id="infoBox">
+        Loading...
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="stage"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('stage');
+        const ctx = canvas.getContext('2d');
+        const infoBox = document.getElementById('infoBox');
+        
+        let width, height;
+        let mode = 'lockKey';
+        let frame = 0;
+        let particles = [];
+        
+        // App State
+        let enzyme = { x: 0, y: 0, w: 200, h: 140, state: 'idle', targetY: 0 };
+        let substrate = { x: 0, y: 0, w: 100, h: 60, type: 'basic', status: 'approaching' };
+        let activeSiteShape = 0; // 0 = rigid, 1 = flexible
+        
+        const MODES = {
+            lockKey: {
+                title: "Lock & Key Model",
+                desc: "The enzyme's active site is a perfect rigid match for the substrate.",
+                color: "#60a5fa"
+            },
+            inducedFit: {
+                title: "Induced Fit Model",
+                desc: "The enzyme changes shape slightly to grip the substrate perfectly.",
+                color: "#a855f7"
+            },
+            carbs: {
+                title: "Carbohydrate Breakdown",
+                desc: "Amylase breaks down starch into simple sugars (glucose/maltose).",
+                color: "#f59e0b"
+            },
+            proteins: {
+                title: "Protein Breakdown",
+                desc: "Protease breaks down complex proteins into amino acids.",
+                color: "#ef4444"
+            },
+            fats: {
+                title: "Fat Breakdown",
+                desc: "Lipase breaks down triglycerides into fatty acids and glycerol.",
+                color: "#10b981"
+            }
+        };
+
+        function init() {
+            resize();
+            resetSimulation();
+            requestAnimationFrame(loop);
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            enzyme.x = width / 2;
+            enzyme.y = height / 2;
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.btn').forEach(b => {
+                b.classList.toggle('active', b.innerText.toLowerCase().includes(m.toLowerCase()) || (m === 'lockKey' && b.innerText.includes('Lock')));
+            });
+            resetSimulation();
+        }
+
+        function resetSimulation() {
+            frame = 0;
+            infoBox.innerText = MODES[mode].desc;
+            
+            substrate = {
+                x: width + 200,
+                y: height / 2 - 20,
+                w: mode === 'fats' ? 140 : 100,
+                h: 60,
+                status: 'approaching',
+                rotation: 0,
+                pieces: []
+            };
+            
+            enzyme.state = 'idle';
+            enzyme.grip = 0; // For induced fit
+            particles = [];
+        }
+
+        function drawEnzyme(ctx, x, y, grip) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            const color = MODES[mode].color;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+
+            // Main body
+            ctx.beginPath();
+            ctx.roundRect(-120, 0, 240, 100, 20);
+            ctx.fill();
+            ctx.stroke();
+
+            // Active Site Cutout
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.beginPath();
+            
+            if (mode === 'lockKey') {
+                // Sharp rigid notch
+                ctx.moveTo(-50, 0);
+                ctx.lineTo(-50, 40);
+                ctx.lineTo(50, 40);
+                ctx.lineTo(50, 0);
+            } else if (mode === 'inducedFit') {
+                // Flexible notch
+                const w = 50 - (grip * 15);
+                ctx.moveTo(-w, 0);
+                ctx.bezierCurveTo(-w, 50, w, 50, w, 0);
+            } else {
+                // Digestion specific shapes
+                ctx.moveTo(-60, 0);
+                ctx.lineTo(-60, 45);
+                ctx.lineTo(60, 45);
+                ctx.lineTo(60, 0);
+            }
+            
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawSubstrate(ctx, sub) {
+            if (sub.status === 'broken') {
+                sub.pieces.forEach(p => {
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    if (mode === 'carbs') ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                    else if (mode === 'proteins') ctx.rect(-15, -15, 30, 30);
+                    else ctx.ellipse(0, 0, 25, 12, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                return;
+            }
+
+            ctx.save();
+            ctx.translate(sub.x, sub.y);
+            ctx.rotate(sub.rotation);
+
+            if (mode === 'lockKey') {
+                ctx.fillStyle = '#f87171';
+                ctx.fillRect(-50, -30, 100, 60);
+            } else if (mode === 'inducedFit') {
+                ctx.fillStyle = '#c084fc';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 50, 35, 0, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (mode === 'carbs') {
+                // Chain of sugars
+                ctx.fillStyle = '#fbbf24';
+                for(let i=0; i<4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(-45 + i*30, 0, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else if (mode === 'proteins') {
+                // Chain of amino acids
+                ctx.fillStyle = '#f87171';
+                for(let i=0; i<4; i++) {
+                    ctx.fillRect(-55 + i*30, -15, 25, 30);
+                }
+            } else if (mode === 'fats') {
+                // Triglyceride
+                ctx.fillStyle = '#34d399';
+                ctx.fillRect(-60, -5, 120, 10); // Glycerol
+                ctx.fillRect(-50, 5, 10, 40); // Tail 1
+                ctx.fillRect(0, 5, 10, 40);  // Tail 2
+                ctx.fillRect(50, 5, 10, 40); // Tail 3
+            }
+
+            ctx.restore();
+        }
+
+        function loop() {
+            frame++;
+            ctx.clearRect(0, 0, width, height);
+
+            // Substrate movement logic
+            if (substrate.status === 'approaching') {
+                substrate.x -= (substrate.x - width/2) * 0.05;
+                if (Math.abs(substrate.x - width/2) < 1) {
+                    substrate.status = 'binding';
+                }
+            } else if (substrate.status === 'binding') {
+                substrate.y -= (substrate.y - (height/2 + 10)) * 0.05;
+                
+                if (mode === 'inducedFit') {
+                    enzyme.grip = Math.min(1, enzyme.grip + 0.05);
+                }
+
+                if (Math.abs(substrate.y - (height/2 + 10)) < 1) {
+                    substrate.status = 'reacting';
+                    frame = 0; // Reset local frame for reaction timing
+                }
+            } else if (substrate.status === 'reacting') {
+                // Wobble
+                substrate.x = width/2 + Math.sin(frame * 0.5) * 2;
+                
+                if (frame > 60) {
+                    substrate.status = 'broken';
+                    // Initialize pieces
+                    if (mode === 'carbs') {
+                        for(let i=0; i<4; i++) substrate.pieces.push({x: width/2 - 45 + i*30, y: height/2 + 10, color: '#fbbf24', vx: (i-1.5)*2, vy: -2});
+                    } else if (mode === 'proteins') {
+                        for(let i=0; i<4; i++) substrate.pieces.push({x: width/2 - 45 + i*30, y: height/2 + 10, color: '#f87171', vx: (i-1.5)*3, vy: -3});
+                    } else if (mode === 'fats') {
+                        substrate.pieces.push({x: width/2, y: height/2, color: '#34d399', vx: 0, vy: -4}); // Glycerol
+                        substrate.pieces.push({x: width/2-40, y: height/2+20, color: '#059669', vx: -2, vy: 2}); // Tail
+                        substrate.pieces.push({x: width/2, y: height/2+20, color: '#059669', vx: 0, vy: 3});    // Tail
+                        substrate.pieces.push({x: width/2+40, y: height/2+20, color: '#059669', vx: 2, vy: 2});  // Tail
+                    } else {
+                        // Just split in two for models
+                        substrate.pieces.push({x: width/2 - 20, y: height/2, color: '#fff', vx: -2, vy: -2});
+                        substrate.pieces.push({x: width/2 + 20, y: height/2, color: '#fff', vx: 2, vy: -2});
+                    }
+                }
+            } else if (substrate.status === 'broken') {
+                if (mode === 'inducedFit') {
+                    enzyme.grip = Math.max(0, enzyme.grip - 0.05);
+                }
+                substrate.pieces.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.1; // gravity
+                });
+                
+                // Restart cycle
+                if (frame > 180) resetSimulation();
+            }
+
+            drawEnzyme(ctx, width/2, height/2, enzyme.grip);
+            drawSubstrate(ctx, substrate);
+
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('resize', resize);
+        init();
+
+    </script>
+</body>
+</html>

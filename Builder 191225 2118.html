@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atomic Builder Pro | Educational Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f8fafc; 
+            font-family: 'Inter', sans-serif; 
+            overflow-x: hidden;
+        }
+        .canvas-container { min-height: 500px; }
+        .bracket { 
+            border-color: #1e293b; 
+            border-width: 4px; 
+            width: 24px; 
+            height: 100%; 
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .bracket-left { border-right: 0; border-radius: 20px 0 0 20px; }
+        .bracket-right { border-left: 0; border-radius: 0 20px 20px 0; }
+        
+        .ptable-grid { 
+            display: grid; 
+            grid-template-columns: repeat(10, 1fr); 
+            gap: 8px; 
+        }
+        @media (max-width: 768px) {
+            .ptable-grid { grid-template-columns: repeat(5, 1fr); }
+        }
+
+        .element-btn { 
+            @apply p-2 rounded-lg border border-slate-200 bg-white transition-all flex flex-col items-center justify-center aspect-square shadow-sm;
+        }
+        .element-btn:hover { @apply border-blue-400 shadow-md -translate-y-1; }
+        .element-active { @apply border-blue-600 ring-2 ring-blue-100 bg-blue-50; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tighter flex items-center gap-3">
+                    <span class="bg-blue-600 text-white p-2 rounded-xl">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 12 19 12"/><circle cx="19" cy="12" r="1"/></svg>
+                    </span>
+                    ATOMIC BUILDER <span class="text-blue-600">PRO</span>
+                </h1>
+                <p class="text-slate-500 text-sm font-medium mt-1">Interactive Bohr Model Visualization</p>
+            </div>
+            <div id="status-badge" class="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border-2 shadow-sm transition-colors duration-300">
+                SYSTEM CALIBRATED
+            </div>
+        </header>
+
+        <!-- Main Interface -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Panel: Controls -->
+            <div class="lg:col-span-3 space-y-4">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Particle Synthesis</h3>
+                    
+                    <div class="space-y-5">
+                        <!-- Protons -->
+                        <div class="group">
+                            <label class="flex justify-between text-[11px] font-bold text-red-500 uppercase mb-2">
+                                <span>Protons (Atomic Number)</span>
+                                <span id="p-label" class="text-slate-900">1</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button onclick="change('p', -1)" class="flex-1 h-12 rounded-xl border-2 border-slate-100 hover:border-red-200 hover:bg-red-50 text-xl font-bold transition-all">-</button>
+                                <button onclick="change('p', 1)" class="flex-1 h-12 rounded-xl border-2 border-slate-100 hover:border-red-200 hover:bg-red-50 text-xl font-bold transition-all">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Neutrons -->
+                        <div>
+                            <label class="flex justify-between text-[11px] font-bold text-emerald-600 uppercase mb-2">
+                                <span>Neutrons (Isotope Stability)</span>
+                                <span id="n-label" class="text-slate-900">0</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button onclick="change('n', -1)" class="flex-1 h-12 rounded-xl border-2 border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 text-xl font-bold transition-all">-</button>
+                                <button onclick="change('n', 1)" class="flex-1 h-12 rounded-xl border-2 border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 text-xl font-bold transition-all">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Electrons -->
+                        <div>
+                            <label class="flex justify-between text-[11px] font-bold text-cyan-500 uppercase mb-2">
+                                <span>Electrons (Ionization)</span>
+                                <span id="e-label" class="text-slate-900">1</span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button onclick="change('e', -1)" class="flex-1 h-12 rounded-xl border-2 border-slate-100 hover:border-cyan-200 hover:bg-cyan-50 text-xl font-bold transition-all">-</button>
+                                <button onclick="change('e', 1)" class="flex-1 h-12 rounded-xl border-2 border-slate-100 hover:border-cyan-200 hover:bg-cyan-50 text-xl font-bold transition-all">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stability Indicator -->
+                <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nuclear Stability</span>
+                        <span id="stability-percent" class="text-xs font-bold text-emerald-400">100%</span>
+                    </div>
+                    <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden mb-4">
+                        <div id="stability-bar" class="h-full bg-emerald-500 transition-all duration-700" style="width: 100%"></div>
+                    </div>
+                    <p id="stability-desc" class="text-[11px] text-slate-300 leading-relaxed italic">The nucleus is stable. This configuration represents a common natural isotope.</p>
+                </div>
+            </div>
+
+            <!-- Middle Panel: Identity Tile -->
+            <div class="lg:col-span-3 flex flex-col gap-6">
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8 absolute top-6 left-6">Identity</h3>
+                    
+                    <div id="tile-z" class="text-4xl font-black text-slate-100 absolute top-10 right-8">1</div>
+                    
+                    <div id="tile-symbol" class="text-9xl font-black text-slate-900 select-none">H</div>
+                    
+                    <div class="text-center mt-4">
+                        <h2 id="tile-name" class="text-xl font-black text-slate-800 uppercase tracking-widest">Hydrogen</h2>
+                        <div id="tile-mass" class="text-sm font-bold text-slate-400 mt-1">1.008 AMU</div>
+                    </div>
+                    
+                    <div class="mt-8 flex gap-2">
+                        <div id="type-badge" class="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-600 uppercase tracking-tighter">Non-metal</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Visualizer -->
+            <div class="lg:col-span-6 bg-white rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden canvas-container flex items-center justify-center">
+                <!-- Ion Overlay -->
+                <div id="ion-overlay" class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 transition-all duration-500 scale-95 z-20">
+                    <div id="bracket-container" class="flex justify-between items-center px-8 w-[85%] h-[85%]">
+                        <div class="bracket bracket-left"></div>
+                        <div id="ion-charge" class="absolute -top-2 -right-2 bg-slate-900 text-white text-2xl font-black px-4 py-2 rounded-2xl shadow-2xl border-4 border-white">2+</div>
+                        <div class="bracket bracket-right"></div>
+                    </div>
+                </div>
+
+                <canvas id="atomCanvas" width="800" height="800" class="w-full h-full max-w-[600px] aspect-square"></canvas>
+
+                <!-- Legend -->
+                <div class="absolute bottom-6 left-6 space-y-2 glass-panel p-4 rounded-2xl border border-slate-100 shadow-sm z-30">
+                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full bg-red-500"></div><span class="text-[10px] font-black text-slate-600 uppercase">Proton</span></div>
+                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full bg-emerald-500"></div><span class="text-[10px] font-black text-slate-600 uppercase">Neutron</span></div>
+                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full bg-cyan-400 ring-4 ring-cyan-100"></div><span class="text-[10px] font-black text-slate-600 uppercase">Electron</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Periodic Table Quick Select -->
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Quick Calibration</h3>
+                    <p class="text-sm font-bold text-slate-700">Elements 1 - 20 (Hydrogen to Calcium)</p>
+                </div>
+                <div class="text-[10px] font-black text-slate-400">SELECT TO AUTO-CONFIGURE</div>
+            </div>
+            <div id="ptable" class="ptable-grid">
+                <!-- Elements injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ELEMENTS_DATA = [
+            { z: 1, s: 'H', n: 'Hydrogen', m: 1.008, ns: 0, t: 'Non-metal' },
+            { z: 2, s: 'He', n: 'Helium', m: 4.002, ns: 2, t: 'Noble Gas' },
+            { z: 3, s: 'Li', n: 'Lithium', m: 6.941, ns: 4, t: 'Alkali Metal' },
+            { z: 4, s: 'Be', n: 'Beryllium', m: 9.012, ns: 5, t: 'Alkaline Earth' },
+            { z: 5, s: 'B', n: 'Boron', m: 10.81, ns: 6, t: 'Metalloid' },
+            { z: 6, s: 'C', n: 'Carbon', m: 12.01, ns: 6, t: 'Non-metal' },
+            { z: 7, s: 'N', n: 'Nitrogen', m: 14.01, ns: 7, t: 'Non-metal' },
+            { z: 8, s: 'O', n: 'Oxygen', m: 16.00, ns: 8, t: 'Non-metal' },
+            { z: 9, s: 'F', n: 'Fluorine', m: 19.00, ns: 10, t: 'Halogen' },
+            { z: 10, s: 'Ne', n: 'Neon', m: 20.18, ns: 10, t: 'Noble Gas' },
+            { z: 11, s: 'Na', n: 'Sodium', m: 22.99, ns: 12, t: 'Alkali Metal' },
+            { z: 12, s: 'Mg', n: 'Magnesium', m: 24.31, ns: 12, t: 'Alkaline Earth' },
+            { z: 13, s: 'Al', n: 'Aluminium', m: 26.98, ns: 14, t: 'Post-transition' },
+            { z: 14, s: 'Si', n: 'Silicon', m: 28.09, ns: 14, t: 'Metalloid' },
+            { z: 15, s: 'P', n: 'Phosphorus', m: 30.97, ns: 16, t: 'Non-metal' },
+            { z: 16, s: 'S', n: 'Sulfur', m: 32.06, ns: 16, t: 'Non-metal' },
+            { z: 17, s: 'Cl', n: 'Chlorine', m: 35.45, ns: 18, t: 'Halogen' },
+            { z: 18, s: 'Ar', n: 'Argon', m: 39.95, ns: 22, t: 'Noble Gas' },
+            { z: 19, s: 'K', n: 'Potassium', m: 39.10, ns: 20, t: 'Alkali Metal' },
+            { z: 20, s: 'Ca', n: 'Calcium', m: 40.08, ns: 20, t: 'Alkaline Earth' }
+        ];
+
+        let state = {
+            p: 1,
+            n: 0,
+            e: 1,
+            time: 0,
+            nucleus: []
+        };
+
+        const canvas = document.getElementById('atomCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function init() {
+            const ptable = document.getElementById('ptable');
+            ELEMENTS_DATA.forEach(el => {
+                const btn = document.createElement('button');
+                btn.className = `element-btn el-btn-${el.z}`;
+                btn.innerHTML = `
+                    <span class="text-[9px] opacity-40 font-black">${el.z}</span>
+                    <span class="text-lg font-black text-slate-800">${el.s}</span>
+                `;
+                btn.onclick = () => setElement(el.z);
+                ptable.appendChild(btn);
+            });
+            
+            syncNucleus();
+            updateUI();
+            requestAnimationFrame(render);
+        }
+
+        function setElement(z) {
+            const el = ELEMENTS_DATA.find(e => e.z === z);
+            if (!el) return;
+            state.p = el.z;
+            state.n = el.ns;
+            state.e = el.z;
+            syncNucleus();
+            updateUI();
+        }
+
+        function change(type, delta) {
+            const max = type === 'e' ? 20 : 30;
+            state[type] = Math.max(0, Math.min(max, state[type] + delta));
+            if (type !== 'e') syncNucleus();
+            updateUI();
+        }
+
+        function syncNucleus() {
+            state.nucleus = [];
+            const total = state.p + state.n;
+            const nucleusRadius = Math.max(15, Math.min(40, 10 + Math.sqrt(total) * 6));
+            
+            for (let i = 0; i < total; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.sqrt(Math.random()) * nucleusRadius;
+                state.nucleus.push({
+                    type: i < state.p ? 'p' : 'n',
+                    offsetX: Math.cos(angle) * dist,
+                    offsetY: Math.sin(angle) * dist,
+                    z: Math.random()
+                });
+            }
+            // Sort by Z for fake depth
+            state.nucleus.sort((a, b) => a.z - b.z);
+        }
+
+        function updateUI() {
+            document.getElementById('p-label').textContent = state.p;
+            document.getElementById('n-label').textContent = state.n;
+            document.getElementById('e-label').textContent = state.e;
+
+            const el = ELEMENTS_DATA.find(e => e.z === state.p) || { 
+                z: state.p, s: '?', n: 'Unknown', m: state.p + state.n, ns: state.p, t: 'Synthetic' 
+            };
+
+            // Update Identity Tile
+            document.getElementById('tile-z').textContent = state.p;
+            document.getElementById('tile-symbol').textContent = el.s;
+            document.getElementById('tile-name').textContent = el.n;
+            document.getElementById('tile-mass').textContent = (el.m || (state.p + state.n)).toFixed(3) + ' AMU';
+            document.getElementById('type-badge').textContent = el.t;
+
+            // Update Stability
+            const diff = Math.abs(state.n - el.ns);
+            const score = Math.max(0, 100 - (diff * 20));
+            const bar = document.getElementById('stability-bar');
+            const desc = document.getElementById('stability-desc');
+            
+            bar.style.width = score + '%';
+            document.getElementById('stability-percent').textContent = score + '%';
+            
+            if (score > 80) {
+                bar.className = 'h-full bg-emerald-500 transition-all duration-700';
+                desc.textContent = "Stable nucleus. This isotope is common and non-radioactive.";
+            } else if (score > 40) {
+                bar.className = 'h-full bg-amber-500 transition-all duration-700';
+                desc.textContent = "Unstable isotope. Likely to undergo radioactive decay over time.";
+            } else {
+                bar.className = 'h-full bg-red-500 transition-all duration-700';
+                desc.textContent = "Critical instability. This configuration cannot exist in nature.";
+            }
+
+            // Update Status Badge
+            const badge = document.getElementById('status-badge');
+            const charge = state.p - state.e;
+            if (state.p === 0) {
+                badge.textContent = "VACUUM STATE";
+                badge.className = "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border-2 shadow-sm bg-slate-50 text-slate-400 border-slate-200";
+            } else if (charge === 0) {
+                badge.textContent = "NEUTRAL ATOM";
+                badge.className = "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border-2 shadow-sm bg-emerald-50 text-emerald-600 border-emerald-200";
+            } else {
+                badge.textContent = charge > 0 ? `CATION (${charge}+)` : `ANION (${Math.abs(charge)}-)`;
+                badge.className = "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border-2 shadow-sm bg-cyan-50 text-cyan-600 border-cyan-200";
+            }
+
+            // Ion Brackets
+            const ionOverlay = document.getElementById('ion-overlay');
+            if (charge !== 0 && state.p > 0) {
+                ionOverlay.style.opacity = '1';
+                ionOverlay.style.transform = 'scale(1)';
+                document.getElementById('ion-charge').textContent = charge > 0 ? `${charge}+` : `${Math.abs(charge)}-`;
+            } else {
+                ionOverlay.style.opacity = '0';
+                ionOverlay.style.transform = 'scale(0.95)';
+            }
+
+            // Active button in ptable
+            document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('element-active'));
+            const active = document.querySelector(`.el-btn-${state.p}`);
+            if (active) active.classList.add('element-active');
+        }
+
+        function getPairedAngles(count) {
+            // Logic to pair electrons: top, bottom, left, right quadrants
+            const angles = [];
+            const quadrantBases = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
+            const offset = 0.15; // The gap between paired electrons
+
+            if (count <= 4) {
+                // Space evenly for first 4
+                for (let i = 0; i < count; i++) {
+                    angles.push(quadrantBases[i]);
+                }
+            } else {
+                // Pair them up
+                for (let i = 0; i < count; i++) {
+                    const quad = i % 4;
+                    const isPair = i >= 4;
+                    angles.push(quadrantBases[quad] + (isPair ? offset : -offset));
+                }
+            }
+            return angles;
+        }
+
+        function render() {
+            state.time += 0.015;
+            ctx.clearRect(0, 0, 800, 800);
+            const cx = 400;
+            const cy = 400;
+
+            // 1. Draw Shell Orbits
+            const shellLimits = [2, 8, 8, 2];
+            let remainingE = state.e;
+            let activeShells = 0;
+
+            shellLimits.forEach((limit, i) => {
+                const radius = 120 + (i * 85);
+                const electronsInShell = Math.min(remainingE, limit);
+                
+                if (electronsInShell > 0 || i === 0) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(30, 41, 59, 0.08)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                if (electronsInShell > 0) {
+                    const angles = getPairedAngles(electronsInShell);
+                    const rotationSpeed = 0.5 / (i + 1);
+                    
+                    angles.forEach(angle => {
+                        const finalAngle = angle + (state.time * rotationSpeed);
+                        const ex = cx + Math.cos(finalAngle) * radius;
+                        const ey = cy + Math.sin(finalAngle) * radius;
+
+                        // Electron Glow
+                        const grad = ctx.createRadialGradient(ex, ey, 0, ex, ey, 12);
+                        grad.addColorStop(0, 'rgba(34, 211, 238, 0.4)');
+                        grad.addColorStop(1, 'rgba(34, 211, 238, 0)');
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.arc(ex, ey, 12, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Core
+                        ctx.fillStyle = '#0891b2';
+                        ctx.beginPath();
+                        ctx.arc(ex, ey, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Highlight
+                        ctx.fillStyle = '#cffafe';
+                        ctx.beginPath();
+                        ctx.arc(ex - 2, ey - 2, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                }
+                remainingE -= electronsInShell;
+            });
+
+            // 2. Draw Nucleus
+            state.nucleus.forEach(n => {
+                const jitterX = Math.sin(state.time * 5 + n.z * 10) * 1.2;
+                const jitterY = Math.cos(state.time * 4.5 + n.z * 10) * 1.2;
+                
+                const nx = cx + n.offsetX + jitterX;
+                const ny = cy + n.offsetY + jitterY;
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.beginPath();
+                ctx.arc(nx + 2, ny + 2, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Particle
+                ctx.fillStyle = n.type === 'p' ? '#ef4444' : '#10b981';
+                ctx.beginPath();
+                ctx.arc(nx, ny, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Specular highlight
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.beginPath();
+                ctx.arc(nx - 3, ny - 3, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            requestAnimationFrame(render);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

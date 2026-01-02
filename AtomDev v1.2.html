@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atomic Evolution Quad-View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-main: #020617;
+            --bg-ui: #0f172a;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        .light-mode {
+            --bg-main: #f8fafc;
+            --bg-ui: #ffffff;
+            --text-main: #0f172a;
+            --text-dim: #64748b;
+            --border: rgba(15, 23, 42, 0.1);
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        .quadrant {
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quad-label {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: var(--bg-ui);
+            backdrop-filter: blur(4px);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        .ptable-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            width: fit-content;
+            margin: 0 auto;
+        }
+
+        .element-btn {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: var(--bg-ui);
+            color: var(--text-main);
+        }
+
+        .element-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        .element-btn.active {
+            background: #0ea5e9;
+            color: white;
+            border-color: #7dd3fc;
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
+        }
+
+        .empty-slot { width: 42px; height: 42px; }
+
+        .theme-toggle {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-ui);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Header Stats -->
+    <header class="p-3 border-b flex justify-between items-center shrink-0" style="background: var(--bg-ui); border-color: var(--border);">
+        <div class="flex items-center gap-4">
+            <h1 class="text-lg font-black tracking-tighter text-sky-500">ATOMIC QUAD-VIEW</h1>
+            <div class="h-6 w-px" style="background: var(--border);"></div>
+            <div class="flex gap-4">
+                <div class="text-[10px] uppercase tracking-widest text-slate-500">Element: <span id="stat-name" class="font-bold" style="color: var(--text-main);">Hydrogen</span></div>
+                <div class="text-[10px] uppercase tracking-widest text-slate-500">P+: <span id="stat-z" class="text-sky-500">1</span></div>
+                <div class="text-[10px] uppercase tracking-widest text-slate-500">N: <span id="stat-n" class="text-emerald-500">0</span></div>
+            </div>
+        </div>
+        
+        <button onclick="toggleTheme()" class="theme-toggle">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-text">DARK MODE</span>
+        </button>
+    </header>
+
+    <!-- 2x2 Canvas Grid -->
+    <main class="flex-grow grid grid-cols-2 grid-rows-2">
+        <div class="quadrant">
+            <div class="quad-label">DALTON (1803)</div>
+            <canvas id="canvas-dalton"></canvas>
+        </div>
+        <div class="quadrant">
+            <div class="quad-label">THOMSON (1904)</div>
+            <canvas id="canvas-thomson"></canvas>
+        </div>
+        <div class="quadrant">
+            <div class="quad-label">RUTHERFORD (1911)</div>
+            <canvas id="canvas-rutherford"></canvas>
+        </div>
+        <div class="quadrant">
+            <div class="quad-label">BOHR-CHADWICK (1932)</div>
+            <canvas id="canvas-bohr"></canvas>
+        </div>
+    </main>
+
+    <!-- Periodic Table Footer -->
+    <footer class="p-4 border-t shrink-0" style="background: var(--bg-ui); border-color: var(--border);">
+        <div id="ptable" class="ptable-grid">
+            <!-- JS populated -->
+        </div>
+    </footer>
+
+    <script>
+        const elements = [
+            { z: 1, s: "H", n: "Hydrogen", mass: 1, group: 1, period: 1 },
+            { z: 2, s: "He", n: "Helium", mass: 4, group: 8, period: 1 },
+            { z: 3, s: "Li", n: "Lithium", mass: 7, group: 1, period: 2 },
+            { z: 4, s: "Be", n: "Beryllium", mass: 9, group: 2, period: 2 },
+            { z: 5, s: "B", n: "Boron", mass: 11, group: 3, period: 2 },
+            { z: 6, s: "C", n: "Carbon", mass: 12, group: 4, period: 2 },
+            { z: 7, s: "N", n: "Nitrogen", mass: 14, group: 5, period: 2 },
+            { z: 8, s: "O", n: "Oxygen", mass: 16, group: 6, period: 2 },
+            { z: 9, s: "F", n: "Fluorine", mass: 19, group: 7, period: 2 },
+            { z: 10, s: "Ne", n: "Neon", mass: 20, group: 8, period: 2 },
+            { z: 11, s: "Na", n: "Sodium", mass: 23, group: 1, period: 3 },
+            { z: 12, s: "Mg", n: "Magnesium", mass: 24, group: 2, period: 3 },
+            { z: 13, s: "Al", n: "Aluminum", mass: 27, group: 3, period: 3 },
+            { z: 14, s: "Si", n: "Silicon", mass: 28, group: 4, period: 3 },
+            { z: 15, s: "P", n: "Phosphorus", mass: 31, group: 5, period: 3 },
+            { z: 16, s: "S", n: "Sulfur", mass: 32, group: 6, period: 3 },
+            { z: 17, s: "Cl", n: "Chlorine", mass: 35, group: 7, period: 3 },
+            { z: 18, s: "Ar", n: "Argon", mass: 40, group: 8, period: 3 },
+            { z: 19, s: "K", n: "Potassium", mass: 39, group: 1, period: 4 },
+            { z: 20, s: "Ca", n: "Calcium", mass: 40, group: 2, period: 4 }
+        ];
+
+        let selectedZ = 1;
+        let time = 0;
+        let isLightMode = false;
+        let nucleusPositions = [];
+
+        const canvases = {
+            dalton: document.getElementById('canvas-dalton'),
+            thomson: document.getElementById('canvas-thomson'),
+            rutherford: document.getElementById('canvas-rutherford'),
+            bohr: document.getElementById('canvas-bohr')
+        };
+        const ctxs = {};
+        Object.keys(canvases).forEach(k => ctxs[k] = canvases[k].getContext('2d'));
+
+        function init() {
+            const ptable = document.getElementById('ptable');
+            for (let r = 1; r <= 4; r++) {
+                for (let c = 1; c <= 8; c++) {
+                    const el = elements.find(e => e.period === r && e.group === c);
+                    if (el) {
+                        const btn = document.createElement('div');
+                        btn.className = `element-btn ${el.z === selectedZ ? 'active' : ''}`;
+                        btn.id = `btn-${el.z}`;
+                        btn.innerHTML = `<span class="text-[8px] opacity-60">${el.z}</span><span>${el.s}</span>`;
+                        btn.onclick = () => selectElement(el.z);
+                        ptable.appendChild(btn);
+                    } else {
+                        const empty = document.createElement('div');
+                        empty.className = 'empty-slot';
+                        ptable.appendChild(empty);
+                    }
+                }
+            }
+            window.addEventListener('resize', resize);
+            resize();
+            generateNucleusPositions();
+            animate();
+        }
+
+        function toggleTheme() {
+            isLightMode = !isLightMode;
+            document.body.classList.toggle('light-mode');
+            document.getElementById('theme-icon').innerText = isLightMode ? '☀️' : '🌙';
+            document.getElementById('theme-text').innerText = isLightMode ? 'LIGHT MODE' : 'DARK MODE';
+        }
+
+        function generateNucleusPositions() {
+            // Pre-generate random "clumped" positions for the nucleus particles
+            nucleusPositions = [];
+            const el = elements.find(e => e.z === selectedZ);
+            const neutronCount = el.mass - el.z;
+            const total = el.z + neutronCount;
+            
+            for (let i = 0; i < total; i++) {
+                // Phyllotaxis-based clumping with jitter for "randomness"
+                const angle = i * 2.4; 
+                const dist = Math.sqrt(i) * 3.8;
+                nucleusPositions.push({
+                    x: Math.cos(angle) * dist + (Math.random() - 0.5) * 4,
+                    y: Math.sin(angle) * dist + (Math.random() - 0.5) * 4,
+                    type: i < el.z ? 'proton' : 'neutron'
+                });
+            }
+        }
+
+        function resize() {
+            Object.values(canvases).forEach(c => {
+                c.width = c.parentElement.clientWidth;
+                c.height = c.parentElement.clientHeight;
+            });
+        }
+
+        function selectElement(z) {
+            document.getElementById(`btn-${selectedZ}`).classList.remove('active');
+            selectedZ = z;
+            document.getElementById(`btn-${selectedZ}`).classList.add('active');
+            const el = elements.find(e => e.z === z);
+            document.getElementById('stat-name').innerText = el.n;
+            document.getElementById('stat-z').innerText = el.z;
+            document.getElementById('stat-n').innerText = el.mass - el.z;
+            generateNucleusPositions();
+        }
+
+        // --- DRAWING FUNCTIONS ---
+
+        function drawDalton(ctx, w, h, el) {
+            const cx = w/2, cy = h/2;
+            const radius = 40 + (el.mass * 0.8);
+            const grad = ctx.createRadialGradient(cx - radius*0.3, cy - radius*0.3, 5, cx, cy, radius);
+            if (isLightMode) {
+                grad.addColorStop(0, '#94a3b8');
+                grad.addColorStop(1, '#1e293b');
+            } else {
+                grad.addColorStop(0, '#cbd5e1');
+                grad.addColorStop(1, '#334155');
+            }
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        function drawThomson(ctx, w, h, el) {
+            const cx = w/2, cy = h/2, radius = 80;
+            const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            grad.addColorStop(0, isLightMode ? 'rgba(244, 63, 94, 0.4)' : 'rgba(244, 63, 94, 0.2)');
+            grad.addColorStop(1, 'rgba(244, 63, 94, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI*2);
+            ctx.fill();
+            ctx.strokeStyle = isLightMode ? 'rgba(244, 63, 94, 0.3)' : 'rgba(244, 63, 94, 0.1)';
+            ctx.stroke();
+
+            for (let i = 0; i < el.z; i++) {
+                const noise = Math.sin(time + i) * 1.5;
+                const angle = (i * 137.5) * Math.PI/180;
+                const dist = Math.sqrt(i/el.z) * (radius - 15);
+                ctx.fillStyle = '#0ea5e9';
+                ctx.beginPath();
+                ctx.arc(cx + Math.cos(angle)*dist + noise, cy + Math.sin(angle)*dist + noise, 4, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        function drawRutherford(ctx, w, h, el) {
+            const cx = w/2, cy = h/2;
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI*2);
+            ctx.fill();
+
+            for (let i = 0; i < el.z; i++) {
+                const t = time * 3 + i * 20;
+                const r = 30 + (i * 4) + Math.sin(t*0.1) * 20;
+                ctx.fillStyle = isLightMode ? '#0284c7' : '#38bdf8';
+                ctx.beginPath();
+                ctx.arc(cx + Math.cos(t) * r * Math.sin(t*0.5), cy + Math.sin(t) * r * Math.cos(t*0.3), 2.5, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        function drawBohr(ctx, w, h, el) {
+            const cx = w/2, cy = h/2;
+            
+            // Random Nucleus (Clumped)
+            nucleusPositions.forEach((p) => {
+                ctx.fillStyle = p.type === 'proton' ? '#f43f5e' : (isLightMode ? '#059669' : '#10b981');
+                ctx.beginPath();
+                ctx.arc(cx + p.x, cy + p.y, 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.stroke();
+            });
+
+            // Energy Shells
+            let remaining = el.z;
+            const caps = [2, 8, 8, 2];
+            caps.forEach((cap, sIdx) => {
+                if (remaining <= 0) return;
+                const count = Math.min(remaining, cap);
+                remaining -= count;
+                const r = 45 + sIdx * 35;
+
+                ctx.strokeStyle = isLightMode ? 'rgba(15, 23, 42, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI*2);
+                ctx.stroke();
+
+                for (let i = 0; i < count; i++) {
+                    const angle = (time * (1.5 / (sIdx + 1))) + (i * (Math.PI*2 / count));
+                    ctx.fillStyle = isLightMode ? '#0284c7' : '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(cx + Math.cos(angle)*r, cy + Math.sin(angle)*r, 4.5, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function animate() {
+            time += 0.015;
+            const el = elements.find(e => e.z === selectedZ);
+
+            Object.keys(ctxs).forEach(key => {
+                const ctx = ctxs[key];
+                const c = canvases[key];
+                ctx.clearRect(0, 0, c.width, c.height);
+                switch(key) {
+                    case 'dalton': drawDalton(ctx, c.width, c.height, el); break;
+                    case 'thomson': drawThomson(ctx, c.width, c.height, el); break;
+                    case 'rutherford': drawRutherford(ctx, c.width, c.height, el); break;
+                    case 'bohr': drawBohr(ctx, c.width, c.height, el); break;
+                }
+            });
+            requestAnimationFrame(animate);
+        }
+
+        init();
+    </script>
+</body>
+</html>

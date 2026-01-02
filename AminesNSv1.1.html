@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amine Substitution Mechanism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background-color: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        canvas { display: block; }
+        input[type=range] { accent-color: #3b82f6; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col p-4 gap-4">
+
+    <!-- Header & Controls -->
+    <div class="flex gap-4 shrink-0">
+        <div class="glass p-4 rounded-2xl flex-grow flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-black bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">N-Substitution Lab</h1>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Haloalkane + Amine Reaction Stages</p>
+            </div>
+            
+            <div class="flex gap-6 items-center">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[9px] font-bold text-slate-500 uppercase">Reactant Ratio</label>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] text-blue-400 font-bold">NH₃</span>
+                        <input type="range" id="ratioSlider" min="0.2" max="5" step="0.1" value="1" class="w-32">
+                        <span class="text-[10px] text-emerald-400 font-bold">R-X</span>
+                    </div>
+                </div>
+
+                <div class="h-8 w-[1px] bg-white/10"></div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setMode('auto')" id="mode-auto" class="px-4 py-2 rounded-lg text-[10px] font-bold bg-blue-600 transition-colors">CONTINUOUS</button>
+                    <button onclick="setMode('step')" id="mode-step" class="px-4 py-2 rounded-lg text-[10px] font-bold bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors">STEP-BY-STEP</button>
+                </div>
+
+                <button onclick="resetSim()" class="bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main View -->
+    <div class="flex-grow flex gap-4 overflow-hidden">
+        <!-- Dashboard -->
+        <div class="w-72 flex flex-col gap-4">
+            <!-- Legend & Product Tally -->
+            <div class="glass p-4 rounded-2xl flex-grow overflow-y-auto">
+                <h2 class="text-[10px] font-black text-slate-500 uppercase mb-4">Product Mixture</h2>
+                <div id="productStats" class="space-y-3">
+                    <!-- Dynamic -->
+                </div>
+                
+                <div class="mt-8 space-y-2 border-t border-white/5 pt-4">
+                    <h3 class="text-[9px] font-bold text-slate-500 uppercase">Legend</h3>
+                    <div class="flex items-center gap-2 text-[11px]"><div class="w-2 h-2 rounded-full bg-blue-500"></div> Nitrogen (N)</div>
+                    <div class="flex items-center gap-2 text-[11px]"><div class="w-2 h-2 rounded-full bg-slate-400"></div> Carbon (C)</div>
+                    <div class="flex items-center gap-2 text-[11px]"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> Chlorine (Cl)</div>
+                    <div class="flex items-center gap-2 text-[11px]"><div class="w-2 h-2 rounded-full bg-white"></div> Hydrogen (H)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Vessel -->
+        <div id="vessel" class="flex-grow glass rounded-3xl relative overflow-hidden bg-slate-950/40">
+            <canvas id="simCanvas"></canvas>
+            
+            <!-- Stage Prompt -->
+            <div id="stepPrompt" class="hidden absolute top-6 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-2xl border-blue-500/50 shadow-2xl text-center">
+                <p id="stepText" class="text-sm font-bold text-blue-300 mb-2 italic">Collision Detected!</p>
+                <button onclick="advanceStep()" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full tracking-widest uppercase transition-all">Next Stage</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const vessel = document.getElementById('vessel');
+        const stepPrompt = document.getElementById('stepPrompt');
+        const stepText = document.getElementById('stepText');
+
+        let width, height;
+        let particles = [];
+        let simMode = 'auto'; // 'auto' or 'step'
+        let currentStepReaction = null; // Stores indices of colliding pair
+
+        const COLORS = {
+            N: '#3b82f6', C: '#94a3b8', Cl: '#10b981', H: '#ffffff', bond: 'rgba(255,255,255,0.15)'
+        };
+
+        class Particle {
+            constructor(type, x, y, level = 0) {
+                this.type = type; // 'nuc', 'halo', 'leaving'
+                this.x = x || Math.random() * (width - 100) + 50;
+                this.y = y || Math.random() * (height - 100) + 50;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.angle = Math.random() * Math.PI * 2;
+                this.va = (Math.random() - 0.5) * 0.02;
+                this.level = level; // 0=NH3, 1=1st, etc
+                this.active = true;
+                this.radius = 28;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                if (this.type === 'nuc') this.drawAmine();
+                else if (this.type === 'halo') this.drawHaloalkane();
+                else if (this.type === 'leaving') this.drawChloride();
+
+                ctx.restore();
+            }
+
+            drawAtom(label, x, y, color, size = 11) {
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = '#020617';
+                ctx.fill();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = color;
+                ctx.font = `bold ${size * 0.9}px monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, x, y);
+            }
+
+            drawAmine() {
+                this.drawAtom('N', 0, 0, COLORS.N, 14);
+                const count = this.level === 4 ? 4 : 3;
+                for(let i=0; i<count; i++) {
+                    const ang = (i/count) * Math.PI * 2;
+                    const lx = Math.cos(ang) * 22;
+                    const ly = Math.sin(ang) * 22;
+                    ctx.beginPath();
+                    ctx.moveTo(0,0); ctx.lineTo(lx,ly);
+                    ctx.strokeStyle = COLORS.bond; ctx.stroke();
+                    if (i < this.level) {
+                        this.drawAtom('C', lx, ly, COLORS.C, 9);
+                    } else {
+                        this.drawAtom('H', lx, ly, COLORS.H, 7);
+                    }
+                }
+                if(this.level === 4) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 12px serif';
+                    ctx.fillText('+', 18, -18);
+                }
+            }
+
+            drawHaloalkane() {
+                // Carbon center
+                this.drawAtom('C', -8, 0, COLORS.C, 12);
+                // Leaving group
+                this.drawAtom('Cl', 14, 0, COLORS.Cl, 12);
+                ctx.beginPath();
+                ctx.moveTo(-8, 0); ctx.lineTo(14, 0);
+                ctx.strokeStyle = COLORS.bond; ctx.stroke();
+                
+                // Hydrogens for Chloromethane (CH3Cl)
+                for(let i=0; i<3; i++) {
+                    const ang = (i/3) * Math.PI * 1.2 + 1;
+                    const lx = -8 + Math.cos(ang) * 18;
+                    const ly = Math.sin(ang) * 18;
+                    ctx.beginPath();
+                    ctx.moveTo(-8, 0); ctx.lineTo(lx, ly);
+                    ctx.strokeStyle = COLORS.bond; ctx.stroke();
+                    this.drawAtom('H', lx, ly, COLORS.H, 6);
+                }
+            }
+
+            drawChloride() {
+                this.drawAtom('Cl', 0, 0, COLORS.Cl, 12);
+                ctx.fillStyle = COLORS.Cl;
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText('-', 15, -10);
+            }
+
+            update() {
+                if (!this.active) return;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.angle += this.va;
+                if (this.x < 30 || this.x > width - 30) this.vx *= -1;
+                if (this.y < 30 || this.y > height - 30) this.vy *= -1;
+            }
+        }
+
+        function resetSim() {
+            resize();
+            particles = [];
+            const ratio = parseFloat(document.getElementById('ratioSlider').value);
+            
+            // Fixed total of 24 base particles
+            let nNuc = Math.floor(24 * (ratio / (1 + ratio)));
+            let nHalo = 24 - nNuc;
+
+            for(let i=0; i<nNuc; i++) particles.push(new Particle('nuc'));
+            for(let i=0; i<nHalo; i++) particles.push(new Particle('halo'));
+            
+            currentStepReaction = null;
+            stepPrompt.classList.add('hidden');
+            updateUI();
+        }
+
+        function setMode(m) {
+            simMode = m;
+            document.getElementById('mode-auto').className = m === 'auto' ? 'px-4 py-2 rounded-lg text-[10px] font-bold bg-blue-600 transition-colors' : 'px-4 py-2 rounded-lg text-[10px] font-bold bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors';
+            document.getElementById('mode-step').className = m === 'step' ? 'px-4 py-2 rounded-lg text-[10px] font-bold bg-blue-600 transition-colors' : 'px-4 py-2 rounded-lg text-[10px] font-bold bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors';
+            if (m === 'auto') {
+                stepPrompt.classList.add('hidden');
+                currentStepReaction = null;
+            }
+        }
+
+        function checkCollisions() {
+            if (currentStepReaction) return; // Wait for user if in step mode
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+                    if (!p1.active || !p2.active) continue;
+
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist < 45) {
+                        let nuc = null, halo = null;
+                        if (p1.type === 'nuc' && p2.type === 'halo' && p1.level < 4) { nuc = i; halo = j; }
+                        else if (p2.type === 'nuc' && p1.type === 'halo' && p2.level < 4) { nuc = j; halo = i; }
+
+                        if (nuc !== null) {
+                            if (simMode === 'auto') {
+                                performReaction(nuc, halo);
+                            } else {
+                                currentStepReaction = { nuc, halo, stage: 1 };
+                                stepPrompt.classList.remove('hidden');
+                                stepText.innerText = "Nucleophilic Attack: N lone pair targets Cδ+";
+                            }
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function performReaction(nucIdx, haloIdx) {
+            const nuc = particles[nucIdx];
+            const halo = particles[haloIdx];
+
+            // 1. Amine level up
+            nuc.level++;
+            
+            // 2. Haloalkane leaves as Chloride byproduct
+            const clX = halo.x;
+            const clY = halo.y;
+            particles.splice(haloIdx, 1);
+            particles.push(new Particle('leaving', clX, clY));
+            
+            updateUI();
+        }
+
+        function advanceStep() {
+            if (!currentStepReaction) return;
+            const r = currentStepReaction;
+            
+            if (r.stage === 1) {
+                stepText.innerText = "Transition State: C-Cl bond weakening...";
+                r.stage = 2;
+            } else if (r.stage === 2) {
+                stepText.innerText = "Byproduct Release: HCl/Cl⁻ departs";
+                performReaction(r.nuc, r.halo);
+                r.stage = 3;
+            } else {
+                currentStepReaction = null;
+                stepPrompt.classList.add('hidden');
+            }
+        }
+
+        function updateUI() {
+            const counts = { 0:0, 1:0, 2:0, 3:0, 4:0, chloride: 0 };
+            particles.forEach(p => {
+                if (p.type === 'nuc') counts[p.level]++;
+                if (p.type === 'leaving') counts.chloride++;
+            });
+
+            const labels = ["Ammonia", "Primary Amine", "Secondary Amine", "Tertiary Amine", "Quat. Salt"];
+            let html = '';
+            for(let i=0; i<5; i++) {
+                const percent = (counts[i] / (particles.filter(p => p.type==='nuc').length) * 100).toFixed(0);
+                html += `
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/5">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">${labels[i]}</span>
+                            <span class="text-xs font-black text-blue-400">${counts[i]}</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                            <div class="bg-blue-500 h-full transition-all duration-500" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += `
+                <div class="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 mt-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-emerald-500 uppercase">Cl⁻ Byproducts</span>
+                        <span class="text-xs font-black text-emerald-400">${counts.chloride}</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('productStats').innerHTML = html;
+        }
+
+        function resize() {
+            width = vessel.offsetWidth;
+            height = vessel.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            checkCollisions();
+            
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resetSim();
+        animate();
+    </script>
+</body>
+</html>

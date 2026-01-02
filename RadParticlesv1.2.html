@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radiation Particle Physics Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-canvas: #020617;
+            --text-main: #f8fafc;
+            --panel-bg: rgba(30, 41, 59, 0.8);
+            --border-color: #1e293b;
+            --atom-stroke: #1e293b;
+        }
+
+        .light-mode {
+            --bg-main: #f1f5f9;
+            --bg-canvas: #ffffff;
+            --text-main: #1e293b;
+            --panel-bg: rgba(255, 255, 255, 0.9);
+            --border-color: #cbd5e1;
+            --atom-stroke: #94a3b8;
+        }
+
+        body { background-color: var(--bg-main); color: var(--text-main); transition: background-color 0.3s, color 0.3s; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        .canvas-container { position: relative; width: 100%; height: 400px; background: var(--bg-canvas); border-radius: 12px; border: 2px solid var(--border-color); overflow: hidden; }
+        .particle-btn { transition: all 0.2s; border: 2px solid transparent; }
+        .particle-btn.active { border-color: #fbbf24; transform: scale(1.02); background: var(--border-color); }
+        .control-panel { background: var(--panel-bg); backdrop-filter: blur(8px); border: 1px solid var(--border-color); }
+        
+        #theme-toggle {
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        #theme-toggle:hover { background: rgba(128, 128, 128, 0.2); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-500 to-orange-600">
+                    Radiation Lab: α, β, γ
+                </h1>
+                <p class="text-slate-500 dark:text-slate-400">GCSE Physics Interaction Hub</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="theme-toggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode">
+                    <svg id="sun-icon" class="hidden w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path></svg>
+                    <svg id="moon-icon" class="w-6 h-6 text-slate-700" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                </button>
+                <div class="hidden sm:block px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-sm">
+                    Source: <span id="sourceName" class="text-red-500 font-bold">Alpha</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div class="lg:col-span-1 space-y-4">
+                <div class="control-panel p-5 rounded-xl">
+                    <h2 class="text-xs font-bold uppercase tracking-widest mb-4 opacity-60">1. Select Source</h2>
+                    <div class="space-y-3">
+                        <button onclick="setParticle('alpha')" id="btn-alpha" class="particle-btn active w-full p-3 rounded-lg flex items-center gap-3 bg-white/50 dark:bg-slate-900/50">
+                            <div class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_red]"></div>
+                            <div class="text-left">
+                                <div class="font-bold text-sm">Alpha (α)</div>
+                                <div class="text-[10px] opacity-60">Helium Nucleus</div>
+                            </div>
+                        </button>
+                        <button onclick="setParticle('beta')" id="btn-beta" class="particle-btn w-full p-3 rounded-lg flex items-center gap-3 bg-white/50 dark:bg-slate-900/50">
+                            <div class="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_blue]"></div>
+                            <div class="text-left">
+                                <div class="font-bold text-sm">Beta (β)</div>
+                                <div class="text-[10px] opacity-60">High-speed Electron</div>
+                            </div>
+                        </button>
+                        <button onclick="setParticle('gamma')" id="btn-gamma" class="particle-btn w-full p-3 rounded-lg flex items-center gap-3 bg-white/50 dark:bg-slate-900/50">
+                            <div class="w-4 h-4 text-emerald-500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M2 12c4-8 4 8 8 0s4-8 8 0 4 8 8 0" /></svg></div>
+                            <div class="text-left">
+                                <div class="font-bold text-sm">Gamma (γ)</div>
+                                <div class="text-[10px] opacity-60">EM Wave</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-panel p-5 rounded-xl">
+                    <h2 class="text-xs font-bold uppercase tracking-widest mb-4 opacity-60">2. Experiment</h2>
+                    <div class="space-y-2">
+                        <button onclick="setExp('penetrating')" id="exp-penetrating" class="w-full py-2 px-4 rounded hover:bg-slate-500/20 transition text-sm text-left border border-transparent">Penetrating Ability</button>
+                        <button onclick="setExp('distance')" id="exp-distance" class="w-full py-2 px-4 rounded hover:bg-slate-500/20 transition text-sm text-left border border-transparent">Range in Air</button>
+                        <button onclick="setExp('ionising')" id="exp-ionising" class="w-full py-2 px-4 rounded hover:bg-slate-500/20 transition text-sm text-left border border-transparent">Ionising Capacity</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div class="canvas-container" id="canvasBox">
+                    <canvas id="mainCanvas"></canvas>
+                    <div id="infoOverlay" class="absolute bottom-4 left-4 right-4 p-4 bg-slate-900/80 backdrop-blur rounded-lg border border-white/10 text-sm text-white">
+                    </div>
+                </div>
+                
+                <div class="mt-6 grid grid-cols-3 gap-4 text-center">
+                    <div class="p-4 rounded-xl control-panel">
+                        <div class="opacity-50 text-[10px] uppercase mb-1">Charge</div>
+                        <div id="statCharge" class="font-mono text-xl font-bold text-red-500">+2</div>
+                    </div>
+                    <div class="p-4 rounded-xl control-panel">
+                        <div class="opacity-50 text-[10px] uppercase mb-1">Rel. Mass</div>
+                        <div id="statMass" class="font-mono text-xl font-bold text-yellow-600">4</div>
+                    </div>
+                    <div class="p-4 rounded-xl control-panel">
+                        <div class="opacity-50 text-[10px] uppercase mb-1">Ionising Power</div>
+                        <div id="statIon" class="font-mono text-xl font-bold text-purple-500">Strong</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const infoOverlay = document.getElementById('infoOverlay');
+        const sourceNameDisp = document.getElementById('sourceName');
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        let currentParticle = 'alpha';
+        let currentExp = 'penetrating';
+        let particles = [];
+        let airAtoms = [];
+        let frame = 0;
+        let isDarkMode = true;
+
+        const particleConfig = {
+            alpha: { color: '#ef4444', size: 8, speed: 1.5, charge: '+2', mass: '4', ion: 'Very Strong', desc: 'Heavy and slow. High charge makes them highly likely to knock electrons off atoms.' },
+            beta: { color: '#3b82f6', size: 3, speed: 5, charge: '-1', mass: '1/1840', ion: 'Moderate', desc: 'Light and fast. They can penetrate further into materials than Alpha.' },
+            gamma: { color: '#10b981', size: 1, speed: 9, charge: '0', mass: '0', ion: 'Weak', desc: 'A pure energy wave with no mass or charge. It interacts rarely with atoms.' }
+        };
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('light-mode');
+            document.getElementById('sun-icon').classList.toggle('hidden');
+            document.getElementById('moon-icon').classList.toggle('hidden');
+        }
+
+        function initAtoms() {
+            airAtoms = [];
+            for(let i=0; i<35; i++) {
+                airAtoms.push({
+                    x: 150 + Math.random() * (canvas.width - 200),
+                    y: 40 + Math.random() * (canvas.height - 80),
+                    r: 12,
+                    ionized: false,
+                    timer: 0
+                });
+            }
+        }
+
+        const experimentData = {
+            penetrating: {
+                title: "Penetrating Ability",
+                desc: "How much material stops the source?",
+                setup: () => {
+                    const labelColor = isDarkMode ? '#94a3b8' : '#475569';
+                    ctx.fillStyle = '#fef08a'; ctx.fillRect(200, 50, 8, 300); // Paper
+                    ctx.fillStyle = '#94a3b8'; ctx.fillRect(400, 50, 25, 300); // Al
+                    ctx.fillStyle = '#475569'; ctx.fillRect(650, 50, 70, 300); // Lead
+                    ctx.fillStyle = labelColor; ctx.font = '10px Arial';
+                    ctx.fillText('Paper', 190, 45); ctx.fillText('Aluminum', 390, 45); ctx.fillText('Lead/Concrete', 650, 45);
+                }
+            },
+            distance: {
+                title: "Range in Air",
+                desc: "Range: Alpha (~5cm), Beta (~1m), Gamma (Very long).",
+                setup: () => {
+                    const strokeColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                    const labelColor = isDarkMode ? '#94a3b8' : '#475569';
+                    ctx.strokeStyle = strokeColor;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath(); ctx.moveTo(150, 0); ctx.lineTo(150, canvas.height); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(500, 0); ctx.lineTo(500, canvas.height); ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = labelColor;
+                    ctx.fillText('~5cm', 140, 30); ctx.fillText('~1m', 490, 30);
+                }
+            },
+            ionising: {
+                title: "Ionising Capacity",
+                desc: "Higher charge/mass = more collisions. Observe how often source pulses knock electrons loose.",
+                setup: () => {
+                    if (airAtoms.length === 0) initAtoms();
+                    airAtoms.forEach(a => {
+                        ctx.beginPath();
+                        ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+                        const stroke = isDarkMode ? '#1e293b' : '#cbd5e1';
+                        ctx.strokeStyle = a.ionized ? '#fbbf24' : stroke;
+                        ctx.lineWidth = a.ionized ? 3 : 1;
+                        ctx.fillStyle = a.ionized ? 'rgba(251, 191, 36, 0.4)' : 'transparent';
+                        ctx.fill();
+                        ctx.stroke();
+                        if (a.ionized) {
+                            a.timer--;
+                            if (a.timer <= 0) a.ionized = false;
+                        }
+                    });
+                    ctx.lineWidth = 1;
+                }
+            }
+        };
+
+        function setParticle(type) {
+            currentParticle = type;
+            document.querySelectorAll('.particle-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
+            sourceNameDisp.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            sourceNameDisp.className = `font-bold ${type === 'alpha' ? 'text-red-500' : type === 'beta' ? 'text-blue-500' : 'text-emerald-500'}`;
+            
+            document.getElementById('statCharge').textContent = particleConfig[type].charge;
+            document.getElementById('statMass').textContent = particleConfig[type].mass;
+            document.getElementById('statIon').textContent = particleConfig[type].ion;
+            
+            // Reset state for comparison
+            particles = [];
+            if (currentExp === 'ionising') initAtoms(); 
+            updateInfo();
+        }
+
+        function setExp(type) {
+            currentExp = type;
+            document.querySelectorAll('[id^="exp-"]').forEach(b => {
+                b.classList.remove('bg-slate-500/20', 'border-yellow-500');
+            });
+            const activeBtn = document.getElementById(`exp-${type}`);
+            activeBtn.classList.add('bg-slate-500/20', 'border-yellow-500');
+            
+            particles = [];
+            initAtoms();
+            updateInfo();
+        }
+
+        function updateInfo() {
+            const exp = experimentData[currentExp];
+            const part = particleConfig[currentParticle];
+            infoOverlay.innerHTML = `
+                <div class="font-bold text-yellow-400 mb-1 flex items-center justify-between">
+                    <span>${exp.title}</span>
+                    <span class="text-[10px] opacity-50 font-normal">Active Simulation</span>
+                </div>
+                <div class="leading-relaxed"><span class="opacity-70">${part.desc}</span> <span class="text-white font-medium">${exp.desc}</span></div>
+            `;
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frame++;
+
+            experimentData[currentExp].setup();
+
+            // Spawn
+            if (frame % (currentParticle === 'alpha' ? 15 : 8) === 0) {
+                particles.push({
+                    x: 25,
+                    y: 60 + Math.random() * (canvas.height - 120),
+                    type: currentParticle,
+                    alive: true,
+                    offset: Math.random() * 10
+                });
+            }
+
+            particles.forEach((p) => {
+                if (!p.alive) return;
+                const cfg = particleConfig[p.type];
+                
+                if (currentExp === 'penetrating') {
+                    if (p.type === 'alpha' && p.x > 200) p.alive = false;
+                    if (p.type === 'beta' && p.x > 400) p.alive = false;
+                    if (p.type === 'gamma' && p.x > 680 && Math.random() > 0.99) p.alive = false; 
+                } 
+                else if (currentExp === 'distance') {
+                    if (p.type === 'alpha' && p.x > 150) p.alive = false;
+                    if (p.type === 'beta' && p.x > 500) p.alive = false;
+                }
+                else if (currentExp === 'ionising') {
+                    airAtoms.forEach(a => {
+                        const dist = Math.hypot(p.x - a.x, p.y - a.y);
+                        let collisionRange = p.type === 'alpha' ? 30 : (p.type === 'beta' ? 12 : 5);
+                        if (dist < collisionRange && !a.ionized) {
+                            a.ionized = true;
+                            a.timer = 120;
+                            if (p.type === 'alpha') p.alive = false; // Alpha stops on collision
+                        }
+                    });
+                }
+
+                p.x += cfg.speed;
+
+                ctx.save();
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = cfg.color;
+                ctx.fillStyle = cfg.color;
+
+                if (p.type === 'gamma') {
+                    ctx.beginPath();
+                    const waveY = p.y + Math.sin((p.x + p.offset) * 0.15) * 12;
+                    ctx.arc(p.x, waveY, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, cfg.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    if (p.type === 'alpha') {
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 9px Arial';
+                        ctx.fillText('++', p.x - 4, p.y + 3);
+                    }
+                }
+                ctx.restore();
+
+                if (p.x > canvas.width) p.alive = false;
+            });
+
+            particles = particles.filter(p => p.alive);
+
+            // Source indicator
+            ctx.fillStyle = isDarkMode ? '#1e293b' : '#cbd5e1';
+            ctx.beginPath();
+            ctx.arc(20, canvas.height/2, 45, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = isDarkMode ? '#fff' : '#1e293b';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SOURCE', 20, canvas.height/2 + 4);
+
+            requestAnimationFrame(update);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            initAtoms();
+        });
+        
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        setParticle('alpha');
+        setExp('penetrating');
+        update();
+    </script>
+</body>
+</html>

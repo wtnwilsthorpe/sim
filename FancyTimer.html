@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronos Flourisher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=JetBrains+Mono:wght@100;800&family=Space+Grotesk:wght@300;700&family=Bungee+Outline&family=UnifrakturMaguntia&family=Press+Start+2P&family=Nabla&family=Honk&family=Rubik+Glitch&family=Righteous&family=Fascinate+Inline&family=Monoton&family=Syne:wght@800&family=Silkscreen&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #050505; 
+            --accent: #3b82f6; 
+            --font-main: 'Space Grotesk';
+        }
+        body { 
+            background-color: var(--bg); 
+            color: white; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: var(--font-main), sans-serif;
+            transition: background-color 1s ease;
+        }
+        
+        #timer-stage { 
+            position: relative; 
+            width: 100%; 
+            height: 60vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.5s ease;
+        }
+        
+        .input-area { 
+            position: fixed; 
+            top: 40px; 
+            z-index: 100; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        input { 
+            background: rgba(255, 255, 255, 0.05); 
+            border: 2px solid rgba(255, 255, 255, 0.1); 
+            padding: 15px 30px; 
+            border-radius: 50px; 
+            color: white; 
+            font-size: 1.5rem; 
+            text-align: center; 
+            outline: none; 
+            width: 180px; 
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        input:focus { 
+            border-color: var(--accent); 
+            background: rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.3); 
+        }
+        .label { 
+            font-size: 0.75rem; 
+            letter-spacing: 4px; 
+            color: rgba(255,255,255,0.4); 
+            text-transform: uppercase; 
+            font-weight: 700;
+        }
+
+        #digital-counter { 
+            position: fixed; 
+            bottom: 40px; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 4rem; 
+            font-weight: 200; 
+            opacity: 0.8; 
+            letter-spacing: -2px;
+            color: var(--accent);
+        }
+
+        .visualizer { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: opacity 0.5s; 
+        }
+
+        /* Themed Components */
+        .s-ring { width: 320px; height: 320px; border-radius: 50%; border: 12px solid rgba(255,255,255,0.05); border-top-color: var(--accent); }
+        .s-blocks { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; width: 400px; }
+        .block { height: 30px; background: rgba(255,255,255,0.05); border-radius: 2px; transition: all 0.4s ease; }
+        .block.active { background: var(--accent); box-shadow: 0 0 15px var(--accent); }
+        
+        .bar-container { width: 400px; height: 10px; background: rgba(255,255,255,0.1); border-radius: 20px; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--accent); transition: width 0.2s linear; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .float { animation: float 3s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+
+    <div class="input-area">
+        <span class="label">Minutes</span>
+        <input type="number" id="time-input" placeholder="0" step="1" min="1">
+    </div>
+
+    <div id="timer-stage">
+        <div id="visual-target" class="visualizer">
+            <div style="opacity: 0.3; font-size: 1.2rem; letter-spacing: 2px;">READY FOR INPUT</div>
+        </div>
+    </div>
+
+    <div id="digital-counter">00:00</div>
+
+    <script>
+        const input = document.getElementById('time-input');
+        const target = document.getElementById('visual-target');
+        const counter = document.getElementById('digital-counter');
+        
+        let timeLeft = 0;
+        let totalTime = 0;
+        let timerInterval = null;
+        let currentStyle = 0;
+
+        const fonts = [
+            'Orbitron', 'Space Grotesk', 'Righteous', 'Syne', 
+            'Silkscreen', 'Fascinate Inline', 'Monoton', 'JetBrains Mono'
+        ];
+
+        const colors = [
+            { hex: '#3b82f6', rgb: '59, 130, 246' }, // Blue
+            { hex: '#ef4444', rgb: '239, 68, 68' },  // Red
+            { hex: '#10b981', rgb: '16, 185, 129' }, // Green
+            { hex: '#f59e0b', rgb: '245, 158, 11' }, // Amber
+            { hex: '#8b5cf6', rgb: '139, 92, 246' }, // Violet
+            { hex: '#ec4899', rgb: '236, 72, 153' }, // Pink
+            { hex: '#06b6d4', rgb: '6, 182, 212' },  // Cyan
+            { hex: '#ffffff', rgb: '255, 255, 255' } // White
+        ];
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function setRandomTheme() {
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const font = fonts[Math.floor(Math.random() * fonts.length)];
+            
+            document.documentElement.style.setProperty('--accent', color.hex);
+            document.documentElement.style.setProperty('--accent-rgb', color.rgb);
+            document.documentElement.style.setProperty('--font-main', font);
+            
+            currentStyle = Math.floor(Math.random() * 30);
+        }
+
+        function getStyleHTML(index, progress) {
+            const deg = progress * 360;
+            const percent = progress * 100;
+            const mLeft = Math.ceil(timeLeft / 60);
+            const sLeft = Math.floor(timeLeft);
+
+            switch(index) {
+                case 0: return `<div style="width:300px; height:300px; border:2px solid var(--accent); border-radius:50%; position:relative;"><div style="position:absolute; bottom:50%; left:50%; width:4px; height:140px; background:var(--accent); transform-origin:bottom center; transform:rotate(${deg}deg); border-radius:10px;"></div></div>`;
+                case 1: return `<div class="s-ring" style="transform: rotate(${deg}deg)"></div>`;
+                case 2: return `<div class="s-blocks">${Array(40).fill(0).map((_,i) => `<div class="block ${i < progress*40 ? 'active' : ''}"></div>`).join('')}</div>`;
+                case 3: return `<div style="font-size:12rem; font-family:'Nabla';">${mLeft}</div>`;
+                case 4: return `<div style="font-size:12rem; font-family:'Honk';">${sLeft}</div>`;
+                case 5: return `<div class="bar-container"><div class="bar-fill" style="width:${percent}%"></div></div>`;
+                case 6: return `<div style="font-family:'Monoton'; font-size:8rem; color:var(--accent);">${sLeft}</div>`;
+                case 7: return `<div style="font-family:'Press Start 2P'; color:var(--accent); font-size:2rem;">REMAINING: ${percent.toFixed(0)}%</div>`;
+                case 8: return `<div class="float" style="width:200px; height:200px; background:var(--accent); border-radius:50%; filter:blur(${40 - progress*40}px)"></div>`;
+                case 9: return `<div style="display:flex; gap:10px;">${Array(mLeft).fill(0).map(() => `<div style="width:40px; height:40px; background:var(--accent);"></div>`).join('')}</div>`;
+                case 10: return `<div style="font-family:'Rubik Glitch'; font-size:10rem; color:var(--accent);">${sLeft}</div>`;
+                case 11: return `<div style="font-family:'Bungee Outline'; font-size:10rem;">${mLeft}</div>`;
+                case 12: return `<div style="transform: scale(${0.5 + progress}); width:300px; height:300px; border:20px solid var(--accent); border-radius:50%;"></div>`;
+                case 13: return `<div style="font-family:'UnifrakturMaguntia'; font-size:8rem; color:var(--accent);">${sLeft}</div>`;
+                case 14: return `<div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">${Array(25).fill(0).map((_,i) => `<div style="width:30px; height:30px; border:2px solid var(--accent); opacity:${i/25 < progress ? 1 : 0.1}"></div>`).join('')}</div>`;
+                case 15: return `<div style="font-family:'Fascinate Inline'; font-size:10rem; color:var(--accent);">${sLeft}</div>`;
+                case 16: return `<div style="width:400px; height:2px; background:rgba(255,255,255,0.1); position:relative;"><div style="position:absolute; left:0; top:-10px; width:20px; height:20px; background:var(--accent); left:${percent}%"></div></div>`;
+                case 17: return `<div style="font-family:'Silkscreen'; font-size:5rem; color:var(--accent);">${mLeft} MIN</div>`;
+                case 18: return `<div style="width:300px; height:300px; border-left:10px solid var(--accent); border-bottom:10px solid var(--accent); display:flex; align-items:flex-end;"><div style="width:100%; height:${percent}%; background:var(--accent); opacity:0.3;"></div></div>`;
+                case 19: return `<div style="font-size:4rem; font-weight:900; letter-spacing:-5px; transform:skewX(-15deg);">${sLeft} SECONDS</div>`;
+                case 20: return `<div style="border:10px double var(--accent); padding:40px; font-size:6rem; font-family:'Righteous';">${sLeft}</div>`;
+                case 21: return `<div style="width:250px; height:250px; background:repeating-conic-gradient(from ${deg}deg, var(--accent) 0deg 90deg, transparent 90deg 180deg); border-radius:50%;"></div>`;
+                case 22: return `<div style="font-family:'Syne'; font-size:15rem; opacity:0.1; line-height:1;">${mLeft}</div>`;
+                case 23: return `<div style="display:flex; flex-direction:column; gap:5px;">${Array(10).fill(0).map((_,i) => `<div style="height:10px; width:${progress * (400 - i*30)}px; background:var(--accent);"></div>`).join('')}</div>`;
+                case 24: return `<div style="font-size:8rem;">${progress > 0.5 ? '⌛' : '⏳'}</div>`;
+                case 25: return `<div style="padding:20px; background:var(--accent); color:black; font-weight:900; font-size:5rem; clip-path: polygon(0% 0%, 100% 0%, 90% 100%, 10% 100%);">${sLeft}</div>`;
+                case 26: return `<div style="width:300px; height:300px; border:1px solid var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center;"><div style="width:${percent}%; height:${percent}%; background:var(--accent); border-radius:50%; opacity:0.5;"></div></div>`;
+                case 27: return `<div style="font-family:'Courier New'; font-size:2rem; color:var(--accent);">[SYSTEM_HALT_IN_${sLeft}S]</div>`;
+                case 28: return `<div style="font-size:6rem; filter: drop-shadow(0 0 10px var(--accent));">${mLeft}:${(sLeft%60).toString().padStart(2,'0')}</div>`;
+                case 29: return `<div style="width:10px; height:300px; background:rgba(255,255,255,0.1);"><div style="width:100%; height:${percent}%; background:var(--accent);"></div></div>`;
+                default: return `<div>${sLeft}</div>`;
+            }
+        }
+
+        function startTimer() {
+            const mins = parseInt(input.value);
+            if (isNaN(mins) || mins <= 0) return;
+
+            if (timerInterval) clearInterval(timerInterval);
+            
+            setRandomTheme();
+            totalTime = mins * 60;
+            timeLeft = totalTime;
+
+            timerInterval = setInterval(() => {
+                timeLeft -= 1; // Update every second for cleaner jumps
+                const progress = Math.max(0, timeLeft / totalTime);
+
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    clearInterval(timerInterval);
+                    target.innerHTML = `<div style="font-size:5rem; font-weight:900; color:var(--accent); font-family:'Syne';">FINISH</div>`;
+                } else {
+                    target.innerHTML = getStyleHTML(currentStyle, progress);
+                }
+
+                counter.innerText = formatTime(timeLeft);
+            }, 1000);
+            
+            target.innerHTML = getStyleHTML(currentStyle, 1);
+            counter.innerText = formatTime(timeLeft);
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                startTimer();
+                input.blur();
+            }
+        });
+
+        window.onload = () => input.focus();
+    </script>
+</body>
+</html>

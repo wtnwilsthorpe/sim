@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirchhoff Physics Lab - V8</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            margin: 0;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+        .ui-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            pointer-events: auto;
+        }
+        .meter-body {
+            cursor: move;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7);
+            z-index: 40;
+            pointer-events: auto;
+            transition: border-color 0.2s;
+        }
+        .probe {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: move;
+            position: absolute;
+            z-index: 50;
+            border: 3px solid rgba(255,255,255,0.8);
+            box-shadow: 0 0 12px rgba(0,0,0,0.6);
+            pointer-events: auto;
+        }
+        input[type="range"] {
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+        .nav-active {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+        }
+        .bulb-label {
+            font-size: 14px;
+            font-weight: 800;
+            fill: #60a5fa;
+            pointer-events: none;
+            filter: drop-shadow(0 0 2px black);
+        }
+    </style>
+</head>
+<body>
+
+<div class="canvas-container" id="container">
+    <svg id="svg" class="w-full h-full pointer-events-none" style="display: block;">
+        <g id="circuit-layer"></g>
+        <g id="electron-layer"></g>
+        <!-- Lead Layers -->
+        <path id="lead-red-1" stroke="#ef4444" stroke-width="2.5" fill="none" stroke-dasharray="4" opacity="0.8" />
+        <path id="lead-black-1" stroke="#475569" stroke-width="2.5" fill="none" stroke-dasharray="4" opacity="0.8" />
+        <path id="lead-red-2" stroke="#ef4444" stroke-width="2.5" fill="none" stroke-dasharray="4" opacity="0.8" />
+        <path id="lead-black-2" stroke="#475569" stroke-width="2.5" fill="none" stroke-dasharray="4" opacity="0.8" />
+    </svg>
+
+    <!-- UI: Navigation -->
+    <div class="absolute top-4 left-0 right-0 flex justify-center pointer-events-none">
+        <div class="ui-panel px-4 py-2 rounded-full flex gap-3 shadow-2xl pointer-events-auto">
+            <button onclick="changeLayout('simple')" id="btn-simple" class="nav-btn px-4 py-1 rounded-full text-xs font-bold transition-all text-slate-400 hover:text-white">Simple</button>
+            <button onclick="changeLayout('series')" id="btn-series" class="nav-btn px-4 py-1 rounded-full text-xs font-bold transition-all text-slate-400 hover:text-white">Series</button>
+            <button onclick="changeLayout('parallel1')" id="btn-parallel1" class="nav-btn px-4 py-1 rounded-full text-xs font-bold transition-all text-slate-400 hover:text-white">Parallel (1+1)</button>
+            <button onclick="changeLayout('parallel2')" id="btn-parallel2" class="nav-btn px-4 py-1 rounded-full text-xs font-bold transition-all text-slate-400 hover:text-white">Parallel (1+2)</button>
+        </div>
+    </div>
+
+    <!-- METERS -->
+    <div id="ammeter1" class="meter-body absolute w-28 h-20 bg-indigo-950 border-2 border-indigo-500 rounded-xl flex flex-col items-center justify-center left-10 top-20">
+        <span class="text-[9px] font-black text-indigo-300 tracking-tighter uppercase">Ammeter A</span>
+        <div id="am-val-1" class="text-3xl font-mono text-white">0.00</div>
+        <span class="text-[8px] text-indigo-400">Amps (A)</span>
+    </div>
+    
+    <div id="ammeter2" class="meter-body absolute w-28 h-20 bg-indigo-950 border-2 border-indigo-500 rounded-xl flex flex-col items-center justify-center right-10 top-20">
+        <span class="text-[9px] font-black text-indigo-300 tracking-tighter uppercase">Ammeter B</span>
+        <div id="am-val-2" class="text-3xl font-mono text-white">0.00</div>
+        <span class="text-[8px] text-indigo-400">Amps (A)</span>
+    </div>
+
+    <div id="voltmeter1" class="meter-body absolute w-32 h-24 bg-slate-900 border-2 border-slate-500 rounded-2xl flex flex-col items-center justify-center left-10 top-44">
+        <span class="text-[10px] font-black text-slate-400 tracking-tighter uppercase">Voltmeter V1</span>
+        <div id="vm-val-1" class="text-3xl font-mono text-white">0.00</div>
+        <span class="text-[8px] text-slate-500">Volts (V)</span>
+    </div>
+
+    <div id="voltmeter2" class="meter-body absolute w-32 h-24 bg-slate-900 border-2 border-slate-500 rounded-2xl flex flex-col items-center justify-center right-10 top-44">
+        <span class="text-[10px] font-black text-slate-400 tracking-tighter uppercase">Voltmeter V2</span>
+        <div id="vm-val-2" class="text-3xl font-mono text-white">0.00</div>
+        <span class="text-[8px] text-slate-500">Volts (V)</span>
+    </div>
+
+    <!-- PROBES -->
+    <div id="p-r1" class="probe bg-red-600 left-48 top-64"></div>
+    <div id="p-b1" class="probe bg-slate-900 left-48 top-72"></div>
+    <div id="p-r2" class="probe bg-red-600 right-48 top-64"></div>
+    <div id="p-b2" class="probe bg-slate-900 right-48 top-72"></div>
+
+    <!-- UI: Bottom Controls -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 ui-panel p-5 rounded-3xl flex items-center gap-10 shadow-2xl">
+        <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[11px] font-black text-blue-400 uppercase tracking-widest">
+                <span>Supply Voltage</span>
+                <span id="label-v" class="text-white font-mono text-xs">12.0V</span>
+            </div>
+            <input type="range" id="input-v" min="0" max="48" step="0.5" value="12" class="w-40">
+        </div>
+
+        <div class="flex flex-col items-center gap-1 border-l border-slate-700 pl-10">
+             <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Master Switch</span>
+             <button id="btn-switch" onclick="toggleSwitch()" class="w-14 h-7 bg-green-500 rounded-full relative transition-all active:scale-95 shadow-inner">
+                <div id="switch-toggle" class="absolute top-1 left-7.5 w-5 h-5 bg-white rounded-full transition-all shadow-md" style="left:30px"></div>
+             </button>
+        </div>
+
+        <div id="res-controls" class="flex gap-10 border-l border-slate-700 pl-10"></div>
+    </div>
+</div>
+
+<script>
+    const svg = document.getElementById('svg');
+    const circuitLayer = document.getElementById('circuit-layer');
+    const electronLayer = document.getElementById('electron-layer');
+    
+    let state = {
+        layout: 'simple',
+        voltage: 12,
+        resistors: [10, 10, 10],
+        switchOpen: false,
+        paths: [], 
+        electrons: [],
+        lastTime: 0
+    };
+
+    function init() {
+        ['ammeter1', 'voltmeter1', 'ammeter2', 'voltmeter2', 'p-r1', 'p-b1', 'p-r2', 'p-b2'].forEach(id => {
+            setupDrag(document.getElementById(id));
+        });
+        
+        document.getElementById('input-v').addEventListener('input', (e) => {
+            state.voltage = parseFloat(e.target.value);
+            document.getElementById('label-v').textContent = state.voltage.toFixed(1) + 'V';
+            calculatePhysics();
+        });
+
+        changeLayout('simple');
+        requestAnimationFrame(tick);
+    }
+
+    function changeLayout(type) {
+        state.layout = type;
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
+        document.getElementById(`btn-${type}`).classList.add('nav-active');
+        
+        const resList = document.getElementById('res-controls');
+        resList.innerHTML = '';
+        const count = (type === 'parallel2') ? 3 : (type === 'parallel1' || type === 'series' ? 2 : 1);
+        
+        for(let i=0; i<count; i++) {
+            const div = document.createElement('div');
+            div.className = "flex flex-col gap-1";
+            div.innerHTML = `
+                <div class="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>Bulb ${i+1} Resistance</span>
+                    <span id="label-r${i}" class="text-white font-mono text-xs">${state.resistors[i]}Ω</span>
+                </div>
+                <input type="range" min="1" max="100" value="${state.resistors[i]}" class="w-28" oninput="updateRes(${i}, this.value)">
+            `;
+            resList.appendChild(div);
+        }
+        buildCircuit();
+    }
+
+    function updateRes(i, val) {
+        state.resistors[i] = parseInt(val);
+        document.getElementById(`label-r${i}`).textContent = val + 'Ω';
+        calculatePhysics();
+    }
+
+    function toggleSwitch() {
+        state.switchOpen = !state.switchOpen;
+        const btn = document.getElementById('btn-switch');
+        const toggle = document.getElementById('switch-toggle');
+        btn.classList.toggle('bg-green-500', !state.switchOpen);
+        btn.classList.toggle('bg-slate-700', state.switchOpen);
+        toggle.style.left = state.switchOpen ? '4px' : '30px';
+        buildCircuit();
+    }
+
+    function addPath(points, components, role = 'main') {
+        const d = "M " + points.map(p => p.join(",")).join(" L ");
+        const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathEl.setAttribute("d", d);
+        pathEl.setAttribute("stroke", "#334155");
+        pathEl.setAttribute("stroke-width", "10");
+        pathEl.setAttribute("fill", "none");
+        pathEl.setAttribute("stroke-linecap", "round");
+        circuitLayer.appendChild(pathEl);
+        
+        const length = pathEl.getTotalLength();
+        state.paths.push({ el: pathEl, length, components, role, current: 0, voltageDrop: 0, points });
+        
+        components.forEach(c => {
+            const pt = pathEl.getPointAtLength(c.p * length);
+            drawComponent(c, pt.x, pt.y);
+        });
+    }
+
+    function buildCircuit() {
+        circuitLayer.innerHTML = '';
+        electronLayer.innerHTML = '';
+        state.paths = [];
+        state.electrons = [];
+
+        const midX = window.innerWidth / 2;
+        const midY = window.innerHeight / 2 - 30;
+        const W = 500;
+        const H = 300;
+
+        if (state.layout === 'simple') {
+            addPath([
+                [midX-W/2, midY-H/2], [midX+W/2, midY-H/2], 
+                [midX+W/2, midY+H/2], [midX-W/2, midY+H/2], 
+                [midX-W/2, midY-H/2]
+            ], [
+                {type:'cell', p:0.125},
+                {type:'bulb', p:0.625, id:0},
+                {type:'switch', p:0.375}
+            ]);
+        } 
+        else if (state.layout === 'series') {
+            addPath([
+                [midX-W/2, midY-H/2], [midX+W/2, midY-H/2], 
+                [midX+W/2, midY+H/2], [midX-W/2, midY+H/2], 
+                [midX-W/2, midY-H/2]
+            ], [
+                {type:'cell', p:0.125}, 
+                {type:'bulb', p:0.55, id:0}, 
+                {type:'bulb', p:0.75, id:1},
+                {type:'switch', p:0.375}
+            ]);
+        }
+        else if (state.layout === 'parallel1') {
+            // Main loop
+            addPath([
+                [midX-180, midY-H/2], [midX+180, midY-H/2], 
+                [midX+180, midY+H/2], [midX-180, midY+H/2], 
+                [midX-180, midY-H/2]
+            ], [
+                {type:'cell', p:0.125},
+                {type:'switch', p:0.04},
+                {type:'bulb', p:0.625, id:0}
+            ], 'main');
+            // Parallel Branch 1
+            addPath([[midX-180, midY], [midX+180, midY]], [{type:'bulb', p:0.5, id:1}], 'branch');
+        }
+        else if (state.layout === 'parallel2') {
+             // Main loop
+             addPath([
+                [midX-180, midY-H/2], [midX+180, midY-H/2], 
+                [midX+180, midY+H/2], [midX-180, midY+H/2], 
+                [midX-180, midY-H/2]
+            ], [
+                {type:'cell', p:0.125},
+                {type:'switch', p:0.04},
+                {type:'bulb', p:0.625, id:0}
+            ], 'main');
+            // Parallel Branch 2 (Two bulbs in series on the branch)
+            addPath([
+                [midX-180, midY], [midX+180, midY]
+            ], [
+                {type:'bulb', p:0.3, id:1},
+                {type:'bulb', p:0.7, id:2}
+            ], 'branch');
+        }
+
+        calculatePhysics();
+
+        state.paths.forEach((path, idx) => {
+            const spacing = 40;
+            const count = Math.floor(path.length / spacing);
+            for(let i=0; i<count; i++) {
+                const e = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                glow.setAttribute("r", 10);
+                glow.setAttribute("fill", "#60a5fa");
+                glow.style.filter = "blur(5px)";
+                const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                dot.setAttribute("r", 3);
+                dot.setAttribute("fill", "#fff");
+                e.appendChild(glow);
+                e.appendChild(dot);
+                electronLayer.appendChild(e);
+                state.electrons.push({
+                    el: e, glow, pathIdx: idx,
+                    offset: (i / count) * path.length
+                });
+            }
+        });
+    }
+
+    function drawComponent(c, x, y) {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        if(c.type === 'cell') {
+            g.innerHTML = `
+                <rect x="${x-30}" y="${y-18}" width="60" height="36" fill="#1e293b" rx="6" stroke="#475569" stroke-width="2"/>
+                <line x1="${x-12}" y1="${y-12}" x2="${x-12}" y2="${y+12}" stroke="#facc15" stroke-width="8" />
+                <line x1="${x+12}" y1="${y-22}" x2="${x+12}" y2="${y+22}" stroke="#facc15" stroke-width="3" />
+                <text x="${x+18}" y="${y-14}" fill="#facc15" font-size="12" font-weight="black">+</text>
+                <text x="${x-28}" y="${y-14}" fill="#facc15" font-size="12" font-weight="black">-</text>
+            `;
+        } else if(c.type === 'bulb') {
+            g.innerHTML = `
+                <circle id="bulb-glow-${c.id}" cx="${x}" cy="${y}" r="40" fill="#facc15" opacity="0" style="filter:blur(25px)"/>
+                <circle cx="${x}" cy="${y}" r="28" fill="rgba(255,255,255,0.05)" stroke="#94a3b8" stroke-width="3"/>
+                <path d="M ${x-14},${y-14} L ${x+14},${y+14} M ${x-14},${y+14} L ${x+14},${y-14}" stroke="#64748b" stroke-width="4"/>
+                <text x="${x}" y="${y+48}" text-anchor="middle" class="bulb-label">${c.id+1}</text>
+            `;
+        } else if(c.type === 'switch') {
+            const angle = state.switchOpen ? -45 : 0;
+            g.innerHTML = `
+                <circle cx="${x}" cy="${y-15}" r="5" fill="#64748b"/>
+                <circle cx="${x}" cy="${y+15}" r="5" fill="#64748b"/>
+                <line x1="${x}" y1="${y-15}" x2="${x}" y2="${y+15}" stroke="#94a3b8" stroke-width="5" 
+                    id="switch-lever" transform="rotate(${angle}, ${x}, ${y-15})" style="transition: transform 0.3s"/>
+            `;
+        }
+        circuitLayer.appendChild(g);
+    }
+
+    function calculatePhysics() {
+        if(state.voltage === 0 || state.switchOpen) {
+            state.paths.forEach(p => p.current = 0);
+            return;
+        }
+        const V = state.voltage;
+        const R = state.resistors;
+
+        if(state.layout === 'simple') {
+            state.paths[0].current = V / R[0];
+        } else if(state.layout === 'series') {
+            state.paths[0].current = V / (R[0] + R[1]);
+        } else if(state.layout === 'parallel1') {
+            const i0 = V / R[0]; // main branch component
+            const i1 = V / R[1]; // parallel branch 
+            state.paths[1].current = i1;
+            state.paths[0].current = i0 + i1; // Kirchhoff's Current Law
+        } else if(state.layout === 'parallel2') {
+            const i0 = V / R[0];
+            const iBranch = V / (R[1] + R[2]);
+            state.paths[1].current = iBranch;
+            state.paths[0].current = i0 + iBranch; 
+        }
+    }
+
+    function tick(time) {
+        const dt = (time - state.lastTime) / 1000;
+        state.lastTime = time;
+        if(isNaN(dt)) { requestAnimationFrame(tick); return; }
+
+        state.electrons.forEach(e => {
+            const path = state.paths[e.pathIdx];
+            const direction = (path.role === 'branch') ? 1 : -1;
+            
+            // ELECTRON SPEED strictly tied to segment current
+            let currentAtSegment = path.current;
+            const norm = e.offset / path.length;
+
+            // In Parallel, the 'Main' path only has full current on the left/right sides (trunk)
+            if(state.layout.includes('parallel') && path.role === 'main') {
+                // If electron is in the top or bottom horizontal of the main loop, it only carries its own branch current
+                if(norm > 0.3 && norm < 0.7) {
+                    currentAtSegment = state.voltage / state.resistors[0];
+                }
+            }
+
+            const flowSpeed = currentAtSegment * 40; 
+            e.offset += direction * flowSpeed * dt; 
+            
+            if(e.offset < 0) e.offset += path.length;
+            if(e.offset > path.length) e.offset -= path.length;
+            
+            const pt = path.el.getPointAtLength(e.offset);
+            
+            // Dynamic energy visualization
+            let energy = (path.current > 0) ? 0.8 : 0;
+            
+            e.el.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
+            const glowSize = (energy * Math.sqrt(currentAtSegment) * 8) + 2;
+            e.glow.setAttribute("r", Math.max(0, glowSize));
+            e.glow.setAttribute("opacity", Math.min(0.7, currentAtSegment));
+        });
+
+        // Bulb Glows - Proportional to Power P = V^2/R
+        state.resistors.forEach((r, i) => {
+            const glow = document.getElementById(`bulb-glow-${i}`);
+            if(!glow) return;
+            let v_bulb = 0;
+            if(state.switchOpen) v_bulb = 0;
+            else if(state.layout === 'simple') v_bulb = state.voltage;
+            else if(state.layout === 'series') {
+                v_bulb = state.voltage * (state.resistors[i] / (state.resistors[0] + state.resistors[1]));
+            } else if(state.layout === 'parallel1') {
+                v_bulb = state.voltage;
+            } else if(state.layout === 'parallel2') {
+                if(i === 0) v_bulb = state.voltage;
+                else v_bulb = state.voltage * (state.resistors[i] / (state.resistors[1] + state.resistors[2]));
+            }
+
+            const brightness = (v_bulb * v_bulb / r) / 50; // Arbitrary scaler for visibility
+            glow.setAttribute("opacity", Math.min(brightness, 0.9));
+            glow.setAttribute("r", 20 + Math.min(brightness * 60, 80));
+        });
+
+        updateMeters();
+        requestAnimationFrame(tick);
+    }
+
+    function updateMeters() {
+        const updateAm = (meterId, valId) => {
+            const am = document.getElementById(meterId);
+            const r = am.getBoundingClientRect();
+            const ax = r.left + r.width/2, ay = r.top + r.height/2;
+            let val = 0;
+            
+            state.paths.forEach(p => {
+                for(let i=0; i<p.length; i+=15) {
+                    const pt = p.el.getPointAtLength(i);
+                    if(Math.hypot(pt.x - ax, pt.y - ay) < 50) {
+                        const n = i/p.length;
+                        if(state.layout.includes('parallel') && p.role === 'main') {
+                            // Trunk detection: Check if ammeter is on vertical wires
+                            const isTrunk = (n < 0.2 || n > 0.8); 
+                            val = isTrunk ? p.current : (state.voltage / state.resistors[0]);
+                        } else {
+                            val = p.current;
+                        }
+                        break;
+                    }
+                }
+            });
+            document.getElementById(valId).textContent = val.toFixed(2);
+        };
+
+        const updateVm = (redId, blackId, valId, leadRId, leadBId, vmId) => {
+            const pr = document.getElementById(redId), pb = document.getElementById(blackId);
+            const vm = document.getElementById(vmId);
+            const rR = pr.getBoundingClientRect(), rB = pb.getBoundingClientRect(), rV = vm.getBoundingClientRect();
+            const rx = rR.left+10, ry = rR.top+10, bx = rB.left+10, by = rB.top+10, vx = rV.left+rV.width/2, vy = rV.top+rV.height/2;
+
+            document.getElementById(leadRId).setAttribute('d', `M ${vx},${vy} L ${rx},${ry}`);
+            document.getElementById(leadBId).setAttribute('d', `M ${vx},${vy} L ${bx},${by}`);
+
+            const v1 = getPotentialAt(rx, ry), v2 = getPotentialAt(bx, by);
+            document.getElementById(valId).textContent = Math.abs(v1 - v2).toFixed(2);
+        };
+
+        updateAm('ammeter1', 'am-val-1');
+        updateAm('ammeter2', 'am-val-2');
+        updateVm('p-r1', 'p-b1', 'vm-val-1', 'lead-red-1', 'lead-black-1', 'voltmeter1');
+        updateVm('p-r2', 'p-b2', 'vm-val-2', 'lead-red-2', 'lead-black-2', 'voltmeter2');
+    }
+
+    function getPotentialAt(x, y) {
+        if(state.voltage === 0) return 0;
+        let pResult = 0;
+        let found = false;
+
+        state.paths.forEach((path, idx) => {
+            if(found) return;
+            for(let i=0; i<path.length; i+=10) {
+                const pt = path.el.getPointAtLength(i);
+                if(Math.hypot(pt.x - x, pt.y - y) < 50) {
+                    const n = i/path.length;
+                    
+                    if(state.switchOpen) {
+                        // Potential is 0 before switch (0.04), V after
+                        pResult = (n < 0.04) ? 0 : state.voltage;
+                    } else {
+                        if(state.layout === 'simple') {
+                            pResult = (n < 0.125 || n > 0.625) ? state.voltage : 0;
+                        } else if(state.layout === 'series') {
+                            if(n < 0.125 || n > 0.75) pResult = state.voltage;
+                            else if(n > 0.55 && n <= 0.75) pResult = state.voltage * (state.resistors[1] / (state.resistors[0] + state.resistors[1]));
+                            else pResult = 0;
+                        } else if(state.layout === 'parallel1') {
+                            if(idx === 0) pResult = (n < 0.125 || n > 0.625) ? state.voltage : 0;
+                            else pResult = (n < 0.5) ? state.voltage : 0;
+                        } else if(state.layout === 'parallel2') {
+                            if(idx === 0) pResult = (n < 0.125 || n > 0.625) ? state.voltage : 0;
+                            else {
+                                if(n < 0.3) pResult = state.voltage;
+                                else if(n >= 0.3 && n < 0.7) pResult = state.voltage * (state.resistors[2] / (state.resistors[1] + state.resistors[2]));
+                                else pResult = 0;
+                            }
+                        }
+                    }
+                    found = true;
+                    return;
+                }
+            }
+        });
+        return pResult;
+    }
+
+    function setupDrag(el) {
+        let ox, oy;
+        el.onmousedown = (e) => {
+            ox = e.clientX - el.offsetLeft;
+            oy = e.clientY - el.offsetTop;
+            document.onmousemove = (e) => {
+                el.style.left = (e.clientX - ox) + 'px';
+                el.style.top = (e.clientY - oy) + 'px';
+            };
+            document.onmouseup = () => document.onmousemove = null;
+        };
+    }
+
+    window.onresize = buildCircuit;
+    init();
+</script>
+</body>
+</html>
+```

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Particle Model</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .active-btn {
+            background-color: #2563eb !important;
+            color: white !important;
+            border-color: #1d4ed8 !important;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="bg-white border-b px-6 py-4 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <span class="p-1.5 bg-blue-600 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/></svg>
+                </span>
+                Particle Theory Lab
+            </h1>
+        </div>
+        <div class="flex gap-4">
+            <div id="particle-count" class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Particles: 0</div>
+            <div id="temp-display" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">State: Liquid</div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden">
+        <!-- Main Simulation Display -->
+        <div class="flex-1 flex flex-col bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
+            <div id="canvas-container" class="relative flex-1 rounded-xl overflow-hidden">
+                <canvas id="simCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Sidebar Controls -->
+        <aside class="w-full lg:w-96 flex flex-col gap-4 overflow-y-auto">
+            
+            <!-- Type -->
+            <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">1. Composition</h2>
+                <div class="grid gap-2">
+                    <button onclick="setType('element')" id="btn-element" class="type-btn p-3 text-sm border-2 border-slate-100 rounded-xl hover:border-blue-200 text-left transition-all active-btn">
+                        <div class="font-bold">Pure Element</div>
+                        <div class="text-xs opacity-70">Identical atoms of a single type.</div>
+                    </button>
+                    <button onclick="setType('compound')" id="btn-compound" class="type-btn p-3 text-sm border-2 border-slate-100 rounded-xl hover:border-blue-200 text-left transition-all">
+                        <div class="font-bold">Pure Compound</div>
+                        <div class="text-xs opacity-70">Identical molecules of chemically bonded atoms.</div>
+                    </button>
+                    <button onclick="setType('mixture')" id="btn-mixture" class="type-btn p-3 text-sm border-2 border-slate-100 rounded-xl hover:border-blue-200 text-left transition-all">
+                        <div class="font-bold">Randomized Mixture</div>
+                        <div class="text-xs opacity-70">Variable ratio of different substances.</div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- State -->
+            <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">2. Kinetic Energy</h2>
+                <div class="flex gap-2">
+                    <button onclick="setState('solid')" id="btn-solid" class="state-btn flex-1 py-3 text-sm font-bold border-2 border-slate-100 rounded-xl transition-all hover:bg-slate-50">Solid</button>
+                    <button onclick="setState('liquid')" id="btn-liquid" class="state-btn flex-1 py-3 text-sm font-bold border-2 border-slate-100 rounded-xl transition-all hover:bg-slate-50 active-btn">Liquid</button>
+                    <button onclick="setState('gas')" id="btn-gas" class="state-btn flex-1 py-3 text-sm font-bold border-2 border-slate-100 rounded-xl transition-all hover:bg-slate-50">Gas</button>
+                </div>
+            </section>
+
+            <!-- Observations -->
+            <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Observation Deck</h2>
+                <div class="space-y-4">
+                    <div id="info-box" class="text-sm text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        Select a state to begin observing particle behavior.
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center text-xs text-slate-500">
+                            <span class="legend-dot bg-blue-500"></span> Atom Type A
+                        </div>
+                        <div id="legend-b" class="flex items-center text-xs text-slate-500">
+                            <span class="legend-dot bg-red-500"></span> Atom Type B
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <button onclick="resetSim()" class="bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition-all shadow-lg active:scale-[0.98]">
+                Generate New Sample
+            </button>
+        </aside>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        
+        let state = 'liquid';
+        let type = 'element';
+        let particles = [];
+        let molecules = [];
+
+        const physics = {
+            solid: { speed: 0.2, jitter: 0.6, gravity: 0.15, friction: 0.95 },
+            liquid: { speed: 1.5, jitter: 0.3, gravity: 0.3, friction: 0.98 },
+            gas: { speed: 5.0, jitter: 0, gravity: 0, friction: 1.0 }
+        };
+
+        const colors = { A: '#3b82f6', B: '#ef4444', Bond: '#e2e8f0' };
+
+        class Particle {
+            constructor(x, y, radius, typeCode) {
+                this.x = x;
+                this.y = y;
+                this.baseX = x;
+                this.baseY = y;
+                this.vx = (Math.random() - 0.5) * physics[state].speed;
+                this.vy = (Math.random() - 0.5) * physics[state].speed;
+                this.radius = radius;
+                this.typeCode = typeCode;
+            }
+
+            update() {
+                if (state === 'solid') {
+                    this.x = this.baseX + (Math.random() - 0.5) * physics.solid.jitter * 4;
+                    this.y = this.baseY + (Math.random() - 0.5) * physics.solid.jitter * 4;
+                } else {
+                    this.vy += physics[state].gravity;
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= physics[state].friction;
+                    this.vy *= physics[state].friction;
+
+                    // Wall Collision
+                    if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.6; }
+                    if (this.x > canvas.width - this.radius) { this.x = canvas.width - this.radius; this.vx *= -0.6; }
+                    if (this.y < this.radius) { this.y = this.radius; this.vy *= -0.6; }
+                    if (this.y > canvas.height - this.radius) { 
+                        this.y = canvas.height - this.radius; 
+                        this.vy *= -0.6;
+                        if (state === 'liquid') this.vx += (Math.random() - 0.5) * 2;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = colors[this.typeCode];
+                ctx.fill();
+                // Depth highlight
+                ctx.beginPath();
+                ctx.arc(this.x - this.radius*0.3, this.y - this.radius*0.3, this.radius*0.2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fill();
+            }
+        }
+
+        class Molecule {
+            constructor(p1, p2, dist = 22) {
+                this.p1 = p1;
+                this.p2 = p2;
+                this.bondLength = dist;
+            }
+            update() {
+                const dx = this.p2.x - this.p1.x;
+                const dy = this.p2.y - this.p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist === 0) return;
+                const diff = (this.bondLength - dist) / dist;
+                const ox = dx * 0.5 * diff;
+                const oy = dy * 0.5 * diff;
+                this.p1.x -= ox;
+                this.p1.y -= oy;
+                this.p2.x += ox;
+                this.p2.y += oy;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.p1.x, this.p1.y);
+                ctx.lineTo(this.p2.x, this.p2.y);
+                ctx.strokeStyle = colors.Bond;
+                ctx.lineWidth = 5;
+                ctx.stroke();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            molecules = [];
+            const count = 120;
+            const spacing = 32;
+
+            if (state === 'gas') {
+                for (let i = 0; i < 40; i++) {
+                    createSubstance(Math.random() * canvas.width, Math.random() * canvas.height);
+                }
+            } else {
+                // Determine placement
+                const rows = 8;
+                const cols = 10;
+                const startX = (canvas.width - (cols * spacing)) / 2;
+                const startY = canvas.height - (rows * spacing) - 20;
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        let x = startX + c * spacing;
+                        let y = startY + r * spacing;
+
+                        // Add irregularity for Mixture or Liquid
+                        if (state === 'liquid' || type === 'mixture') {
+                            x += (Math.random() - 0.5) * 15;
+                            y += (Math.random() - 0.5) * 15;
+                        }
+
+                        createSubstance(x, y);
+                    }
+                }
+            }
+            document.getElementById('particle-count').innerText = `Particles: ${particles.length}`;
+        }
+
+        function createSubstance(x, y) {
+            if (type === 'element') {
+                particles.push(new Particle(x, y, 10, 'A'));
+            } else if (type === 'compound') {
+                const p1 = new Particle(x, y, 8, 'A');
+                const p2 = new Particle(x + 12, y, 12, 'B');
+                particles.push(p1, p2);
+                molecules.push(new Molecule(p1, p2));
+            } else if (type === 'mixture') {
+                // Randomly decide what to spawn at this location
+                const roll = Math.random();
+                if (roll < 0.4) { // 40% chance of Single A
+                    particles.push(new Particle(x, y, 10, 'A'));
+                } else if (roll < 0.7) { // 30% chance of Compound AB
+                    const p1 = new Particle(x, y, 8, 'A');
+                    const p2 = new Particle(x + 12, y, 12, 'B');
+                    particles.push(p1, p2);
+                    molecules.push(new Molecule(p1, p2));
+                } else { // 30% chance of Diatomic B2
+                    const p1 = new Particle(x, y, 11, 'B');
+                    const p2 = new Particle(x + 14, y, 11, 'B');
+                    particles.push(p1, p2);
+                    molecules.push(new Molecule(p1, p2, 24));
+                }
+            }
+        }
+
+        function resize() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            initParticles();
+        }
+
+        function setType(t) { type = t; updateUI(); initParticles(); }
+        function setState(s) { state = s; updateUI(); initParticles(); }
+        function resetSim() { initParticles(); }
+
+        function updateUI() {
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active-btn'));
+            document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active-btn'));
+            document.getElementById(`btn-${type}`).classList.add('active-btn');
+            document.getElementById(`btn-${state}`).classList.add('active-btn');
+
+            const info = document.getElementById('info-box');
+            const status = document.getElementById('temp-display');
+
+            if (state === 'solid') {
+                status.innerText = "State: Solid (Low Energy)";
+                status.className = "text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100";
+                info.innerHTML = type === 'mixture' 
+                    ? "In this <strong>solid mixture</strong>, different particles are clumped together without a repeating crystal pattern. Notice they only vibrate in place."
+                    : "In this <strong>solid</strong>, particles are packed closely. They have fixed positions but vibrate constantly due to thermal energy.";
+            } else if (state === 'liquid') {
+                status.innerText = "State: Liquid (Medium Energy)";
+                status.className = "text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100";
+                info.innerHTML = "In a <strong>liquid</strong>, particles touch but are disorganized. They have enough energy to slide past one another, allowing the substance to flow.";
+            } else {
+                status.innerText = "State: Gas (High Energy)";
+                status.className = "text-xs font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-full border border-red-100";
+                info.innerHTML = "In a <strong>gas</strong>, particles are far apart and move independently. The mixture is now completely dispersed throughout the container.";
+            }
+
+            document.getElementById('legend-b').style.display = type === 'element' ? 'none' : 'flex';
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < 4; i++) molecules.forEach(m => m.update());
+
+            // Simple Collision
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = p1.radius + p2.radius;
+                    if (dist < minDist) {
+                        const angle = Math.atan2(dy, dx);
+                        const overlap = minDist - dist;
+                        const force = state === 'solid' ? 0.1 : 0.5;
+                        p1.x -= Math.cos(angle) * overlap * force;
+                        p1.y -= Math.sin(angle) * overlap * force;
+                        p2.x += Math.cos(angle) * overlap * force;
+                        p2.y += Math.sin(angle) * overlap * force;
+                    }
+                }
+            }
+
+            molecules.forEach(m => m.draw());
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            particles.forEach(p => {
+                const d = Math.sqrt((p.x-mx)**2 + (p.y-my)**2);
+                if (d < 60) {
+                    p.vx += (p.x - mx) * 0.2;
+                    p.vy += (p.y - my) * 0.2;
+                    if (state === 'solid') {
+                        p.baseX += (p.x - mx) * 0.1;
+                        p.baseY += (p.y - my) * 0.1;
+                    }
+                }
+            });
+        });
+
+        window.addEventListener('resize', resize);
+        window.onload = () => { resize(); updateUI(); animate(); };
+    </script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optical Synthesis - Perceptual Blending</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #e2e8f0; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
+        .canvas-container { 
+            position: relative; 
+            filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.03)); 
+        }
+        input[type=range] { 
+            accent-color: #ffffff; 
+            cursor: pointer; 
+            height: 4px;
+            background: #1e293b;
+            border-radius: 2px;
+            appearance: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        .mode-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .mode-btn.active { background: white; color: black; border-color: white; }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center p-6">
+
+    <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- Controls Column -->
+        <div class="lg:col-span-4 space-y-10 order-2 lg:order-1">
+            <header class="space-y-2">
+                <h1 class="text-2xl font-light tracking-[0.2em] uppercase">Chromatic Synthesis</h1>
+                <p class="text-xs text-slate-500 font-medium tracking-wide">STUDY OF ADDITIVE LIGHT PERCEPTION</p>
+            </header>
+
+            <div class="space-y-8">
+                <!-- Mode Selection -->
+                <div class="space-y-3">
+                    <label class="text-[10px] uppercase font-bold tracking-widest text-slate-500">Spectrum Mode</label>
+                    <div class="flex gap-2">
+                        <button onclick="setMode('roygbiv')" id="btn-roygbiv" class="mode-btn active flex-1 py-2 px-3 text-[10px] font-bold uppercase border border-white/20 rounded">ROYGBIV</button>
+                        <button onclick="setMode('rgb')" id="btn-rgb" class="mode-btn flex-1 py-2 px-3 text-[10px] font-bold uppercase border border-white/20 rounded">RGB</button>
+                    </div>
+                </div>
+
+                <!-- Speed Control -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <label class="text-[10px] uppercase font-bold tracking-widest text-slate-500">Rotation Frequency</label>
+                        <span id="rpmLabel" class="text-sm font-mono text-white leading-none">0 RPM</span>
+                    </div>
+                    <input type="range" id="speedSlider" min="0" max="10000" value="0" class="w-full">
+                </div>
+
+                <!-- Metrics -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 rounded border border-white/5 bg-white/5">
+                        <div class="text-[9px] uppercase text-slate-500 mb-1">Synthesis</div>
+                        <div id="synthesisVal" class="text-xs font-mono">0%</div>
+                    </div>
+                    <div class="p-4 rounded border border-white/5 bg-white/5">
+                        <div class="text-[9px] uppercase text-slate-500 mb-1">Luminance</div>
+                        <div id="lumVal" class="text-xs font-mono">32.4%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Column -->
+        <div class="lg:col-span-8 flex flex-col items-center order-1 lg:order-2">
+            <div class="canvas-container">
+                <canvas id="discCanvas" width="550" height="550" class="max-w-full h-auto"></canvas>
+                <!-- Spindle -->
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-zinc-900 rounded-full border border-zinc-700 shadow-xl"></div>
+            </div>
+            
+            <div class="mt-12 flex flex-col items-center">
+                <div class="w-48 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                <p class="text-[10px] text-slate-600 mt-4 tracking-[0.4em] uppercase">High Velocity Neural Integration</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('discCanvas');
+        const ctx = canvas.getContext('2d');
+        const speedSlider = document.getElementById('speedSlider');
+        const rpmLabel = document.getElementById('rpmLabel');
+        const synthesisVal = document.getElementById('synthesisVal');
+        const lumVal = document.getElementById('lumVal');
+
+        let currentAngle = 0;
+        let mode = 'roygbiv';
+
+        const spectrums = {
+            roygbiv: [
+                { h: 0, s: 100, l: 50 },   // Red
+                { h: 30, s: 100, l: 50 },  // Orange
+                { h: 60, s: 100, l: 50 },  // Yellow
+                { h: 120, s: 100, l: 50 }, // Green
+                { h: 210, s: 100, l: 50 }, // Blue
+                { h: 260, s: 100, l: 50 }, // Indigo
+                { h: 300, s: 100, l: 50 }  // Violet
+            ],
+            rgb: [
+                { h: 0, s: 100, l: 50 },   // Red
+                { h: 120, s: 100, l: 50 }, // Green
+                { h: 240, s: 100, l: 50 }  // Blue
+            ]
+        };
+
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${m}`).classList.add('active');
+        }
+
+        function render() {
+            const rpm = parseInt(speedSlider.value);
+            rpmLabel.innerText = `${rpm.toLocaleString()} RPM`;
+            
+            // Calculate synthesis progress (0 to 1)
+            // Blending curves based on persistence of vision thresholds
+            const synthesis = Math.min(1, Math.max(0, (rpm - 300) / 7000));
+            synthesisVal.innerText = `${(synthesis * 100).toFixed(1)}%`;
+            
+            // Calculate perceived luminance injection
+            const baseLum = 50;
+            const targetLum = 100;
+            const currentLum = baseLum + (targetLum - baseLum) * synthesis;
+            lumVal.innerText = `${currentLum.toFixed(1)}%`;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const radius = (canvas.width / 2) - 20;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const activeSpectrum = spectrums[mode];
+            const sliceAngle = (Math.PI * 2) / activeSpectrum.length;
+
+            activeSpectrum.forEach((color, i) => {
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, currentAngle + (i * sliceAngle), currentAngle + ((i + 1) * sliceAngle));
+                ctx.closePath();
+
+                // Synthesis Algorithm: 
+                // As frequency increases, Saturation drops and Lightness increases
+                const s = color.s * (1 - synthesis);
+                const l = color.l + (100 - color.l) * synthesis;
+                
+                ctx.fillStyle = `hsl(${color.h}, ${s}%, ${l}%)`;
+                ctx.fill();
+            });
+
+            // Radial integration overlay
+            if (synthesis > 0.05) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${synthesis * 0.5})`);
+                gradient.addColorStop(1, `rgba(255, 255, 255, ${synthesis * 0.2})`);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+
+            // Delta time rotation
+            // 60FPS assumed for simple rotation math
+            const deltaRotation = (rpm * 2 * Math.PI) / (60 * 60);
+            currentAngle += deltaRotation;
+
+            requestAnimationFrame(render);
+        }
+
+        render();
+    </script>
+</body>
+</html>

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Orbital Explorer | Ions & Solid Shells</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #f1f5f9; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .orbital-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: 2px;
+            width: 100%;
+            min-width: 900px;
+        }
+
+        .el-cell {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .el-cell:hover { transform: scale(1.1); z-index: 50; border-color: white; }
+        .s-block { background-color: #4b1616; border-left: 3px solid #ef4444; }
+        .p-block { background-color: #4b3416; border-left: 3px solid #f59e0b; }
+        .d-block { background-color: #162a4b; border-left: 3px solid #3b82f6; }
+        .f-block { background-color: #31164b; border-left: 3px solid #a855f7; }
+        .active-el { outline: 2px solid white; outline-offset: -2px; background-color: rgba(255,255,255,0.2); }
+
+        .subshell-box {
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            gap: 2px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .box {
+            width: 22px;
+            height: 22px;
+            border: 1px solid rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .arrow-up::before { content: '↑'; color: #22d3ee; font-weight: bold; }
+        .arrow-down::after { content: '↓'; color: #f472b6; font-weight: bold; }
+
+        .control-btn {
+            @apply px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors font-bold text-lg;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="max-w-[1600px] mx-auto space-y-4">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center orbital-card p-4 rounded-2xl">
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tighter text-cyan-400">ORBITAL EXPLORER <span class="text-white opacity-50 font-light">Pro</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest">A-Level Quantum Dynamics Simulation</p>
+            </div>
+            <div class="flex gap-6 mt-4 md:mt-0 items-center">
+                <div class="text-center">
+                    <div class="text-[10px] text-slate-500 uppercase font-bold">Config</div>
+                    <div id="full-config" class="mono text-xs text-cyan-300">1s² 2s¹</div>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div id="ion-display" class="text-2xl font-black italic text-white flex items-center gap-1">
+                    Li <span id="charge-val" class="text-sm align-top text-amber-400">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <!-- Left: Ion Control & Atoms -->
+            <div class="lg:col-span-3 space-y-4">
+                <div class="orbital-card p-6 rounded-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div id="el-name" class="text-3xl font-black">Lithium</div>
+                            <div id="el-type" class="text-[10px] font-bold uppercase tracking-widest text-cyan-500">Alkali Metal</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="p-3 bg-slate-900/50 rounded-xl flex justify-between items-center">
+                            <div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase">Protons (Z)</div>
+                                <div id="p-count" class="text-2xl font-black">3</div>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="changeProtons(-1)" class="control-btn">-</button>
+                                <button onclick="changeProtons(1)" class="control-btn">+</button>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-slate-900/50 rounded-xl flex justify-between items-center">
+                            <div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase">Electrons (e⁻)</div>
+                                <div id="e-count" class="text-2xl font-black">3</div>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="changeElectrons(-1)" class="control-btn">-</button>
+                                <button onclick="changeElectrons(1)" class="control-btn">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="orbital-card p-6 rounded-2xl max-h-[400px] overflow-y-auto">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Orbital Filling</h3>
+                    <div id="box-diagram" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Center: 3D Visualization -->
+            <div class="lg:col-span-6 orbital-card rounded-2xl relative flex flex-col min-h-[550px]">
+                <div class="absolute top-4 left-4 z-10 flex gap-2">
+                    <button id="view-cloud" onclick="setViewMode('cloud')" class="bg-slate-800 text-[10px] font-bold px-3 py-2 rounded-lg border border-slate-600">Cloud View</button>
+                    <button id="view-solid" onclick="setViewMode('solid')" class="bg-cyan-600 text-[10px] font-bold px-3 py-2 rounded-lg border border-cyan-400">Solid Model</button>
+                </div>
+                
+                <div id="canvas-container" class="flex-grow w-full h-full cursor-move">
+                    <canvas id="glCanvas"></canvas>
+                </div>
+
+                <!-- Color Key -->
+                <div class="p-4 flex gap-4 overflow-x-auto border-t border-white/5 bg-black/20">
+                    <div class="flex items-center gap-2 whitespace-nowrap"><span class="w-3 h-3 rounded bg-[#ef4444]"></span> <span class="text-[10px] font-bold">n=1</span></div>
+                    <div class="flex items-center gap-2 whitespace-nowrap"><span class="w-3 h-3 rounded bg-[#f59e0b]"></span> <span class="text-[10px] font-bold">n=2</span></div>
+                    <div class="flex items-center gap-2 whitespace-nowrap"><span class="w-3 h-3 rounded bg-[#3b82f6]"></span> <span class="text-[10px] font-bold">n=3</span></div>
+                    <div class="flex items-center gap-2 whitespace-nowrap"><span class="w-3 h-3 rounded bg-[#a855f7]"></span> <span class="text-[10px] font-bold">n=4</span></div>
+                    <div class="flex items-center gap-2 whitespace-nowrap"><span class="w-3 h-3 rounded bg-[#10b981]"></span> <span class="text-[10px] font-bold">n=5+</span></div>
+                </div>
+            </div>
+
+            <!-- Right: Quantum Specs -->
+            <div class="lg:col-span-3 space-y-4">
+                <div class="orbital-card p-6 rounded-2xl">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Quantum State (Last e⁻)</h3>
+                    <div class="grid grid-cols-2 gap-2 text-center font-mono">
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                            <div class="text-[10px] text-slate-500">Shell (n)</div>
+                            <div id="q-n" class="text-xl font-bold text-cyan-400">-</div>
+                        </div>
+                        <div class="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                            <div class="text-[10px] text-slate-500">Sub (l)</div>
+                            <div id="q-l" class="text-xl font-bold text-cyan-400">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="orbital-card p-5 rounded-2xl bg-cyan-950/20 border-cyan-500/20">
+                    <h4 class="text-xs font-bold text-cyan-400 mb-2">A-Level Insights</h4>
+                    <ul id="insight-list" class="text-[11px] space-y-2 text-slate-300 list-disc pl-4">
+                        <li>Ions are formed when electrons are added/removed.</li>
+                        <li>4s subshell is filled before 3d but emptied first during ionization.</li>
+                    </ul>
+                </div>
+                
+                <div class="orbital-card p-4 rounded-2xl text-[10px] leading-relaxed text-slate-500">
+                    <p><b>Solid View:</b> Represents the 90% boundary surface where wave function $\psi^2$ is concentrated.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Periodic Table -->
+        <div class="orbital-card p-4 rounded-2xl overflow-x-auto">
+            <div class="periodic-table" id="ptable"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const SHELLS = [
+            { id: '1s', n: 1, l: 0, cap: 2 }, { id: '2s', n: 2, l: 0, cap: 2 }, { id: '2p', n: 2, l: 1, cap: 6 },
+            { id: '3s', n: 3, l: 0, cap: 2 }, { id: '3p', n: 3, l: 1, cap: 6 }, { id: '4s', n: 4, l: 0, cap: 2 },
+            { id: '3d', n: 3, l: 2, cap: 10 }, { id: '4p', n: 4, l: 1, cap: 6 }, { id: '5s', n: 5, l: 0, cap: 2 },
+            { id: '4d', n: 4, l: 2, cap: 10 }, { id: '5p', n: 5, l: 1, cap: 6 }, { id: '6s', n: 6, l: 0, cap: 2 },
+            { id: '4f', n: 4, l: 3, cap: 14 }, { id: '5d', n: 5, l: 2, cap: 10 }, { id: '6p', n: 6, l: 1, cap: 6 }
+        ];
+
+        const ELEMENTS = [
+            { z: 1, s: "H", n: "Hydrogen", r: 1, c: 1, b: 's' }, { z: 2, s: "He", n: "Helium", r: 1, c: 18, b: 's' },
+            { z: 3, s: "Li", n: "Lithium", r: 2, c: 1, b: 's' }, { z: 4, s: "Be", n: "Beryllium", r: 2, c: 2, b: 's' },
+            { z: 5, s: "B", n: "Boron", r: 2, c: 13, b: 'p' }, { z: 6, s: "C", n: "Carbon", r: 2, c: 14, b: 'p' },
+            { z: 7, s: "N", n: "Nitrogen", r: 2, c: 15, b: 'p' }, { z: 8, s: "O", n: "Oxygen", r: 2, c: 16, b: 'p' },
+            { z: 9, s: "F", n: "Fluorine", r: 2, c: 17, b: 'p' }, { z: 10, s: "Ne", n: "Neon", r: 2, c: 18, b: 'p' },
+            { z: 11, s: "Na", n: "Sodium", r: 3, c: 1, b: 's' }, { z: 12, s: "Mg", n: "Magnesium", r: 3, c: 2, b: 's' },
+            { z: 13, s: "Al", n: "Aluminium", r: 3, c: 13, b: 'p' }, { z: 14, s: "Si", n: "Silicon", r: 3, c: 14, b: 'p' },
+            { z: 15, s: "P", n: "Phosphorus", r: 3, c: 15, b: 'p' }, { z: 16, s: "S", n: "Sulfur", r: 3, c: 16, b: 'p' },
+            { z: 17, s: "Cl", n: "Chlorine", r: 3, c: 17, b: 'p' }, { z: 18, s: "Ar", n: "Argon", r: 3, c: 18, b: 'p' }
+        ];
+
+        // Fill remaining for UI
+        for(let i=19; i<=118; i++) {
+            ELEMENTS.push({ z:i, s:`E${i}`, n:`Element ${i}`, r: Math.ceil(i/18)+3, c: (i%18)||18, b: 'd' });
+        }
+
+        let state = {
+            protons: 3,
+            electrons: 3,
+            viewMode: 'solid',
+            scene: null, camera: null, renderer: null, orbitals: [],
+            isRotating: true,
+            mouseX: 0, mouseY: 0, targetRotationX: 0, targetRotationY: 0
+        };
+
+        const LEVEL_COLORS = {
+            1: 0xef4444, 2: 0xf59e0b, 3: 0x3b82f6, 4: 0xa855f7, 5: 0x10b981, 6: 0xec4899, 7: 0x6366f1
+        };
+
+        function init() {
+            initTable();
+            init3D();
+            updateAll();
+            animate();
+            
+            const container = document.getElementById('canvas-container');
+            container.addEventListener('mousemove', (e) => {
+                if(e.buttons === 1) {
+                    state.targetRotationY += e.movementX * 0.01;
+                    state.targetRotationX += e.movementY * 0.01;
+                }
+            });
+        }
+
+        function initTable() {
+            const table = document.getElementById('ptable');
+            ELEMENTS.forEach(el => {
+                const cell = document.createElement('div');
+                cell.className = `el-cell ${el.b}-block el-z-${el.z}`;
+                cell.innerHTML = `<div>${el.z}</div><div class="font-bold">${el.s}</div>`;
+                cell.onclick = () => {
+                    state.protons = el.z;
+                    state.electrons = el.z;
+                    updateAll();
+                };
+                cell.style.gridRow = el.r; cell.style.gridColumn = el.c;
+                table.appendChild(cell);
+            });
+        }
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            state.scene = new THREE.Scene();
+            state.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 2000);
+            state.camera.position.z = 400;
+            state.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('glCanvas'), alpha: true, antialias: true });
+            state.renderer.setSize(container.clientWidth, container.clientHeight);
+            
+            state.scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+            directional.position.set(1, 1, 2);
+            state.scene.add(directional);
+        }
+
+        function changeProtons(d) { state.protons = Math.max(1, Math.min(118, state.protons + d)); updateAll(); }
+        function changeElectrons(d) { state.electrons = Math.max(0, Math.min(118, state.electrons + d)); updateAll(); }
+        function setViewMode(m) { 
+            state.viewMode = m; 
+            document.getElementById('view-cloud').className = m === 'cloud' ? 'bg-cyan-600 text-[10px] font-bold px-3 py-2 rounded-lg' : 'bg-slate-800 text-[10px] font-bold px-3 py-2 rounded-lg';
+            document.getElementById('view-solid').className = m === 'solid' ? 'bg-cyan-600 text-[10px] font-bold px-3 py-2 rounded-lg' : 'bg-slate-800 text-[10px] font-bold px-3 py-2 rounded-lg';
+            updateAll(); 
+        }
+
+        function updateAll() {
+            const el = ELEMENTS.find(e => e.z === state.protons) || { s: '?', n: 'Unknown' };
+            const charge = state.protons - state.electrons;
+            
+            document.getElementById('p-count').textContent = state.protons;
+            document.getElementById('e-count').textContent = state.electrons;
+            document.getElementById('el-name').textContent = el.n;
+            document.getElementById('charge-val').textContent = charge === 0 ? '0' : (charge > 0 ? `+${charge}` : charge);
+            document.getElementById('ion-display').firstChild.textContent = el.s + " ";
+            
+            document.querySelectorAll('.el-cell').forEach(c => c.classList.remove('active-el'));
+            const active = document.querySelector(`.el-z-${state.protons}`);
+            if(active) active.classList.add('active-el');
+
+            updateConfig();
+            update3D();
+        }
+
+        function updateConfig() {
+            let rem = state.electrons;
+            let config = [];
+            
+            // Basic Aufbau filling
+            for(let sub of SHELLS) {
+                if(rem <= 0) break;
+                let count = Math.min(rem, sub.cap);
+                config.push({...sub, count});
+                rem -= count;
+            }
+
+            document.getElementById('full-config').textContent = config.map(c => `${c.id}${c.count}`).join(' ') || 'None';
+            
+            // Box Diagram
+            const diag = document.getElementById('box-diagram');
+            diag.innerHTML = '';
+            config.forEach(sub => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2';
+                row.innerHTML = `<span class="mono text-[10px] w-6 text-slate-500">${sub.id}</span>`;
+                const boxes = document.createElement('div');
+                boxes.className = 'subshell-box';
+                const nBoxes = sub.cap / 2;
+                for(let i=0; i<nBoxes; i++) {
+                    const b = document.createElement('div');
+                    b.className = 'box';
+                    if(i < sub.count) b.classList.add('arrow-up');
+                    if(i < sub.count - nBoxes) b.classList.add('arrow-down');
+                    boxes.appendChild(b);
+                }
+                row.appendChild(boxes);
+                diag.appendChild(row);
+            });
+
+            const last = config[config.length - 1];
+            document.getElementById('q-n').textContent = last ? last.n : '-';
+            document.getElementById('q-l').textContent = last ? last.l : '-';
+        }
+
+        function update3D() {
+            state.orbitals.forEach(o => state.scene.remove(o));
+            state.orbitals = [];
+
+            let rem = state.electrons;
+            SHELLS.forEach((sub, idx) => {
+                if(rem <= 0) return;
+                const count = Math.min(rem, sub.cap);
+                rem -= count;
+
+                const color = LEVEL_COLORS[sub.n] || 0xffffff;
+                const orbitalGroup = new THREE.Group();
+
+                if(state.viewMode === 'solid') {
+                    // Solid Volumetric Models
+                    if(sub.l === 0) { // s-orbital sphere
+                        const geom = new THREE.SphereGeometry(sub.n * 25, 32, 32);
+                        const mat = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.3, shininess: 100 });
+                        orbitalGroup.add(new THREE.Mesh(geom, mat));
+                    } else if(sub.l === 1) { // p-orbitals dumbbells
+                        const pCount = Math.ceil(count / 2);
+                        for(let i=0; i<pCount; i++) {
+                            const pGroup = createDumbbell(sub.n * 30, color);
+                            if(i === 1) pGroup.rotation.z = Math.PI/2;
+                            if(i === 2) pGroup.rotation.x = Math.PI/2;
+                            orbitalGroup.add(pGroup);
+                        }
+                    } else if(sub.l === 2) { // d-orbitals (simplified cross)
+                        const geom = new THREE.TorusGeometry(sub.n * 25, 5, 16, 100);
+                        const mat = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.4 });
+                        orbitalGroup.add(new THREE.Mesh(geom, mat));
+                    }
+                } else {
+                    // Cloud Mode
+                    const points = [];
+                    const pCount = 1000 + (sub.n * 500);
+                    for(let i=0; i<pCount; i++) {
+                        let r = (sub.n * 25) + (Math.random() - 0.5) * 10;
+                        let theta = Math.random() * Math.PI * 2;
+                        let phi = Math.random() * Math.PI;
+                        points.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+                    }
+                    const geo = new THREE.BufferGeometry();
+                    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+                    const mat = new THREE.PointsMaterial({ color, size: 2, transparent: true, opacity: 0.5 });
+                    orbitalGroup.add(new THREE.Points(geo, mat));
+                }
+
+                state.scene.add(orbitalGroup);
+                state.orbitals.push(orbitalGroup);
+            });
+        }
+
+        function createDumbbell(size, color) {
+            const group = new THREE.Group();
+            const geom = new THREE.SphereGeometry(size/2, 20, 20);
+            const mat = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.5 });
+            
+            const lobe1 = new THREE.Mesh(geom, mat);
+            lobe1.position.y = size/1.5;
+            lobe1.scale.set(0.6, 1.2, 0.6);
+            
+            const lobe2 = new THREE.Mesh(geom, mat);
+            lobe2.position.y = -size/1.5;
+            lobe2.scale.set(0.6, 1.2, 0.6);
+            
+            group.add(lobe1, lobe2);
+            return group;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            state.orbitals.forEach((o, i) => {
+                o.rotation.y += 0.005;
+                o.rotation.x += 0.002;
+            });
+            
+            // Smooth manual rotation
+            state.scene.rotation.y += (state.targetRotationY - state.scene.rotation.y) * 0.1;
+            state.scene.rotation.x += (state.targetRotationX - state.scene.rotation.x) * 0.1;
+
+            state.renderer.render(state.scene, state.camera);
+        }
+
+        window.onload = init;
+        window.onresize = () => {
+            const container = document.getElementById('canvas-container');
+            state.camera.aspect = container.clientWidth / container.clientHeight;
+            state.camera.updateProjectionMatrix();
+            state.renderer.setSize(container.clientWidth, container.clientHeight);
+        };
+    </script>
+</body>
+</html>

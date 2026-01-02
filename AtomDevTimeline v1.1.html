@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon: Atomic Timeline</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --accent: #38bdf8;
+            --border: #334155;
+            --canvas-bg: #0f172a;
+        }
+        .light-mode {
+            --bg: #f1f5f9;
+            --card: rgba(255, 255, 255, 0.8);
+            --text: #0f172a;
+            --accent: #0284c7;
+            --border: #cbd5e1;
+            --canvas-bg: #ffffff;
+        }
+        body { background-color: var(--bg); color: var(--text); transition: background-color 0.4s ease; font-family: sans-serif; overflow: hidden; }
+        
+        .top-nav {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 50;
+        }
+
+        .timeline-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            background: var(--border);
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+        }
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #38bdf8;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+        }
+
+        .tick { position: absolute; top: -6px; width: 2px; height: 6px; background: #64748b; }
+        .label { 
+            position: absolute; 
+            top: 16px; 
+            font-size: 10px; 
+            font-weight: bold;
+            transform: translateX(-50%); 
+            white-space: nowrap; 
+            color: #94a3b8;
+        }
+        .active-label { color: #38bdf8; }
+
+        #explanation-panel {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- TOP CONTROL BAR -->
+    <header class="top-nav p-4 shrink-0">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="text-xl font-black tracking-tighter text-sky-500 uppercase">Atomic Evolution</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="particle-legend" class="hidden md:flex gap-3 text-[10px] font-bold uppercase px-3 py-1 rounded-full border border-slate-500/30"></div>
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-500/20 border border-slate-500/30 transition-colors">
+                        <svg id="sun-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg>
+                        <svg id="moon-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative w-full h-10 px-2">
+                <div style="left: 0%" class="tick"><span class="label" id="l0">1803</span></div>
+                <div style="left: 16%" class="tick"><span class="label" id="l1">1897</span></div>
+                <div style="left: 33%" class="tick"><span class="label" id="l2">1911</span></div>
+                <div style="left: 50%" class="tick"><span class="label" id="l3">1917</span></div>
+                <div style="left: 66%" class="tick"><span class="label" id="l4">1932</span></div>
+                <div style="left: 83%" class="tick"><span class="label" id="l5">1913</span></div>
+                <div style="left: 100%" class="tick"><span class="label" id="l6">Modern</span></div>
+                <input type="range" id="timeline" min="0" max="100" value="0" step="0.1" class="timeline-slider relative z-10">
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow relative overflow-hidden flex items-center justify-center">
+        <canvas id="atomCanvas"></canvas>
+    </main>
+
+    <!-- LOWER & WIDER EXPLANATION PANEL -->
+    <footer id="explanation-panel" class="w-full py-6 px-8 shrink-0">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 items-center">
+            <div class="text-center md:text-left min-w-[140px]">
+                <span id="era-year" class="text-xs font-bold text-sky-500 uppercase tracking-widest block">1803</span>
+                <h2 id="model-name" class="text-xl font-black uppercase text-current leading-tight">Dalton</h2>
+            </div>
+            <div class="h-px md:h-12 w-full md:w-px bg-slate-500/20"></div>
+            <p id="model-desc" class="text-sm opacity-80 leading-relaxed flex-grow max-w-4xl">
+                Loading description...
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('atomCanvas');
+        const ctx = canvas.getContext('2d');
+        const timeline = document.getElementById('timeline');
+        const themeBtn = document.getElementById('theme-toggle');
+        
+        let state = {
+            time: 0,
+            val: 0,
+            nucleus: [],
+            electrons: [], // Persistent data for jiggling/orbits
+            dark: true
+        };
+
+        const eras = [
+            { threshold: 15, year: "1803", name: "Dalton's Sphere", desc: "Atom as a solid, indivisible ball of matter. No subatomic particles are yet known.", draw: (t) => drawDalton(t) },
+            { threshold: 32, year: "1897", name: "Plum Pudding", desc: "Thomson discovers electrons. He imagines them as tiny 'plums' jiggling inside a 'pudding' of positive charge.", draw: (t) => drawThomson(t) },
+            { threshold: 48, year: "1911", name: "Rutherford's Nucleus", desc: "The gold foil experiment reveals a tiny, dense nucleus. Electrons begin to orbit like planets around a sun.", draw: (t) => drawRutherfordNucleus(t) },
+            { threshold: 64, year: "1917", name: "The Proton", desc: "Rutherford identifies the building blocks of the nucleus as Protons. Carbon's identity (6 protons) is now understood.", draw: (t) => drawProtons(t) },
+            { threshold: 80, year: "1932", name: "The Neutron", desc: "Chadwick finds the neutron. The nucleus is now complete with 6 protons and 6 neutrons for Carbon-12.", draw: (t) => drawFullNucleus(t) },
+            { threshold: 92, year: "1913", name: "Bohr Model", desc: "Bohr refines orbits into fixed energy levels. Carbon has 2 electrons in the inner shell and 4 in the outer.", draw: (t) => drawBohr(t) },
+            { threshold: 100.1, year: "Quantum Era", name: "Cloud Model", desc: "Electrons aren't in paths; they exist as clouds of probability where they are 'most likely' to be found.", draw: (t) => drawQuantum(t) }
+        ];
+
+        function init() {
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Generate particles
+            for(let i=0; i<12; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.sqrt(Math.random()) * 24;
+                state.nucleus.push({ x: Math.cos(angle)*dist, y: Math.sin(angle)*dist, type: i<6 ? 'p':'n' });
+            }
+
+            // Generate 6 persistent electrons with random orbit parameters
+            for(let i=0; i<6; i++) {
+                state.electrons.push({
+                    jiggleX: Math.random() * 200 - 100,
+                    jiggleY: Math.random() * 200 - 100,
+                    tilt: (Math.PI / 3) * (i - 2.5), // Unique orbit tilts
+                    speed: 0.5 + Math.random() * 1.5,
+                    radius: 120 + i * 20,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+
+            themeBtn.onclick = () => {
+                state.dark = !state.dark;
+                document.body.classList.toggle('light-mode');
+                document.getElementById('sun-icon').classList.toggle('hidden');
+                document.getElementById('moon-icon').classList.toggle('hidden');
+            };
+
+            animate();
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+        }
+
+        function drawElectron(x, y) {
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+            if(state.dark) {
+                ctx.shadowBlur = 10; ctx.shadowColor = '#38bdf8';
+                ctx.strokeStyle = "white"; ctx.stroke();
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.stroke();
+            }
+        }
+
+        function drawOrbit(cx, cy, rx, ry, tilt) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(tilt);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = state.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function getPlanetaryPos(t, electron, rx, ry) {
+            const angle = t * electron.speed + electron.phase;
+            const x = Math.cos(angle) * rx;
+            const y = Math.sin(angle) * ry;
+            // Apply tilt
+            const tx = x * Math.cos(electron.tilt) - y * Math.sin(electron.tilt);
+            const ty = x * Math.sin(electron.tilt) + y * Math.cos(electron.tilt);
+            return { x: tx, y: ty };
+        }
+
+        function drawDalton() {
+            const cx = canvas.width/2, cy = canvas.height/2;
+            const grad = ctx.createRadialGradient(cx-30, cy-30, 10, cx, cy, 100);
+            grad.addColorStop(0, state.dark ? '#475569' : '#cbd5e1');
+            grad.addColorStop(1, state.dark ? '#0f172a' : '#94a3b8');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(cx, cy, 100, 0, Math.PI*2); ctx.fill();
+        }
+
+        function drawThomson(t) {
+            const cx = canvas.width/2, cy = canvas.height/2;
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.15)'; 
+            ctx.beginPath(); ctx.arc(cx, cy, 150, 0, Math.PI*2); ctx.fill();
+            state.electrons.forEach((e, i) => {
+                const jx = Math.sin(t * 3 + i) * 5;
+                const jy = Math.cos(t * 2.5 + i) * 5;
+                drawElectron(cx + e.jiggleX + jx, cy + e.jiggleY + jy);
+            });
+        }
+
+        function drawRutherfordNucleus(t) {
+            const cx = canvas.width/2, cy = canvas.height/2;
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI*2); ctx.fill();
+            state.electrons.forEach((e, i) => {
+                drawOrbit(cx, cy, e.radius, e.radius * 0.4, e.tilt);
+                const pos = getPlanetaryPos(t, e, e.radius, e.radius * 0.4);
+                drawElectron(cx + pos.x, cy + pos.y);
+            });
+        }
+
+        function drawProtons(t) {
+            const cx = canvas.width/2, cy = canvas.height/2;
+            state.nucleus.slice(0, 6).forEach(p => drawParticle(cx + p.x, cy + p.y, '#f43f5e'));
+            state.electrons.forEach((e, i) => {
+                drawOrbit(cx, cy, e.radius, e.radius * 0.4, e.tilt);
+                const pos = getPlanetaryPos(t, e, e.radius, e.radius * 0.4);
+                drawElectron(cx + pos.x, cy + pos.y);
+            });
+        }
+
+        function drawFullNucleus(t) {
+            const cx = canvas.width/2, cy = canvas.height/2;
+            state.nucleus.forEach(p => drawParticle(cx + p.x, cy + p.y, p.type === 'p' ? '#f43f5e' : '#10b981'));
+            state.electrons.forEach((e, i) => {
+                drawOrbit(cx, cy, e.radius, e.radius * 0.4, e.tilt);
+                const pos = getPlanetaryPos(t, e, e.radius, e.radius * 0.4);
+                drawElectron(cx + pos.x, cy + pos.y);
+            });
+        }
+
+        function drawBohr(t) {
+            const cx = canvas.width/2, cy = canvas.height/2;
+            state.nucleus.forEach(p => drawParticle(cx + p.x, cy + p.y, p.type === 'p' ? '#f43f5e' : '#10b981'));
+            [2, 4].forEach((count, sIdx) => {
+                const r = 100 + sIdx * 90;
+                ctx.strokeStyle = state.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+                for(let i=0; i<count; i++) {
+                    const ang = t * (1 / (sIdx + 1)) + (i * Math.PI * 2 / count);
+                    drawElectron(cx + Math.cos(ang)*r, cy + Math.sin(ang)*r);
+                }
+            });
+        }
+
+        function drawQuantum(t) {
+            const cx = canvas.width/2, cy = canvas.height/2;
+            state.nucleus.forEach(p => drawParticle(cx + p.x, cy + p.y, p.type === 'p' ? '#f43f5e' : '#10b981'));
+            const drawCloud = (r, color) => {
+                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+                grad.addColorStop(0, color); grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+            };
+            drawCloud(140, 'rgba(56, 189, 248, 0.2)');
+            drawCloud(280, 'rgba(56, 189, 248, 0.08)');
+            for(let i=0; i<100; i++) {
+                const noise = Math.sin(i * 0.5 + t);
+                const ang = i * 13.5;
+                const dist = (Math.abs(Math.sin(i * 0.8 + t * 0.1)) * 260);
+                ctx.fillStyle = `rgba(56, 189, 248, ${0.1 + Math.abs(noise)*0.3})`;
+                ctx.beginPath(); ctx.arc(cx + Math.cos(ang)*dist, cy + Math.sin(ang)*dist, 2, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        function drawParticle(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+        }
+
+        function animate() {
+            state.time += 0.015;
+            state.val = parseFloat(timeline.value);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const eraIdx = eras.findIndex(e => state.val <= e.threshold);
+            const currentEra = eras[eraIdx === -1 ? eras.length-1 : eraIdx];
+            
+            document.getElementById('model-name').innerText = currentEra.name;
+            document.getElementById('model-desc').innerText = currentEra.desc;
+            document.getElementById('era-year').innerText = currentEra.year;
+            
+            for(let i=0; i<7; i++) {
+                const l = document.getElementById('l'+i);
+                l.className = (eraIdx === i || (eraIdx === -1 && i === 6)) ? "label active-label" : "label";
+            }
+
+            currentEra.draw(state.time);
+            requestAnimationFrame(animate);
+        }
+
+        init();
+    </script>
+</body>
+</html>
