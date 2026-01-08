@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE Chemistry: Advanced Alkane Cracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+        .canvas-container {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            position: relative;
+            min-height: 500px;
+            overflow: hidden;
+        }
+        
+        /* Animation Classes */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .reacting {
+            animation: shake 0.15s infinite;
+        }
+
+        .molecule-group {
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        input[type=range] {
+            height: 6px;
+            -webkit-appearance: none;
+            background: #e2e8f0;
+            border-radius: 5px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ef4444;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Catalytic & Thermal Cracking</h1>
+            <p class="text-slate-500 mt-2 text-lg">Watch long-chain hydrocarbons vibrate and split into useful products.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Sidebar Controls -->
+            <div class="lg:col-span-3 space-y-6">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Feedstock</label>
+                    <select id="alkane-select" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="10">Decane (C10H22)</option>
+                        <option value="12">Dodecane (C12H26)</option>
+                        <option value="15">Pentadecane (C15H32)</option>
+                        <option value="20">Icosane (C20H42)</option>
+                    </select>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Reaction Conditions</label>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm font-semibold text-slate-600">Temperature</span>
+                                <span id="temp-display" class="text-sm font-bold text-red-500">20°C</span>
+                            </div>
+                            <input type="range" id="temp-slider" min="20" max="800" value="20" class="w-full">
+                        </div>
+                        
+                        <label class="flex items-center group cursor-pointer">
+                            <input type="checkbox" id="cat-toggle" class="hidden peer">
+                            <div class="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-blue-600 relative transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                            <span class="ml-3 text-sm font-semibold text-slate-700">Zeolite Catalyst</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button id="crack-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-200 active:scale-95">
+                    CRACK ALKANE
+                </button>
+
+                <button id="reset-btn" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-2xl transition-all">
+                    Reset Chamber
+                </button>
+            </div>
+
+            <!-- Main Simulation -->
+            <div class="lg:col-span-9 space-y-6">
+                <div class="canvas-container flex flex-col items-center justify-center p-6">
+                    <div id="status-badge" class="absolute top-6 left-6 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-tighter px-3 py-1 rounded-full border border-slate-200 z-10">
+                        Status: Chamber Ready
+                    </div>
+                    
+                    <svg id="viewport" width="100%" height="500" viewBox="0 0 1000 500"></svg>
+
+                    <div id="equation-card" class="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-sm p-4 rounded-xl border border-slate-200 shadow-xl opacity-0 transition-opacity flex items-center justify-center gap-4 z-10">
+                        <span class="text-slate-400 font-bold uppercase text-[10px]">Balanced Equation</span>
+                        <div id="equation-text" class="text-lg font-mono text-slate-800"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-blue-50 p-5 rounded-2xl border border-blue-100">
+                        <h4 class="font-bold text-blue-900 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            Dynamic Cracking
+                        </h4>
+                        <p class="text-sm text-blue-800 mt-2 leading-relaxed">
+                            Increasing the temperature increases the <strong>kinetic energy</strong> of the molecule. When the vibrations become too violent, the C-C bonds break randomly.
+                        </p>
+                    </div>
+                    <div class="bg-amber-50 p-5 rounded-2xl border border-amber-100">
+                        <h4 class="font-bold text-amber-900">Animation Note</h4>
+                        <p class="text-sm text-amber-800 mt-2 leading-relaxed">
+                            Watch the central bond snap. The fragments rearrange into a smaller alkane and at least one alkene with a <strong>double line</strong> C=C bond.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const viewport = document.getElementById('viewport');
+        const tempSlider = document.getElementById('temp-slider');
+        const tempDisplay = document.getElementById('temp-display');
+        const catToggle = document.getElementById('cat-toggle');
+        const crackBtn = document.getElementById('crack-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const statusBadge = document.getElementById('status-badge');
+        const eqCard = document.getElementById('equation-card');
+        const eqText = document.getElementById('equation-text');
+        const alkaneSelect = document.getElementById('alkane-select');
+
+        let isCracking = false;
+        const COLORS = { C: '#1e293b', H: '#ffffff', bond: '#cbd5e0' };
+        const RAD = { C: 16, H: 9 };
+
+        function updateTemp() {
+            const t = tempSlider.value;
+            tempDisplay.innerText = `${t}°C`;
+            tempDisplay.style.color = t > 400 ? '#ef4444' : '#64748b';
+        }
+
+        function createAtom(type, x, y) {
+            const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", x); circle.setAttribute("cy", y);
+            circle.setAttribute("r", RAD[type]);
+            circle.setAttribute("fill", COLORS[type]);
+            circle.setAttribute("stroke", "#94a3b8");
+            circle.setAttribute("stroke-width", "1.5");
+            
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", x); text.setAttribute("y", y + (type === 'C' ? 5 : 3));
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("font-size", type === 'C' ? "12" : "8");
+            text.setAttribute("font-weight", "800");
+            text.setAttribute("fill", type === 'C' ? "white" : "#475569");
+            text.textContent = type;
+
+            group.appendChild(circle);
+            group.appendChild(text);
+            return group;
+        }
+
+        function createBond(x1, y1, x2, y2, isDouble = false) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            if (isDouble) {
+                const offset = 4;
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                const dx = Math.sin(angle) * offset;
+                const dy = Math.cos(angle) * offset;
+                [-1, 1].forEach(i => {
+                    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    l.setAttribute("x1", x1 + dx * i); l.setAttribute("y1", y1 - dy * i);
+                    l.setAttribute("x2", x2 + dx * i); l.setAttribute("y2", y2 - dy * i);
+                    l.setAttribute("stroke", COLORS.bond); l.setAttribute("stroke-width", "3");
+                    g.appendChild(l);
+                });
+            } else {
+                const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+                l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+                l.setAttribute("stroke", COLORS.bond); l.setAttribute("stroke-width", "3");
+                g.appendChild(l);
+            }
+            return g;
+        }
+
+        function drawMolecule(cCount, startX, startY, isAlkene = false, doubleBondIndex = -1, targetY = null) {
+            const spacing = 50;
+            const container = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            container.classList.add('molecule-group');
+            
+            // Initial positioning
+            container.setAttribute("transform", `translate(0, 0)`);
+            if (targetY !== null) {
+                // We start them at the original middle height and animate them to target
+                const startYOffset = 225 - startY;
+                container.setAttribute("transform", `translate(0, ${startYOffset})`);
+                setTimeout(() => {
+                    container.setAttribute("transform", `translate(0, 0)`);
+                }, 50);
+            }
+
+            const cPositions = [];
+            for (let i = 0; i < cCount; i++) {
+                const x = startX + i * spacing;
+                const y = startY + (i % 2 === 0 ? 15 : -15);
+                cPositions.push({ x, y });
+            }
+
+            for (let i = 0; i < cCount - 1; i++) {
+                container.appendChild(createBond(cPositions[i].x, cPositions[i].y, cPositions[i+1].x, cPositions[i+1].y, isAlkene && i === doubleBondIndex));
+            }
+
+            cPositions.forEach((pos, i) => {
+                const hCoords = [{ x: pos.x, y: pos.y - 40 }, { x: pos.x, y: pos.y + 40 }];
+                if (i === 0) hCoords.push({ x: pos.x - 40, y: pos.y });
+                if (i === cCount - 1) hCoords.push({ x: pos.x + 40, y: pos.y });
+
+                let usedValency = (i > 0 ? 1 : 0) + (i < cCount - 1 ? 1 : 0) + (isAlkene && (i === doubleBondIndex || i === doubleBondIndex + 1) ? 1 : 0);
+                hCoords.slice(0, 4 - usedValency).forEach(hPos => {
+                    container.appendChild(createBond(pos.x, pos.y, hPos.x, hPos.y));
+                    container.appendChild(createAtom('H', hPos.x, hPos.y));
+                });
+                container.appendChild(createAtom('C', pos.x, pos.y));
+            });
+
+            viewport.appendChild(container);
+            return container;
+        }
+
+        function initSample() {
+            isCracking = false;
+            viewport.innerHTML = '';
+            eqCard.style.opacity = '0';
+            statusBadge.innerText = "Status: Chamber Ready";
+            statusBadge.style.color = "#94a3b8";
+            
+            const count = parseInt(alkaneSelect.value);
+            const startX = 500 - (count * 25);
+            drawMolecule(count, startX, 225);
+        }
+
+        async function runCracking() {
+            if (isCracking) return;
+            const temp = parseInt(tempSlider.value);
+            const catalyst = catToggle.checked;
+
+            if ((!catalyst && temp < 450) || (catalyst && temp < 250)) {
+                statusBadge.innerText = "Error: Temperature too low";
+                statusBadge.style.color = "#ef4444";
+                return;
+            }
+
+            isCracking = true;
+            statusBadge.innerText = "Status: Heating Feedstock...";
+            statusBadge.style.color = "#f59e0b";
+
+            // Step 1: Start Shaking
+            const originalMolecule = viewport.querySelector('.molecule-group');
+            originalMolecule.classList.add('reacting');
+
+            // Wait for "Reaction"
+            await new Promise(r => setTimeout(r, 1500));
+
+            // Step 2: Split
+            viewport.innerHTML = '';
+            statusBadge.innerText = "Status: Reaction Complete";
+            statusBadge.style.color = "#10b981";
+
+            const totalC = parseInt(alkaneSelect.value);
+            const numProducts = (totalC >= 12 && Math.random() > 0.6) ? 3 : 2;
+            const products = [];
+            let remainingC = totalC;
+
+            if (numProducts === 2) {
+                const alkaneC = Math.floor(Math.random() * (totalC - 3)) + 2;
+                products.push({ type: 'alkane', c: alkaneC });
+                products.push({ type: 'alkene', c: totalC - alkaneC });
+            } else {
+                const alkaneC = Math.floor(Math.random() * (totalC - 5)) + 2;
+                remainingC -= alkaneC;
+                const alkene1C = Math.floor(Math.random() * (remainingC - 2)) + 2;
+                products.push({ type: 'alkane', c: alkaneC });
+                products.push({ type: 'alkene', c: alkene1C });
+                products.push({ type: 'alkene', c: remainingC - alkene1C });
+            }
+
+            // Draw new fragments
+            products.forEach((p, idx) => {
+                const y = 80 + (idx * 160);
+                drawMolecule(p.c, 100, y, p.type === 'alkene', 0, 225);
+            });
+
+            const eqHtml = `C<sub>${totalC}</sub>H<sub>${totalC*2+2}</sub> &rarr; ` + 
+                products.map(p => `C<sub>${p.c}</sub>H<sub>${p.type === 'alkane' ? p.c*2+2 : p.c*2}</sub>`).join(' + ');
+            
+            eqText.innerHTML = eqHtml;
+            eqCard.style.opacity = '1';
+            isCracking = false;
+        }
+
+        tempSlider.addEventListener('input', updateTemp);
+        crackBtn.addEventListener('click', runCracking);
+        resetBtn.addEventListener('click', initSample);
+        alkaneSelect.addEventListener('change', initSample);
+
+        window.onload = initSample;
+    </script>
+</body>
+</html>
