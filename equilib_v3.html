@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE Chemistry: Le Chatelier's Principle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        .panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .control-group { border-left: 4px solid #3b82f6; padding-left: 1rem; margin-bottom: 1.5rem; }
+        input[type=range] { cursor: pointer; accent-color: #3b82f6; }
+        .shift-indicator { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        canvas { border-radius: 12px; }
+    </style>
+</head>
+<body class="h-screen w-screen p-4 flex flex-col">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-4 panel p-4 rounded-2xl">
+        <div>
+            <h1 class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                LE CHATELIER'S PRINCIPLE
+            </h1>
+            <p id="equation-text" class="text-lg font-mono font-bold text-slate-300">N₂(g) + 3H₂(g) ⇌ 2NH₃(g) + Heat</p>
+        </div>
+        <div class="flex gap-4 items-center">
+            <div id="shift-status" class="shift-indicator px-4 py-2 rounded-full bg-slate-800 text-sm font-bold border border-slate-700">
+                System at Equilibrium
+            </div>
+            <button onclick="resetSim()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg font-bold transition-all">Reset</button>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-12 gap-4 overflow-hidden">
+        
+        <!-- Simulation & Graph Area -->
+        <div class="col-span-8 flex flex-col gap-4 overflow-hidden">
+            <!-- Molecular View -->
+            <div class="flex-1 panel rounded-2xl relative overflow-hidden bg-slate-950 border-2 border-slate-800">
+                <canvas id="moleculeCanvas" class="w-full h-full"></canvas>
+                
+                <!-- Overlay Yield -->
+                <div class="absolute top-4 right-4 text-right">
+                    <div class="text-xs uppercase font-bold text-slate-500">Ammonia Yield</div>
+                    <div id="yield-display" class="text-4xl font-black text-emerald-500">0%</div>
+                </div>
+
+                <!-- Legend -->
+                <div class="absolute bottom-4 left-4 flex gap-6 bg-black/40 p-3 rounded-xl backdrop-blur-md border border-white/5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded-full bg-blue-500"></div> <span class="text-xs font-bold">Nitrogen (N₂)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-sky-300"></div> <span class="text-xs font-bold">Hydrogen (H₂)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-5 h-5 rounded-full bg-emerald-500 border-2 border-emerald-300/30"></div> <span class="text-xs font-bold">Ammonia (NH₃)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graph View -->
+            <div class="h-1/3 panel rounded-2xl p-4">
+                <canvas id="chartCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Controls Area -->
+        <aside class="col-span-4 flex flex-col gap-4 overflow-y-auto pr-2">
+            
+            <div class="panel p-6 rounded-2xl">
+                <h3 class="text-sm uppercase font-black text-blue-400 mb-6 tracking-widest">Adjust Conditions</h3>
+                
+                <div class="control-group">
+                    <div class="flex justify-between mb-2">
+                        <label class="font-bold">Temperature</label>
+                        <span id="temp-val" class="text-blue-400 font-mono">300°C</span>
+                    </div>
+                    <input type="range" id="temp-slider" min="50" max="800" value="300" class="w-full">
+                    <p class="text-[10px] text-slate-400 mt-1 uppercase italic">Forward reaction is Exothermic (-ΔH)</p>
+                </div>
+
+                <div class="control-group" style="border-color: #10b981;">
+                    <div class="flex justify-between mb-2">
+                        <label class="font-bold">Pressure</label>
+                        <span id="press-val" class="text-emerald-400 font-mono">200 atm</span>
+                    </div>
+                    <input type="range" id="press-slider" min="1" max="500" value="200" class="w-full">
+                    <p class="text-[10px] text-slate-400 mt-1 uppercase italic">Left: 4 moles | Right: 2 moles</p>
+                </div>
+
+                <div class="control-group" style="border-color: #f59e0b;">
+                    <label class="font-bold block mb-4">Reactant Concentration</label>
+                    <div class="flex gap-2">
+                        <button onclick="injectReactants()" class="flex-1 bg-amber-600 hover:bg-amber-500 py-3 rounded-xl font-bold text-xs uppercase transition-all shadow-lg shadow-amber-900/20">
+                            Inject N₂ + H₂
+                        </button>
+                        <button onclick="removeProduct()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-xs uppercase transition-all">
+                            Remove NH₃
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-blue-900/20 p-4 rounded-xl border border-blue-500/30 mt-4">
+                    <h4 class="text-xs font-black text-blue-300 uppercase mb-2">Teacher Note:</h4>
+                    <p id="dynamic-tip" class="text-xs text-blue-200/80 leading-relaxed">
+                        Increasing pressure shifts the equilibrium to the side with fewer moles of gas (the product side).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="panel p-6 rounded-2xl flex-1">
+                <h3 class="text-sm uppercase font-black text-slate-400 mb-4 tracking-widest">Real-time Particles</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-black/20 p-3 rounded-lg text-center">
+                        <div class="text-[10px] text-blue-400 font-bold">N₂</div>
+                        <div id="count-n2" class="text-xl font-black">0</div>
+                    </div>
+                    <div class="bg-black/20 p-3 rounded-lg text-center">
+                        <div class="text-[10px] text-sky-300 font-bold">H₂</div>
+                        <div id="count-h2" class="text-xl font-black">0</div>
+                    </div>
+                    <div class="bg-black/20 p-3 rounded-lg text-center border border-emerald-500/30">
+                        <div class="text-[10px] text-emerald-400 font-bold">NH₃</div>
+                        <div id="count-nh3" class="text-xl font-black">0</div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('moleculeCanvas');
+        const ctx = canvas.getContext('2d');
+        const chartCtx = document.getElementById('chartCanvas').getContext('2d');
+
+        // State
+        let molecules = [];
+        let width, height;
+        let lastYield = 0;
+        let framesSinceChange = 0;
+        let chart;
+
+        const CONFIG = {
+            N2: { color: '#3b82f6', size: 8, diatomic: true },
+            H2: { color: '#7dd3fc', size: 4, diatomic: true },
+            NH3: { color: '#10b981', size: 10, triatomic: true }
+        };
+
+        class Molecule {
+            constructor(type, x, y) {
+                this.type = type;
+                this.x = x || Math.random() * width;
+                this.y = y || Math.random() * height;
+                this.angle = Math.random() * Math.PI * 2;
+                this.rot = (Math.random() - 0.5) * 0.05;
+                this.updateVelocity();
+            }
+
+            updateVelocity() {
+                const temp = parseInt(document.getElementById('temp-slider').value);
+                const speedScale = (temp / 400) + 0.5; // Slow and steady base
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = Math.cos(angle) * speedScale;
+                this.vy = Math.sin(angle) * speedScale;
+            }
+
+            move() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.angle += this.rot;
+
+                // Bounce
+                if (this.x < 20 || this.x > width - 20) this.vx *= -1;
+                if (this.y < 20 || this.y > height - 20) this.vy *= -1;
+                
+                this.x = Math.max(10, Math.min(this.x, width - 10));
+                this.y = Math.max(10, Math.min(this.y, height - 10));
+            }
+
+            draw() {
+                const cfg = CONFIG[this.type];
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                if (this.type === 'N2') {
+                    ctx.fillStyle = cfg.color;
+                    ctx.beginPath(); ctx.arc(-4, 0, cfg.size, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(4, 0, cfg.size, 0, Math.PI*2); ctx.fill();
+                } else if (this.type === 'H2') {
+                    ctx.fillStyle = cfg.color;
+                    ctx.beginPath(); ctx.arc(-2, 0, cfg.size, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(2, 0, cfg.size, 0, Math.PI*2); ctx.fill();
+                } else if (this.type === 'NH3') {
+                    ctx.fillStyle = cfg.color;
+                    ctx.beginPath(); ctx.arc(0, 0, cfg.size, 0, Math.PI*2); ctx.fill();
+                    // Draw 3 hydrogens
+                    ctx.fillStyle = CONFIG.H2.color;
+                    for(let i=0; i<3; i++) {
+                        const a = (i * Math.PI * 2) / 3;
+                        ctx.beginPath(); ctx.arc(Math.cos(a)*8, Math.sin(a)*8, 3, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        function init() {
+            width = canvas.width = canvas.offsetWidth;
+            height = canvas.height = canvas.offsetHeight;
+            
+            molecules = [];
+            for(let i=0; i<10; i++) molecules.push(new Molecule('N2'));
+            for(let i=0; i<30; i++) molecules.push(new Molecule('H2'));
+            
+            initChart();
+            animate();
+        }
+
+        function initChart() {
+            chart = new Chart(chartCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(50).fill(''),
+                    datasets: [
+                        { label: 'N2', borderColor: CONFIG.N2.color, data: [], borderWidth: 2, pointRadius: 0, tension: 0.4 },
+                        { label: 'H2', borderColor: CONFIG.H2.color, data: [], borderWidth: 2, pointRadius: 0, tension: 0.4 },
+                        { label: 'NH3', borderColor: CONFIG.NH3.color, data: [], borderWidth: 4, pointRadius: 0, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { display: false, min: 0, max: 80 },
+                        x: { display: false }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function handleEquilibrium() {
+            const T = parseInt(document.getElementById('temp-slider').value);
+            const P = parseInt(document.getElementById('press-slider').value);
+            
+            // Forward prob: Higher P helps (more moles on left), Lower T helps (exothermic)
+            const forwardBase = 0.005;
+            const forwardProb = forwardBase * (P/100) * Math.max(0.1, (1000 - T)/500);
+            
+            // Backward prob: Lower P helps, Higher T helps
+            const backwardBase = 0.002;
+            const backwardProb = backwardBase * (100/P) * (T/200);
+
+            // Reactants -> Products
+            for (let i = molecules.length - 1; i >= 0; i--) {
+                let m = molecules[i];
+                if (m.type === 'N2' && Math.random() < forwardProb) {
+                    // Check for 3 nearby H2
+                    let neighbors = molecules.filter(other => 
+                        other.type === 'H2' && Math.hypot(m.x - other.x, m.y - other.y) < 60
+                    );
+                    
+                    if (neighbors.length >= 3) {
+                        // React! 1N2 + 3H2 -> 2NH3
+                        m.type = 'NH3';
+                        neighbors[0].type = 'NH3';
+                        const toRemove = [neighbors[1], neighbors[2]];
+                        molecules = molecules.filter(item => !toRemove.includes(item));
+                    }
+                }
+            }
+
+            // Products -> Reactants
+            for (let i = molecules.length - 1; i >= 0; i--) {
+                let m = molecules[i];
+                if (m.type === 'NH3' && Math.random() < backwardProb) {
+                    // Requires 2 NH3 to decompose meaningfully or just simple decomposition for visual
+                    m.type = 'N2';
+                    // Generate 3 H2 from the decomposition
+                    for(let j=0; j<3; j++) molecules.push(new Molecule('H2', m.x, m.y));
+                }
+            }
+        }
+
+        function updateUI() {
+            const counts = { N2: 0, H2: 0, NH3: 0 };
+            molecules.forEach(m => counts[m.type]++);
+
+            document.getElementById('count-n2').innerText = counts.N2;
+            document.getElementById('count-h2').innerText = counts.H2;
+            document.getElementById('count-nh3').innerText = counts.NH3;
+
+            const yieldVal = molecules.length > 0 ? (counts.NH3 / (counts.N2 + counts.H2 + counts.NH3) * 100).toFixed(1) : 0;
+            document.getElementById('yield-display').innerText = yieldVal + "%";
+
+            // Indicators
+            const status = document.getElementById('shift-status');
+            const diff = yieldVal - lastYield;
+            
+            if (Math.abs(diff) > 0.1) {
+                if (diff > 0) {
+                    status.innerText = "SHIFTING RIGHT → (Increasing Yield)";
+                    status.className = "shift-indicator px-4 py-2 rounded-full bg-emerald-900/50 text-emerald-400 text-sm font-bold border border-emerald-500";
+                    document.getElementById('dynamic-tip').innerText = "System is counteracting the change by producing more Ammonia.";
+                } else {
+                    status.innerText = "← SHIFTING LEFT (Decreasing Yield)";
+                    status.className = "shift-indicator px-4 py-2 rounded-full bg-red-900/50 text-red-400 text-sm font-bold border border-red-500";
+                    document.getElementById('dynamic-tip').innerText = "System is counteracting the change by decomposing Ammonia back into reactants.";
+                }
+                framesSinceChange = 0;
+            } else {
+                framesSinceChange++;
+                if (framesSinceChange > 60) {
+                    status.innerText = "System at Equilibrium";
+                    status.className = "shift-indicator px-4 py-2 rounded-full bg-slate-800 text-sm font-bold border border-slate-700";
+                }
+            }
+            lastYield = yieldVal;
+
+            // Sliders
+            document.getElementById('temp-val').innerText = document.getElementById('temp-slider').value + "°C";
+            document.getElementById('press-val').innerText = document.getElementById('press-slider').value + " atm";
+
+            // Chart
+            if (Date.now() % 5 === 0) {
+                chart.data.datasets[0].data.push(counts.N2);
+                chart.data.datasets[1].data.push(counts.H2);
+                chart.data.datasets[2].data.push(counts.NH3);
+                if (chart.data.datasets[0].data.length > 50) {
+                    chart.data.datasets.forEach(d => d.data.shift());
+                }
+                chart.update('none');
+            }
+        }
+
+        function injectReactants() {
+            for(let i=0; i<5; i++) molecules.push(new Molecule('N2'));
+            for(let i=0; i<15; i++) molecules.push(new Molecule('H2'));
+        }
+
+        function removeProduct() {
+            let removed = 0;
+            molecules = molecules.filter(m => {
+                if (m.type === 'NH3' && removed < 10) {
+                    removed++;
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        function resetSim() {
+            molecules = [];
+            chart.data.datasets.forEach(d => d.data = []);
+            init();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            handleEquilibrium();
+            
+            molecules.forEach(m => {
+                m.move();
+                m.draw();
+            });
+
+            updateUI();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = canvas.offsetWidth;
+            height = canvas.height = canvas.offsetHeight;
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
