@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE Chemistry: Alloys vs Pure Metals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        .canvas-container { position: relative; width: 100%; aspect-ratio: 1/1; }
+        canvas { border-radius: 12px; cursor: crosshair; width: 100%; height: auto; }
+        .atom-label { pointer-events: none; user-select: none; }
+        body { transition: background-color 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 p-4 md:p-6 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="text-left">
+                <h1 class="text-3xl font-extrabold text-slate-800 dark:text-white">Alloys & Structure</h1>
+                <p class="text-slate-600 dark:text-slate-400">GCSE Chemistry Interactive Tool</p>
+            </div>
+            <button onclick="toggleDarkMode()" class="p-3 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-yellow-400 hover:scale-110 transition-transform">
+                <svg id="sun-icon" class="w-6 h-6 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path></svg>
+                <svg id="moon-icon" class="w-6 h-6 dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left: Material Select -->
+            <div class="lg:col-span-3 space-y-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                    <h2 class="text-lg font-bold mb-4 text-slate-800 dark:text-white flex items-center gap-2">
+                        <span class="bg-blue-500 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs">1</span>
+                        Select Material
+                    </h2>
+                    <div class="flex flex-col gap-2" id="material-selector">
+                        <button onclick="selectMaterial('pure')" id="btn-pure" class="material-btn text-left px-4 py-3 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:text-white font-bold transition-all">Pure Copper</button>
+                        <button onclick="selectMaterial('bronze')" id="btn-bronze" class="material-btn text-left px-4 py-3 rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-all font-semibold">Bronze (Cu + Sn)</button>
+                        <button onclick="selectMaterial('brass')" id="btn-brass" class="material-btn text-left px-4 py-3 rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-all font-semibold">Brass (Cu + Zn)</button>
+                        <button onclick="selectMaterial('steel')" id="btn-steel" class="material-btn text-left px-4 py-3 rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-all font-semibold">High Carbon Steel</button>
+                        <button onclick="selectMaterial('gold')" id="btn-gold" class="material-btn text-left px-4 py-3 rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-all font-semibold">18k Gold</button>
+                        <button onclick="selectMaterial('magnalium')" id="btn-magnalium" class="material-btn text-left px-4 py-3 rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-all font-semibold">Magnalium</button>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                    <h2 class="text-lg font-bold mb-2 text-slate-800 dark:text-white flex items-center gap-2">
+                        <span class="bg-orange-500 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs">2</span>
+                        Apply Force
+                    </h2>
+                    <button onmousedown="startAutoPush()" onmouseup="stopAutoPush()" ontouchstart="startAutoPush()" ontouchend="stopAutoPush()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95">
+                        PUSH LAYERS →
+                    </button>
+                    <button onclick="resetSimulation()" class="w-full mt-3 text-slate-400 dark:text-slate-500 hover:text-slate-600 text-sm py-1 underline">
+                        Reset Positions
+                    </button>
+                </div>
+            </div>
+
+            <!-- Center: Visualizer -->
+            <div class="lg:col-span-5 flex flex-col items-center">
+                <div class="canvas-container bg-white dark:bg-slate-900 rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <canvas id="simulationCanvas" width="600" height="600"></canvas>
+                </div>
+                <div id="status-tag" class="mt-4 px-6 py-2 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 rounded-full text-sm font-bold uppercase tracking-widest text-center shadow-sm">
+                    Pure Metal: Soft & Malleable
+                </div>
+            </div>
+
+            <!-- Right: Information -->
+            <div class="lg:col-span-4">
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 h-full flex flex-col">
+                    <h2 class="text-3xl font-bold mb-4 text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2" id="info-title">Pure Copper</h2>
+                    
+                    <div id="info-content" class="space-y-6 flex-grow">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
+                            <h3 class="font-bold text-blue-800 dark:text-blue-300 uppercase text-xs tracking-wider mb-1">Atomic Structure</h3>
+                            <p id="structure-text" class="text-slate-700 dark:text-slate-300 leading-relaxed">Atoms are the <strong>same size</strong> and arranged in <strong>regular layers</strong>.</p>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-bold text-slate-800 dark:text-white text-md mb-2 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                Properties
+                            </h3>
+                            <p id="prop-text" class="text-slate-600 dark:text-slate-400 leading-relaxed">Layers slide easily over each other when force is applied, making it soft and malleable.</p>
+                        </div>
+
+                        <div>
+                            <h3 class="font-bold text-slate-800 dark:text-white text-md mb-2 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                GCSE Common Uses
+                            </h3>
+                            <ul id="use-list" class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-2">
+                                <li>Electrical wiring</li>
+                                <li>Plumbing pipes</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-400 italic">
+                        * Observe how the different sized atoms prevent the layers from sliding easily.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusTag = document.getElementById('status-tag');
+        
+        let atoms = [];
+        let currentMaterial = 'pure';
+        let isPushing = false;
+        let pushOffset = 0;
+        let time = 0;
+
+        const materials = {
+            pure: {
+                title: "Pure Copper",
+                tag: "Pure Metal: Soft & Malleable",
+                tagClass: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
+                structure: "Atoms are the same size and arranged in regular layers.",
+                properties: "Layers slide easily over each other when force is applied, making it soft and malleable.",
+                uses: ["Electrical wiring", "Plumbing pipes", "Cooking pans"],
+                color: "#e2725b",
+                alloyAtoms: []
+            },
+            bronze: {
+                title: "Bronze",
+                tag: "Alloy: Hard & Tough",
+                tagClass: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
+                structure: "Larger Tin atoms distort the regular Copper lattice.",
+                properties: "The larger atoms block the layers from sliding. This makes bronze much harder than pure copper.",
+                uses: ["Statues", "Decorative ornaments", "Ship propellers"],
+                color: "#cd7f32",
+                alloyAtoms: [{ size: 1.35, color: "#9ca3af", ratio: 0.1, label: "Sn" }]
+            },
+            brass: {
+                title: "Brass",
+                tag: "Alloy: Hard & Low Friction",
+                tagClass: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400",
+                structure: "Zinc atoms are mixed with Copper atoms.",
+                properties: "The addition of Zinc makes the material harder while maintaining good corrosion resistance.",
+                uses: ["Musical instruments", "Door hinges", "Plumbing fittings"],
+                color: "#e3c04d",
+                alloyAtoms: [{ size: 1.15, color: "#d1d5db", ratio: 0.15, label: "Zn" }]
+            },
+            steel: {
+                title: "High Carbon Steel",
+                tag: "Alloy: Strong & Brittle",
+                tagClass: "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200",
+                structure: "Tiny Carbon atoms sit in spaces between Iron atoms.",
+                properties: "Even tiny atoms can distort the structure enough to stop layers from sliding. Very strong and stiff.",
+                uses: ["Cutting tools", "Bridges", "Construction girders"],
+                color: "#94a3b8",
+                alloyAtoms: [{ size: 0.45, color: "#1e293b", ratio: 0.15, label: "C" }]
+            },
+            gold: {
+                title: "18k Gold",
+                tag: "Alloy: Hardened Jewelry",
+                tagClass: "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400 border border-yellow-200",
+                structure: "Copper or Silver added to pure 24k Gold.",
+                properties: "Pure gold is too soft for everyday use. Alloying it makes it durable enough for jewelry.",
+                uses: ["Engagement rings", "Watches", "Necklaces"],
+                color: "#ffd700",
+                alloyAtoms: [{ size: 0.85, color: "#b45309", ratio: 0.25, label: "Cu" }]
+            },
+            magnalium: {
+                title: "Magnalium",
+                tag: "Alloy: Strong & Light",
+                tagClass: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400",
+                structure: "Magnesium atoms mixed with Aluminium.",
+                properties: "Much stronger than pure Aluminium but remains low density. Excellent corrosion resistance.",
+                uses: ["Aircraft parts", "Racing bike frames", "Scientific instruments"],
+                color: "#cbd5e1",
+                alloyAtoms: [{ size: 1.25, color: "#64748b", ratio: 0.12, label: "Mg" }]
+            }
+        };
+
+        function initAtoms() {
+            atoms = [];
+            const mat = materials[currentMaterial];
+            const rows = 8;
+            const cols = 8;
+            const spacing = 58;
+            const offsetLeft = 80;
+            const offsetTop = 80;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let isAlloy = false;
+                    let alloyInfo = null;
+
+                    if (mat.alloyAtoms.length > 0) {
+                        mat.alloyAtoms.forEach(info => {
+                            if (Math.random() < info.ratio) {
+                                isAlloy = true;
+                                alloyInfo = info;
+                            }
+                        });
+                    }
+
+                    atoms.push({
+                        baseX: offsetLeft + c * spacing,
+                        baseY: offsetTop + r * spacing,
+                        x: offsetLeft + c * spacing,
+                        y: offsetTop + r * spacing,
+                        row: r,
+                        col: c,
+                        radius: isAlloy ? (26 * alloyInfo.size) : 26,
+                        color: isAlloy ? alloyInfo.color : mat.color,
+                        label: isAlloy ? alloyInfo.label : "",
+                        isAlloy: isAlloy,
+                        jiggleSeed: Math.random() * 100
+                    });
+                }
+            }
+        }
+
+        function draw() {
+            const isDark = document.documentElement.classList.contains('dark');
+            
+            // Clear and fill canvas background based on dark mode
+            ctx.fillStyle = isDark ? "#0f172a" : "#ffffff"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Background grid
+            ctx.strokeStyle = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+= 58) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            time += 0.05;
+
+            atoms.forEach(atom => {
+                const jiggleX = Math.sin(time + atom.jiggleSeed) * 0.8;
+                const jiggleY = Math.cos(time + atom.jiggleSeed) * 0.8;
+
+                ctx.beginPath();
+                ctx.arc(atom.x + jiggleX, atom.y + jiggleY, atom.radius, 0, Math.PI * 2);
+                
+                const gradient = ctx.createRadialGradient(
+                    atom.x + jiggleX - atom.radius/3, 
+                    atom.y + jiggleY - atom.radius/3, 
+                    atom.radius/10, 
+                    atom.x + jiggleX, 
+                    atom.y + jiggleY, 
+                    atom.radius
+                );
+                gradient.addColorStop(0, "rgba(255,255,255,0.4)");
+                gradient.addColorStop(0.5, atom.color);
+                gradient.addColorStop(1, "rgba(0,0,0,0.2)");
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                ctx.strokeStyle = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)";
+                ctx.stroke();
+
+                if (atom.label) {
+                    ctx.fillStyle = isDark ? "#fff" : "rgba(0,0,0,0.6)";
+                    ctx.font = "bold 13px Inter, sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText(atom.label, atom.x + jiggleX, atom.y + jiggleY + 5);
+                }
+            });
+
+            if (isPushing) {
+                updatePhysics();
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        function updatePhysics() {
+            const pushSpeed = currentMaterial === 'pure' ? 2.5 : 0.4;
+            pushOffset += pushSpeed;
+
+            atoms.forEach(atom => {
+                if (atom.row % 2 === 0) {
+                    let desiredX = atom.baseX + pushOffset;
+                    let collision = false;
+                    for (let other of atoms) {
+                        if (other === atom) continue;
+                        const dx = desiredX - other.x;
+                        const dy = atom.y - other.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        const threshold = atom.radius + other.radius - 2;
+                        if (dist < threshold) {
+                            collision = true;
+                            break;
+                        }
+                    }
+                    if (!collision) {
+                        atom.x = desiredX;
+                    }
+                }
+            });
+        }
+
+        function selectMaterial(id) {
+            currentMaterial = id;
+            const mat = materials[id];
+
+            document.querySelectorAll('.material-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/30', 'font-bold');
+                btn.classList.add('border-transparent', 'bg-slate-100', 'dark:bg-slate-700', 'font-semibold');
+            });
+            const activeBtn = document.getElementById(`btn-${id}`);
+            activeBtn.classList.remove('border-transparent', 'bg-slate-100', 'dark:bg-slate-700', 'font-semibold');
+            activeBtn.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/30', 'font-bold');
+
+            document.getElementById('info-title').innerText = mat.title;
+            document.getElementById('structure-text').innerText = mat.structure;
+            document.getElementById('prop-text').innerText = mat.properties;
+            statusTag.innerText = mat.tag;
+            statusTag.className = `mt-4 px-6 py-2 rounded-full text-sm font-bold uppercase tracking-widest text-center ${mat.tagClass}`;
+
+            const useList = document.getElementById('use-list');
+            useList.innerHTML = mat.uses.map(u => `<li>${u}</li>`).join('');
+
+            resetSimulation();
+        }
+
+        function startAutoPush() { isPushing = true; }
+        function stopAutoPush() { isPushing = false; }
+        
+        function resetSimulation() {
+            pushOffset = 0;
+            initAtoms();
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        window.onload = () => {
+            initAtoms();
+            draw();
+        };
+    </script>
+</body>
+</html>
