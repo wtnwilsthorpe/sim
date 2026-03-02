@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE Chemistry: Phosphate Rock Reactions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <style>
+        @keyframes pour {
+            0% { transform: translateY(-20px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(40px); opacity: 0; }
+        }
+        .acid-drop {
+            animation: pour 0.8s ease-in infinite;
+        }
+        .beaker-liquid {
+            transition: all 1s ease;
+        }
+        /* Ensure content fits on one screen */
+        body { height: 100vh; overflow: hidden; }
+        main { height: calc(100vh - 100px); }
+        
+        /* Projector Optimization: High Contrast Math */
+        .mjx-chtml { font-size: 130% !important; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans">
+
+    <header class="bg-indigo-800 text-white p-4 shadow-xl h-[90px] flex items-center">
+        <div class="max-w-7xl mx-auto w-full flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold">Phosphate Rock Reactions</h1>
+                <p class="text-sm text-indigo-200 uppercase tracking-widest font-semibold">GCSE Chemistry Lab</p>
+            </div>
+            <button onclick="resetSim()" class="text-lg font-bold bg-white text-indigo-800 hover:bg-indigo-50 px-6 py-2 rounded-xl transition border-2 border-indigo-400">Reset Lab</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 grid grid-cols-12 gap-6">
+        
+        <!-- Left: Simulation Control -->
+        <div class="col-span-5 bg-white rounded-2xl shadow-md border-2 border-slate-300 p-6 flex flex-col">
+            <h2 class="text-lg font-black text-slate-400 uppercase tracking-widest mb-4">Reagents</h2>
+
+            <!-- Visualizer -->
+            <div class="relative h-56 bg-slate-50 rounded-2xl overflow-hidden flex items-end justify-center mb-6 border-b-8 border-slate-300 shadow-inner">
+                <div id="acid-stream" class="hidden absolute top-0 w-3 h-24 bg-blue-400 rounded-full acid-drop z-20"></div>
+                
+                <!-- Beaker -->
+                <div class="relative w-40 h-44 border-4 border-slate-400 border-t-0 rounded-b-[3rem] bg-white/40 backdrop-blur-sm z-10 flex flex-col justify-end overflow-hidden mb-1">
+                    <!-- Rock at bottom - visible at start -->
+                    <div id="phosphate-rock" class="absolute bottom-0 w-full h-10 bg-amber-800/50 flex items-center justify-center transition-all duration-1000 z-10">
+                        <div class="w-6 h-6 bg-amber-900 rounded-full mx-1 shadow-sm"></div>
+                        <div class="w-8 h-7 bg-amber-800 rounded-lg mx-1 shadow-sm"></div>
+                        <div class="w-5 h-5 bg-amber-900 rounded-full mx-1 shadow-sm"></div>
+                    </div>
+                    <!-- Liquid level -->
+                    <div id="beaker-liquid" class="beaker-liquid w-full h-0 bg-transparent opacity-70"></div>
+                </div>
+            </div>
+
+            <!-- Interaction Buttons - Larger for Projector -->
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <button onclick="react('nitric')" class="flex flex-col items-center p-3 bg-red-50 hover:bg-red-100 border-2 border-red-200 rounded-2xl transition group">
+                    <span class="text-3xl mb-1 group-hover:scale-110 transition">🧪</span>
+                    <span class="text-sm font-black text-red-800 text-center leading-tight uppercase">Nitric</span>
+                    <span class="text-xs font-bold text-red-500">$HNO_3$</span>
+                </button>
+                <button onclick="react('sulfuric')" class="flex flex-col items-center p-3 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-2xl transition group">
+                    <span class="text-3xl mb-1 group-hover:scale-110 transition">🧪</span>
+                    <span class="text-sm font-black text-blue-800 text-center leading-tight uppercase">Sulfuric</span>
+                    <span class="text-xs font-bold text-blue-500">$H_2SO_4$</span>
+                </button>
+                <button onclick="react('phosphoric')" class="flex flex-col items-center p-3 bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 rounded-2xl transition group">
+                    <span class="text-3xl mb-1 group-hover:scale-110 transition">🧪</span>
+                    <span class="text-sm font-black text-purple-800 text-center leading-tight uppercase">Phosphoric</span>
+                    <span class="text-xs font-bold text-purple-500">$H_3PO_4$</span>
+                </button>
+            </div>
+
+            <!-- Terminology Snippets -->
+            <div class="mt-auto">
+                <div class="bg-indigo-900 p-4 rounded-xl border-l-8 border-indigo-400 text-white shadow-lg">
+                    <p class="font-black text-indigo-300 text-sm mb-1 uppercase tracking-tighter">Key Concept 💡</p>
+                    <p class="text-lg leading-snug font-medium">Phosphate rock is <strong>insoluble</strong>. Adding acid makes it <strong>soluble</strong> for use as fertiliser.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Results & Equations -->
+        <div class="col-span-7 bg-white rounded-2xl shadow-md border-2 border-slate-300 p-6 flex flex-col overflow-y-auto">
+            <div id="results" class="flex flex-col h-full">
+                <div id="placeholder-text" class="text-slate-400 text-center my-auto">
+                    <p class="text-6xl mb-4 opacity-50">⚗️</p>
+                    <p class="text-2xl font-bold">Select an acid to start the reaction.</p>
+                </div>
+                
+                <div id="reaction-content" class="hidden h-full flex flex-col">
+                    <h3 id="reaction-title" class="text-3xl font-black text-indigo-900 mb-4 border-b-4 border-indigo-100 pb-2"></h3>
+                    
+                    <div class="bg-slate-900 text-white p-5 rounded-2xl mb-6 shadow-2xl overflow-x-auto border-t-4 border-indigo-500">
+                        <p class="text-xs text-indigo-300 uppercase font-black tracking-widest mb-3">Chemical Equation</p>
+                        <div id="equation-display" class="text-2xl py-2 flex justify-center"></div>
+                    </div>
+
+                    <p id="reaction-description" class="text-xl text-slate-700 mb-6 font-medium leading-relaxed"></p>
+
+                    <div id="product-details" class="space-y-4 overflow-y-auto pr-2"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const reactions = {
+            nitric: {
+                title: "Nitric Acid Reaction",
+                liquidColor: "bg-red-500",
+                equation: "$$Ca_3(PO_4)_2 + 6HNO_3 \\rightarrow 3Ca(NO_3)_2 + 2H_3PO_4$$",
+                description: "This reaction produces a soluble mixture containing <strong>Calcium Nitrate</strong>.",
+                products: [
+                    { name: "Calcium Nitrate", status: "Soluble", note: "Provides essential Nitrogen (N) for plants." },
+                    { name: "Phosphoric Acid", status: "Soluble", note: "Used to make further fertilisers." }
+                ]
+            },
+            sulfuric: {
+                title: "Sulfuric Acid Reaction",
+                liquidColor: "bg-blue-500",
+                equation: "$$Ca_3(PO_4)_2 + 2H_2SO_4 \\rightarrow Ca(H_2PO_4)_2 + 2CaSO_4$$",
+                description: "Produces <strong>Single Superphosphate</strong> (a mixture of products).",
+                products: [
+                    { name: "Calcium Phosphate", status: "Soluble", note: "Active phosphorus ingredient." },
+                    { name: "Calcium Sulfate", status: "Insoluble", note: "Stays in mixture as Gypsum." }
+                ]
+            },
+            phosphoric: {
+                title: "Phosphoric Acid Reaction",
+                liquidColor: "bg-purple-500",
+                equation: "$$Ca_3(PO_4)_2 + 4H_3PO_4 \\rightarrow 3Ca(H_2PO_4)_2$$",
+                description: "Produces <strong>Triple Superphosphate</strong> with high phosphorus content.",
+                products: [
+                    { name: "Calcium Phosphate", status: "Soluble", note: "Only product - pure source of phosphorus." }
+                ]
+            }
+        };
+
+        function resetSim() {
+            document.getElementById('placeholder-text').classList.remove('hidden');
+            document.getElementById('reaction-content').classList.add('hidden');
+            const liquid = document.getElementById('beaker-liquid');
+            liquid.style.height = '0';
+            liquid.className = "beaker-liquid w-full h-0 bg-transparent opacity-70";
+            document.getElementById('acid-stream').classList.add('hidden');
+            document.getElementById('phosphate-rock').style.opacity = "1";
+        }
+
+        function react(type) {
+            const data = reactions[type];
+            const stream = document.getElementById('acid-stream');
+            const liquid = document.getElementById('beaker-liquid');
+            const rock = document.getElementById('phosphate-rock');
+
+            liquid.style.height = '0';
+            stream.classList.remove('hidden');
+
+            setTimeout(() => {
+                stream.classList.add('hidden');
+                liquid.style.height = '65%';
+                liquid.className = `beaker-liquid w-full ${data.liquidColor} opacity-70`;
+                rock.style.opacity = type === 'phosphoric' ? "0.2" : "0.6";
+            }, 800);
+
+            document.getElementById('placeholder-text').classList.add('hidden');
+            document.getElementById('reaction-content').classList.remove('hidden');
+            document.getElementById('reaction-title').innerText = data.title;
+            document.getElementById('equation-display').innerHTML = data.equation;
+            document.getElementById('reaction-description').innerHTML = data.description;
+            
+            let detailsHtml = ``;
+            data.products.forEach(p => {
+                detailsHtml += `
+                    <div class="flex items-center bg-slate-50 p-4 rounded-xl border-2 border-slate-200 shadow-sm">
+                        <div class="w-2 h-12 ${p.status === 'Soluble' ? 'bg-emerald-500' : 'bg-amber-500'} rounded-full mr-4 flex-shrink-0"></div>
+                        <div>
+                            <div class="flex items-center mb-1">
+                                <span class="text-lg font-black text-slate-800 mr-3">${p.name}</span>
+                                <span class="text-xs font-black px-3 py-1 rounded-full uppercase ${p.status === 'Soluble' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${p.status}</span>
+                            </div>
+                            <p class="text-sm font-bold text-slate-500">${p.note}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('product-details').innerHTML = detailsHtml;
+
+            if (window.MathJax) {
+                MathJax.Hub.Queue(["Typeset", MathJax.Hub, "equation-display"]);
+            }
+        }
+    </script>
+</body>
+</html>
