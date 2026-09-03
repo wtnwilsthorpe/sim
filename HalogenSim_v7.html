@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halogen Group 17 Diatomic Phase Change Simulator</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #simulator-container {
+            width: 100%;
+            max-width: 1600px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            padding: 24px;
+        }
+
+        .canvas-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #f9fafb;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 75%;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .state-solid {
+            background-color: #fef2f2;
+        }
+
+        .state-liquid {
+            background-color: #fefce8;
+        }
+
+        .state-gas {
+            background-color: #ecfdf5;
+        }
+
+        .state-text-solid {
+            color: #b91c1c;
+        }
+
+        .state-text-liquid {
+            color: #ca8a04;
+        }
+
+        .state-text-gas {
+            color: #047857;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="simulator-container">
+
+    <!-- Temperature slider -->
+    <div class="mb-8 p-4 bg-gray-100 rounded-lg shadow-inner">
+
+        <label for="tempRange"
+               class="flex justify-between items-center font-bold text-lg text-blue-700">
+            Temperature (T):
+            <span id="tempValue"
+                  class="text-xl font-mono bg-blue-100 p-2 rounded-md">
+                -250°C
+            </span>
+        </label>
+
+        <input type="range"
+               id="tempRange"
+               min="-250"
+               max="200"
+               step="1"
+               value="-250"
+               class="w-full h-3 bg-blue-200 rounded-lg appearance-none cursor-pointer mt-2">
+
+        <div class="flex justify-between text-sm text-gray-500 mt-1">
+            <span>-250°C (Solid Start)</span>
+            <span>200°C (Gas End)</span>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-gray-300">
+            <label for="showImfs"
+                   class="flex items-center space-x-2 font-bold text-base text-gray-700 cursor-pointer">
+                <input type="checkbox"
+                       id="showImfs"
+                       class="form-checkbox h-5 w-5 text-blue-600 rounded">
+                <span>Show Intermolecular Forces (LDFs)</span>
+            </label>
+
+            <p class="text-xs text-gray-500 mt-1 ml-7">
+                Line thickness represents force strength
+                (Only visible in Solid/Liquid phases).
+            </p>
+        </div>
+    </div>
+
+    <!-- Simulator panels -->
+    <div id="panels-grid"
+         class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+    </div>
+
+</div>
+
+<script>
+
+const HALOGEN_DATA = [
+    {
+        id:'F',
+        name:'Fluorine',
+        symbol:'F₂',
+        mp:-220,
+        bp:-188,
+        radiusScale:1.0,
+        color:'#facc15'
+    },
+    {
+        id:'Cl',
+        name:'Chlorine',
+        symbol:'Cl₂',
+        mp:-101,
+        bp:-35,
+        radiusScale:1.6,
+        color:'#4ade80'
+    },
+    {
+        id:'Br',
+        name:'Bromine',
+        symbol:'Br₂',
+        mp:-7.2,
+        bp:58.8,
+        radiusScale:1.9,
+        color:'#ef4444'
+    },
+    {
+        id:'I',
+        name:'Iodine',
+        symbol:'I₂',
+        mp:113.7,
+        bp:184.3,
+        radiusScale:2.2,
+        color:'#a855f7'
+    }
+];
+
+const BASE_ATOM_RADIUS = 3;
+const BASE_BOND_LENGTH = 7;
+const NUM_PARTICLES = 20;
+const VIBRATION_SCALE = 1.5;
+const ROTATION_DAMPING = 0.99;
+const IMF_CUTOFF_DISTANCE = 80;
+
+let showIMFs = false;
+
+class Particle {
+
+    constructor(x,y,data) {
+
+        this.originalX = x;
+        this.originalY = y;
+        this.x = x;
+        this.y = y;
+        this.data = data;
+
+        const ATOM_MULTIPLIER = 1.8;
+        const BOND_MULTIPLIER = 1.5;
+
+        this.atomRadius =
+            BASE_ATOM_RADIUS *
+            data.radiusScale *
+            ATOM_MULTIPLIER;
+
+        this.bondLength =
+            BASE_BOND_LENGTH +
+            (data.radiusScale * BOND_MULTIPLIER);
+
+        this.effectiveRadius =
+            this.bondLength +
+            this.atomRadius;
+
+        this.vx = (Math.random()-0.5) * 0.5;
+        this.vy = (Math.random()-0.5) * 0.5;
+
+        this.angle = Math.random() * Math.PI * 2;
+        this.angularVelocity = (Math.random()-0.5) * 0.1;
+
+        this.color = data.color;
+    }
+
+    getAtomCoordinates() {
+
+        const x1 =
+            this.x +
+            this.bondLength * Math.cos(this.angle);
+
+        const y1 =
+            this.y +
+            this.bondLength * Math.sin(this.angle);
+
+        const x2 =
+            this.x -
+            this.bondLength * Math.cos(this.angle);
+
+        const y2 =
+            this.y -
+            this.bondLength * Math.sin(this.angle);
+
+        return {x1,y1,x2,y2};
+    }
+
+    update(canvas,state,magnitude) {
+
+        switch(state) {
+
+            case 'Solid':
+
+                this.x =
+                    this.originalX +
+                    (Math.sin(performance.now()*0.02)
+                    * magnitude
+                    * (Math.random()-0.5));
+
+                this.y =
+                    this.originalY +
+                    (Math.cos(performance.now()*0.02)
+                    * magnitude
+                    * (Math.random()-0.5));
+
+                this.angle =
+                    magnitude *
+                    0.005 *
+                    Math.sin(performance.now()*0.05);
+
+                break;
+
+            case 'Liquid':
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                this.angle += this.angularVelocity;
+                this.angularVelocity *= ROTATION_DAMPING;
+
+                if (
+                    this.x - this.effectiveRadius < 0 ||
+                    this.x + this.effectiveRadius > canvas.width
+                ) {
+                    this.vx *= -1;
+                }
+
+                if (
+                    this.y - this.effectiveRadius < 0 ||
+                    this.y + this.effectiveRadius > canvas.height
+                ) {
+                    this.vy *= -1;
+                }
+
+                this.vx += (Math.random()-0.5)*0.01;
+                this.vy += (Math.random()-0.5)*0.01;
+
+                break;
+
+            case 'Gas':
+
+                this.x += this.vx * 3;
+                this.y += this.vy * 3;
+
+                this.angle += this.angularVelocity * 2;
+                this.angularVelocity +=
+                    (Math.random()-0.5)*0.005;
+
+                if (this.x + this.effectiveRadius < 0)
+                    this.x = canvas.width + this.effectiveRadius;
+
+                if (this.x - this.effectiveRadius > canvas.width)
+                    this.x = -this.effectiveRadius;
+
+                if (this.y + this.effectiveRadius < 0)
+                    this.y = canvas.height + this.effectiveRadius;
+
+                if (this.y - this.effectiveRadius > canvas.height)
+                    this.y = -this.effectiveRadius;
+
+                break;
+        }
+    }
+
+    draw(ctx) {
+
+        const {x1,y1,x2,y2} =
+            this.getAtomCoordinates();
+
+        ctx.strokeStyle = this.color + '80';
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+
+        ctx.fillStyle = this.color;
+
+        ctx.beginPath();
+        ctx.arc(x1,y1,this.atomRadius,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x2,y2,this.atomRadius,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+function drawIMFs(canvas,ctx,particles,data){
+
+    const R_MIN =
+        particles.length > 0
+        ? particles[0].effectiveRadius * 2
+        : 30;
+
+    const POLARIZABILITY_SCALE =
+        data.radiusScale *
+        data.radiusScale *
+        0.0001;
+
+    for(let i=0;i<particles.length;i++){
+
+        const p1 = particles[i];
+
+        for(let j=i+1;j<particles.length;j++){
+
+            const p2 = particles[j];
+
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+
+            const r = Math.sqrt(dx*dx + dy*dy);
+
+            if(r > R_MIN && r < IMF_CUTOFF_DISTANCE){
+
+                const strength =
+                    POLARIZABILITY_SCALE /
+                    (r*r*r*r);
+
+                const maxStrength =
+                    POLARIZABILITY_SCALE /
+                    (R_MIN*R_MIN*R_MIN*R_MIN);
+
+                const normalized =
+                    strength / maxStrength;
+
+                const lineWidth =
+                    0.5 + normalized * 3.5;
+
+                ctx.beginPath();
+                ctx.setLineDash([5,5]);
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = lineWidth;
+                ctx.moveTo(p1.x,p1.y);
+                ctx.lineTo(p2.x,p2.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+    }
+}
+
+const simulators = {};
+
+const tempRange =
+    document.getElementById('tempRange');
+
+const tempValueDisplay =
+    document.getElementById('tempValue');
+
+const panelsGrid =
+    document.getElementById('panels-grid');
+
+function createPanelHTML(data){
+
+    const container =
+        document.createElement('div');
+
+    container.className =
+        'canvas-container flex flex-col items-center p-3';
+
+    const header =
+        document.createElement('h2');
+
+    header.className =
+        'text-xl font-semibold mb-1 text-center text-gray-700';
+
+    header.textContent =
+        `${data.symbol} (${data.name})`;
+
+    container.appendChild(header);
+
+    const wrapper =
+        document.createElement('div');
+
+    wrapper.className = 'canvas-wrapper w-full';
+
+    const canvas =
+        document.createElement('canvas');
+
+    canvas.id = `canvas-${data.id}`;
+
+    wrapper.appendChild(canvas);
+    container.appendChild(wrapper);
+
+    const info =
+        document.createElement('div');
+
+    info.className =
+        'text-center mt-2 w-full';
+
+    info.innerHTML = `
+        <p class="text-xs text-gray-500">
+            MP: ${data.mp}°C | BP: ${data.bp}°C
+        </p>
+        <p id="state-label-${data.id}"
+           class="text-lg font-bold mt-1 p-1 rounded-md state-text-solid">
+           State: Solid
+        </p>
+    `;
+
+    container.appendChild(info);
+
+    panelsGrid.appendChild(container);
+
+    return canvas;
+}
+
+function initParticles(canvas,data){
+
+    const particles = [];
+
+    const atomRadius =
+        BASE_ATOM_RADIUS *
+        data.radiusScale * 1.8;
+
+    const bondLength =
+        BASE_BOND_LENGTH +
+        (data.radiusScale * 1.5);
+
+    const effectiveRadius =
+        atomRadius + bondLength;
+
+    const spacing =
+        effectiveRadius * 2.2;
+
+    const cols =
+        Math.floor(canvas.width / spacing);
+
+    const rows =
+        Math.floor(canvas.height / spacing);
+
+    const startX =
+        (canvas.width - cols * spacing)/2 +
+        spacing/2;
+
+    const startY =
+        (canvas.height - rows * spacing)/2 +
+        spacing/2;
+
+    for(let r=0;r<rows;r++){
+
+        for(let c=0;c<cols;c++){
+
+            if(particles.length >= NUM_PARTICLES)
+                break;
+
+            particles.push(
+                new Particle(
+                    startX + c * spacing,
+                    startY + r * spacing,
+                    data
+                )
+            );
+        }
+    }
+
+    return particles;
+}
+
+function animateElement(canvas,ctx,data){
+
+    const particles =
+        simulators[data.id].particles;
+
+    const stateLabel =
+        document.getElementById(
+            `state-label-${data.id}`
+        );
+
+    const tempC =
+        parseFloat(tempRange.value);
+
+    let currentState;
+    let magnitude = 0;
+
+    if(tempC < data.mp){
+
+        currentState = 'Solid';
+
+        magnitude =
+            VIBRATION_SCALE *
+            (1 +
+            (tempC - tempRange.min) /
+            (data.mp - tempRange.min));
+
+    } else if(tempC < data.bp){
+
+        currentState = 'Liquid';
+        magnitude = 3;
+
+    } else {
+
+        currentState = 'Gas';
+        magnitude = 4.5;
+    }
+
+    stateLabel.textContent =
+        `State: ${currentState}`;
+
+    stateLabel.className =
+        `text-lg font-bold mt-1 p-1 rounded-md state-text-${currentState.toLowerCase()}`;
+
+    canvas.closest('.canvas-container')
+          .classList.remove(
+              'state-solid',
+              'state-liquid',
+              'state-gas'
+          );
+
+    canvas.closest('.canvas-container')
+          .classList.add(
+              `state-${currentState.toLowerCase()}`
+          );
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    if(showIMFs && currentState !== 'Gas'){
+        drawIMFs(
+            canvas,
+            ctx,
+            particles,
+            data
+        );
+    }
+
+    particles.forEach(p => {
+        p.update(canvas,currentState,magnitude);
+        p.draw(ctx);
+    });
+
+    requestAnimationFrame(
+        () =>
+        animateElement(canvas,ctx,data)
+    );
+}
+
+function setupSimulators(){
+
+    HALOGEN_DATA.forEach(data => {
+
+        const canvas =
+            createPanelHTML(data);
+
+        const ctx =
+            canvas.getContext('2d');
+
+        const isDesktop =
+            window.innerWidth > 1200;
+
+        canvas.width =
+            isDesktop ? 360 : 300;
+
+        canvas.height =
+            isDesktop ? 260 : 220;
+
+        const particles =
+            initParticles(canvas,data);
+
+        simulators[data.id] = {
+            canvas,
+            ctx,
+            particles,
+            data
+        };
+
+        animateElement(
+            canvas,
+            ctx,
+            data
+        );
+    });
+
+    tempRange.addEventListener(
+        'input',
+        () => {
+            tempValueDisplay.textContent =
+                `${tempRange.value}°C`;
+        }
+    );
+
+    const checkbox =
+        document.getElementById('showImfs');
+
+    checkbox.addEventListener(
+        'change',
+        () => {
+            showIMFs = checkbox.checked;
+        }
+    );
+}
+
+window.onload = setupSimulators;
+
+</script>
+
+</body>
+</html>
