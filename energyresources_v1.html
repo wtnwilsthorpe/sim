@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interactive Electricity Generation Simulation</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-amber: #fbbf24;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      color: var(--accent-blue);
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      max-width: 750px;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* Controls Bar - Compact Single Row Layout */
+    .controls-grid {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      background: var(--card-bg);
+      padding: 10px 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      overflow-x: auto;
+    }
+
+    .btn-energy {
+      flex: 1 1 0px;
+      min-width: 75px;
+      background: #334155;
+      color: var(--text-light);
+      border: 2px solid transparent;
+      padding: 6px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.72rem;
+      transition: all 0.25 ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      white-space: nowrap;
+    }
+
+    .btn-energy .icon {
+      font-size: 1.1rem;
+      line-height: 1.1;
+    }
+
+    .btn-energy:hover {
+      background: #475569;
+      transform: translateY(-2px);
+    }
+
+    .btn-energy.active {
+      border-color: var(--accent-blue);
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    /* Canvas Area */
+    .simulation-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    canvas {
+      background: #090d16;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 1040px;
+      height: 440px;
+      display: block;
+    }
+
+    /* Info Section */
+    .info-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    @media (max-width: 768px) {
+      .info-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .info-box h2 {
+      color: var(--accent-amber);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .info-box p {
+      color: #cbd5e1;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .step-list {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-item {
+      background: #334155;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-num {
+      background: var(--accent-blue);
+      color: #0f172a;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.8rem;
+    }
+
+    .stats-box {
+      background: #0f172a;
+      padding: 15px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid #334155;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 6px;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .stat-value {
+      font-weight: bold;
+      color: var(--accent-green);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Electricity Generation Simulation</h1>
+    <p>Visualize how distinct primary energy resources spin a central turbine and generator to produce grid electricity.</p>
+  </header>
+
+  <div class="main-container">
+    <!-- Controls Bar -->
+    <div class="controls-grid" id="controls">
+      <!-- Buttons populated dynamically -->
+    </div>
+
+    <!-- Interactive Canvas -->
+    <div class="simulation-card">
+      <canvas id="simCanvas" width="1040" height="440"></canvas>
+    </div>
+
+    <!-- Informational Card -->
+    <div class="info-container">
+      <div class="info-box">
+        <h2 id="energyTitle">Coal Power Plant</h2>
+        <p id="energyDesc">Loading energy description...</p>
+        <div id="stepContainer">
+          <ul class="step-list" id="stepList"></ul>
+        </div>
+      </div>
+
+      <div class="stats-box">
+        <h3>System Overview</h3>
+        <div class="stat-row">
+          <span class="stat-label">Mechanism:</span>
+          <span class="stat-value" id="statMechanism">Steam Thermal</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Turbine Used:</span>
+          <span class="stat-value" id="statTurbine">Steam Turbine</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Uses Boiler:</span>
+          <span class="stat-value" id="statBoiler">Yes</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Emissions / Carbon:</span>
+          <span class="stat-value" id="statEmissions">High</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Renewable:</span>
+          <span class="stat-value" id="statRenewable">No</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const energyData = {
+      coal: {
+        name: "Coal Power",
+        icon: "⬛",
+        mechanism: "Steam Thermal",
+        turbine: "Steam Turbine",
+        boiler: "Yes",
+        emissions: "High CO₂",
+        renewable: "No",
+        desc: "Coal is combusted with Oxygen (O₂) in a furnace to boil water into high-pressure steam. Smoke releases through the chimney, while steam spins the turbine generator.",
+        steps: [
+          "Burn Coal in furnace (Carbon + O₂ → CO₂ + Heat)",
+          "Exhaust smoke releases through cooling chimney stack",
+          "Boil water to form high-pressure steam",
+          "Expanding steam spins turbine and N/S rotor magnet",
+          "Electromagnetic induction feeds high voltage to grid"
+        ],
+        color: "#334155",
+        flameColor: "#ef4444",
+        hasChimney: true
+      },
+      oil: {
+        name: "Oil Power",
+        icon: "🛢️",
+        mechanism: "Steam / Combustion",
+        turbine: "Steam / Gas Turbine",
+        boiler: "Yes",
+        emissions: "High CO₂",
+        renewable: "No",
+        desc: "Heavy fuel oil is sprayed and ignited with Oxygen to produce thermal heat. Water absorbs the heat in a boiler, turning a high-speed turbine generator.",
+        steps: [
+          "Fuel oil combusts with Oxygen in furnace",
+          "Chimney releases combustion exhaust gases",
+          "Boiler converts liquid water to pressurized steam",
+          "Steam turns turbine blades attached to N/S magnet rotor",
+          "Power transmitted via transformer to town grid"
+        ],
+        color: "#475569",
+        flameColor: "#f97316",
+        hasChimney: true
+      },
+      gas: {
+        name: "Natural Gas",
+        icon: "🔥",
+        mechanism: "Gas / Steam Turbine",
+        turbine: "Gas & Steam Turbines",
+        boiler: "Yes (Combined Cycle)",
+        emissions: "Moderate CO₂",
+        renewable: "No",
+        desc: "Methane (CH₄) reacts with Oxygen (O₂) creating high-pressure expanding combustion gas that drives the primary turbine directly.",
+        steps: [
+          "Methane fuel ignites with Oxygen inside combustion chamber",
+          "Exhaust gas vents through chimney stack",
+          "Hot gas directly spins combustion gas turbine",
+          "Shaft turns two-pole generator magnet",
+          "Clean high-efficiency current feeds power lines"
+        ],
+        color: "#0284c7",
+        flameColor: "#38bdf8",
+        hasChimney: true
+      },
+      biomass: {
+        name: "Biomass",
+        icon: "🌳",
+        mechanism: "Steam Thermal",
+        turbine: "Steam Turbine",
+        boiler: "Yes",
+        emissions: "Carbon Neutral",
+        renewable: "Yes",
+        desc: "Organic plant pellets and wood waste burn with atmospheric Oxygen (O₂) to generate heat. The steam turns a conventional turbine generator.",
+        steps: [
+          "Burn organic wood/crop waste with Oxygen in furnace",
+          "Chimney releases carbon-neutral combustion smoke",
+          "Boiler turns water into pressurized steam",
+          "Steam expands through turbine blades, turning N/S generator",
+          "Renewable electricity travels along wire grid"
+        ],
+        color: "#15803d",
+        flameColor: "#f97316",
+        hasChimney: true
+      },
+      nuclear: {
+        name: "Nuclear Power",
+        icon: "⚛️",
+        mechanism: "Nuclear Fission Thermal",
+        turbine: "Steam Turbine",
+        boiler: "Yes (Heat Exchanger)",
+        emissions: "Zero Direct CO₂",
+        renewable: "No (Uranium)",
+        desc: "Neutrons strike Uranium-235 nuclei causing nuclear fission (splitting). The chain reaction releases vast thermal energy without atmospheric combustion.",
+        steps: [
+          "Free neutron collides with U-235 nucleus causing fission",
+          "Nucleus splits into fission fragments and free neutrons",
+          "Fission heat warms reactor coolant loop to generate steam",
+          "Steam turns turbine connected to generator N/S rotor",
+          "Zero-carbon electricity transmitted to homes"
+        ],
+        color: "#a855f7",
+        flameColor: "#c084fc",
+        hasChimney: false
+      },
+      geothermal: {
+        name: "Geothermal",
+        icon: "🌋",
+        mechanism: "Magma Heat Steam",
+        turbine: "Steam Turbine",
+        boiler: "Natural Subterranean",
+        emissions: "Very Low",
+        renewable: "Yes",
+        desc: "Deep underground magma heats subterranean rock layers. Water injected into hot rock boils into steam without combustion or oxygen interaction.",
+        steps: [
+          "Deep magma layer warms subterranean rock formation",
+          "Water injected underground absorbs geothermal heat",
+          "Pressurized steam rises up pipe to surface turbine",
+          "Steam turns turbine connected to two-pole rotor magnet",
+          "Condensed water is recycled back underground"
+        ],
+        color: "#d97706",
+        flameColor: null,
+        hasChimney: false
+      },
+      hydroelectric: {
+        name: "Hydroelectric",
+        icon: "💧",
+        mechanism: "Water Flow Kinetic",
+        turbine: "Water Turbine (Hydro)",
+        boiler: "No (Direct Kinetic)",
+        emissions: "Zero Direct CO₂",
+        renewable: "Yes",
+        desc: "Water impounded behind a tall dam possesses potential energy. Water falls down the penstock pipe, turning a hydro turbine generator at high speed.",
+        steps: [
+          "High reservoir holds water potential energy behind dam",
+          "Water falls under gravity down inclined penstock pipe",
+          "High-velocity water jets spin hydro turbine runner",
+          "Turbine spins red/blue generator rotor magnet",
+          "Continuous renewable power flows into power grid"
+        ],
+        color: "#2563eb",
+        flameColor: null,
+        hasChimney: false
+      },
+      tidal: {
+        name: "Tidal Power",
+        icon: "🌊",
+        mechanism: "Tidal Flow Kinetic",
+        turbine: "Tidal Water Turbine",
+        boiler: "No (Direct Kinetic)",
+        emissions: "Zero Direct CO₂",
+        renewable: "Yes",
+        desc: "Gravitational tides move immense ocean water currents back and forth through underwater turbine generators.",
+        steps: [
+          "Lunar gravity drives rising and falling ocean tides",
+          "Tidal currents rush through underwater channel",
+          "Water movement turns submerged turbine blades",
+          "Sealed shaft turns two-pole generator rotor",
+          "Subsea cable delivers energy ashore"
+        ],
+        color: "#0891b2",
+        flameColor: null,
+        hasChimney: false
+      },
+      wind: {
+        name: "Wind Power",
+        icon: "🌬️",
+        mechanism: "Wind Kinetic",
+        turbine: "Wind Turbine",
+        boiler: "No (Direct Kinetic)",
+        emissions: "Zero Direct CO₂",
+        renewable: "Yes",
+        desc: "Atmospheric wind currents turn aerodynamic rotor blades. An internal gearbox accelerates rotation speed to turn the generator magnet.",
+        steps: [
+          "Wind currents push aerodynamic turbine blades",
+          "Slow rotor speed is boosted by internal gearbox",
+          "High-speed shaft spins generator N/S magnet",
+          "Coil induction generates alternating current",
+          "Power transmitted down tower to transformer"
+        ],
+        color: "#10b981",
+        flameColor: null,
+        hasChimney: false
+      },
+      solar: {
+        name: "Solar PV",
+        icon: "☀️",
+        mechanism: "Photovoltaic (Direct)",
+        turbine: "None (Direct Solid State)",
+        boiler: "No",
+        emissions: "Zero Direct CO₂",
+        renewable: "Yes",
+        desc: "Sunlight photons hit silicon semiconductor solar cells, knocking electrons free into a direct current (DC) without any moving turbine or generator.",
+        steps: [
+          "Sunlight photons strike PV semiconductor material",
+          "Photons knock valence electrons free from silicon atoms",
+          "Internal P-N junction forces directional electron flow (DC)",
+          "Inverter converts Direct Current to AC power",
+          "Solid-state power enters electrical grid"
+        ],
+        color: "#eab308",
+        flameColor: null,
+        hasChimney: false
+      }
+    };
+
+    let currentEnergy = "coal";
+    const canvas = document.getElementById("simCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Animation state variables
+    let tick = 0;
+    const steamParticles = [];
+    const smokeParticles = [];
+
+    // Initialize UI Controls
+    function initControls() {
+      const controlsContainer = document.getElementById("controls");
+      Object.keys(energyData).forEach(key => {
+        const energy = energyData[key];
+        const btn = document.createElement("button");
+        btn.className = `btn-energy ${key === currentEnergy ? 'active' : ''}`;
+        btn.id = `btn-${key}`;
+        btn.innerHTML = `<span class="icon">${energy.icon}</span> <span>${energy.name}</span>`;
+        btn.onclick = () => selectEnergy(key);
+        controlsContainer.appendChild(btn);
+      });
+      updateInfoDisplay();
+    }
+
+    function selectEnergy(key) {
+      currentEnergy = key;
+      document.querySelectorAll(".btn-energy").forEach(b => b.classList.remove("active"));
+      document.getElementById(`btn-${key}`).classList.add("active");
+      
+      // Reset particle arrays
+      steamParticles.length = 0;
+      smokeParticles.length = 0;
+
+      updateInfoDisplay();
+    }
+
+    function updateInfoDisplay() {
+      const data = energyData[currentEnergy];
+      document.getElementById("energyTitle").innerText = `${data.icon} ${data.name}`;
+      document.getElementById("energyDesc").innerText = data.desc;
+      document.getElementById("statMechanism").innerText = data.mechanism;
+      document.getElementById("statTurbine").innerText = data.turbine;
+      document.getElementById("statBoiler").innerText = data.boiler;
+      document.getElementById("statEmissions").innerText = data.emissions;
+      document.getElementById("statRenewable").innerText = data.renewable;
+
+      const stepList = document.getElementById("stepList");
+      stepList.innerHTML = "";
+      data.steps.forEach((step, idx) => {
+        const li = document.createElement("li");
+        li.className = "step-item";
+        li.innerHTML = `<span class="step-num">${idx + 1}</span> <span>${step}</span>`;
+        stepList.appendChild(li);
+      });
+    }
+
+    // Interactive Renderer Loop
+    function render() {
+      tick += 0.0375;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Grid Target Pole & Wire System
+      drawGridAndGridPoles();
+
+      if (currentEnergy === "solar") {
+        drawSolarPVSystem();
+      } else {
+        drawTurbineGeneratorSystem();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    function drawGridAndGridPoles() {
+      const startX = 820;
+      const startY = 220;
+
+      // Output wire from Generator/Inverter to Transformer
+      const sourceX = currentEnergy === "solar" ? 660 : 780;
+      const sourceY = currentEnergy === "solar" ? 230 : 220;
+
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(sourceX, sourceY);
+      ctx.lineTo(startX, startY + 80);
+      ctx.stroke();
+
+      // Transformer Box
+      ctx.fillStyle = "#334155";
+      ctx.fillRect(startX, startY + 50, 40, 60);
+      ctx.strokeStyle = "#94a3b8";
+      ctx.strokeRect(startX, startY + 50, 40, 60);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "10px sans-serif";
+      ctx.fillText("Transformer", startX - 10, startY + 125);
+
+      // Wire going up Transformer to Utility Pole Arm
+      const poleX = startX + 90;
+      const poleArmY = startY - 40;
+
+      // Transmission Pole Structure
+      drawPowerPole(poleX, startY - 60);
+
+      // High-Voltage Wires: Transformer -> Pole -> House
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      // Up from transformer to pole arm
+      ctx.moveTo(startX + 20, startY + 50);
+      ctx.lineTo(poleX, poleArmY);
+      // Overhead wire from pole to house roof
+      ctx.lineTo(poleX + 80, startY + 45);
+      ctx.stroke();
+
+      // House at destination
+      ctx.fillStyle = "#475569";
+      ctx.fillRect(poleX + 50, startY + 65, 60, 45);
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.moveTo(poleX + 45, startY + 65);
+      ctx.lineTo(poleX + 80, startY + 40);
+      ctx.lineTo(poleX + 115, startY + 65);
+      ctx.fill();
+
+      // Glowing Window driven by power
+      const glow = (Math.sin(tick * 2.25) + 1) / 2;
+      ctx.fillStyle = `rgba(251, 191, 36, ${0.5 + glow * 0.5})`;
+      ctx.fillRect(poleX + 70, startY + 78, 20, 16);
+
+      // ELECTRONS FLOWING ALONG WIRES UP AND OVER TO HOUSE
+      const pathPoints = [
+        { x: startX + 20, y: startY + 50 },
+        { x: poleX, y: poleArmY },
+        { x: poleX + 80, y: startY + 45 }
+      ];
+
+      for (let i = 0; i < 4; i++) {
+        const progress = ((tick * 0.8 + i * 0.25) % 1);
+        let ex, ey;
+
+        if (progress < 0.5) {
+          // Segment 1: Transformer up to Pole
+          const t = progress / 0.5;
+          ex = pathPoints[0].x + t * (pathPoints[1].x - pathPoints[0].x);
+          ey = pathPoints[0].y + t * (pathPoints[1].y - pathPoints[0].y);
+        } else {
+          // Segment 2: Pole over to House
+          const t = (progress - 0.5) / 0.5;
+          ex = pathPoints[1].x + t * (pathPoints[2].x - pathPoints[1].x);
+          ey = pathPoints[1].y + t * (pathPoints[2].y - pathPoints[1].y);
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawPowerPole(x, y) {
+      ctx.strokeStyle = "#64748b";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + 170); // Pole trunk
+      ctx.moveTo(x - 20, y + 20);
+      ctx.lineTo(x + 20, y + 20); // Top crossarm
+      ctx.stroke();
+
+      // Insulators
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(x - 22, y + 14, 5, 8);
+      ctx.fillRect(x + 17, y + 14, 5, 8);
+    }
+
+    function drawTurbineGeneratorSystem() {
+      const isKineticHydro = ["hydroelectric", "tidal"].includes(currentEnergy);
+      const isWind = currentEnergy === "wind";
+
+      // Shaft connecting turbine to generator
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(530, 215, 120, 10);
+
+      // Red / Blue Bicolor Rotor Generator
+      drawGenerator(650, 170);
+
+      if (isWind) {
+        drawWindSystem();
+      } else if (isKineticHydro) {
+        drawHydroSystem();
+      } else if (currentEnergy === "geothermal") {
+        drawGeothermalMagmaSystem();
+      } else {
+        drawThermalSystem();
+      }
+
+      // Shared Turbine Rotor
+      drawTurbine(520, 220, isWind ? 0.3 : 0.75);
+    }
+
+    function drawThermalSystem() {
+      const data = energyData[currentEnergy];
+
+      // Draw Chimney Stack and Oxygen reaction for fossil fuels & biomass
+      if (data.hasChimney) {
+        ctx.fillStyle = "#475569";
+        ctx.beginPath();
+        ctx.moveTo(110, 180);
+        ctx.lineTo(125, 80);
+        ctx.lineTo(150, 80);
+        ctx.lineTo(165, 180);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#64748b";
+        ctx.stroke();
+
+        // Spawn Smoke & CO2 Particles
+        if (Math.random() > 0.4) {
+          smokeParticles.push({
+            x: 137 + (Math.random() - 0.5) * 10,
+            y: 75,
+            vx: -0.3 + Math.random() * 0.6,
+            vy: -0.8 - Math.random() * 0.5,
+            size: 6 + Math.random() * 6,
+            alpha: 0.7
+          });
+        }
+
+        // Render Smoke Particles rising
+        for (let i = smokeParticles.length - 1; i >= 0; i--) {
+          const p = smokeParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.size += 0.15;
+          p.alpha -= 0.008;
+
+          ctx.fillStyle = `rgba(148, 163, 184, ${p.alpha})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (p.alpha <= 0 || p.y < 10) smokeParticles.splice(i, 1);
+        }
+      }
+
+      // Furnace / Reaction Chamber Box
+      ctx.fillStyle = "#1e293b";
+      ctx.strokeStyle = data.color;
+      ctx.lineWidth = 3;
+      ctx.fillRect(60, 180, 160, 120);
+      ctx.strokeRect(60, 180, 160, 120);
+
+      // Title
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText(data.name.toUpperCase(), 75, 205);
+
+      if (currentEnergy === "nuclear") {
+        drawNuclearFissionAnimation(140, 245);
+      } else {
+        // Combustion Oxygen particle reaction in furnace
+        drawCombustionOxygenReaction(140, 260, data.flameColor);
+      }
+
+      // Water / Steam Boiler Tank
+      ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
+      ctx.fillRect(240, 160, 120, 140);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.strokeRect(240, 160, 120, 140);
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "12px sans-serif";
+      ctx.fillText(currentEnergy === "nuclear" ? "Heat Exchanger" : "Boiler / Water", 255, 280);
+
+      // Steam Pipe leading to Turbine
+      ctx.fillStyle = "rgba(248, 250, 252, 0.15)";
+      ctx.fillRect(360, 195, 150, 50);
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.strokeRect(360, 195, 150, 50);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("High Pressure Steam Step", 365, 185);
+
+      // Steam Flow Particles
+      if (Math.random() > 0.3) {
+        steamParticles.push({
+          x: 360,
+          y: 200 + Math.random() * 40,
+          vx: 3 + Math.random() * 1.5,
+          size: 4 + Math.random() * 5,
+          alpha: 0.8
+        });
+      }
+
+      for (let i = steamParticles.length - 1; i >= 0; i--) {
+        const p = steamParticles[i];
+        p.x += p.vx;
+        p.alpha -= 0.012;
+        ctx.fillStyle = `rgba(248, 250, 252, ${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (p.x > 510 || p.alpha <= 0) steamParticles.splice(i, 1);
+      }
+    }
+
+    // Geothermal underground Magma rendering
+    function drawGeothermalMagmaSystem() {
+      // Subterranean Magma Bed
+      ctx.fillStyle = "#7f1d1d";
+      ctx.fillRect(60, 280, 300, 120);
+
+      // Molten Glowing Magma Layers
+      for (let i = 0; i < 5; i++) {
+        const h = 8 + Math.sin(tick * 2 + i) * 6;
+        ctx.fillStyle = i % 2 === 0 ? "#ef4444" : "#f97316";
+        ctx.beginPath();
+        ctx.arc(80 + i * 60, 340 + h, 25, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#fef08a";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText("DEEP MAGMA HEAT LAYER", 110, 380);
+      ctx.font = "11px sans-serif";
+      ctx.fillText("(No Combustion / No O₂)", 130, 395);
+
+      // Cold Water Injection & Rising Steam Pipes
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 4;
+      // Injection Pipe
+      ctx.beginPath();
+      ctx.moveTo(120, 160);
+      ctx.lineTo(120, 300);
+      ctx.stroke();
+
+      // Rising Steam Pipe
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.beginPath();
+      ctx.moveTo(280, 300);
+      ctx.lineTo(280, 195);
+      ctx.lineTo(510, 195);
+      ctx.stroke();
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillText("Natural Earth Steam Riser", 300, 185);
+
+      // Animated Steam Rising through Geothermal Pipe
+      if (Math.random() > 0.3) {
+        steamParticles.push({
+          x: 280,
+          y: 300,
+          vx: 0,
+          vy: -3,
+          size: 4 + Math.random() * 4,
+          alpha: 0.8
+        });
+      }
+
+      for (let i = steamParticles.length - 1; i >= 0; i--) {
+        const p = steamParticles[i];
+        if (p.y > 195) {
+          p.y += p.vy;
+        } else {
+          p.x += 3;
+        }
+        p.alpha -= 0.01;
+        ctx.fillStyle = `rgba(248, 250, 252, ${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (p.x > 510 || p.alpha <= 0) steamParticles.splice(i, 1);
+      }
+    }
+
+    // Oxygen + Fuel Reaction Visualizer
+    function drawCombustionOxygenReaction(cx, cy, flameColor) {
+      // Flames
+      for (let i = 0; i < 4; i++) {
+        const h = 15 + Math.sin(tick * 3 + i) * 6;
+        ctx.fillStyle = flameColor;
+        ctx.beginPath();
+        ctx.arc(cx - 35 + i * 24, cy - h / 2, 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Oxygen Molecules (O2)
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "10px sans-serif";
+      ctx.fillText("Fuel + O₂ Reaction", cx - 45, cy + 25);
+
+      for (let i = 0; i < 3; i++) {
+        const ox = cx - 40 + ((tick * 15 + i * 35) % 80);
+        const oy = cy - 25 + Math.sin(tick * 2 + i) * 8;
+        ctx.fillStyle = "#38bdf8";
+        ctx.beginPath();
+        ctx.arc(ox, oy, 3, 0, Math.PI * 2);
+        ctx.arc(ox + 4, oy - 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Nuclear Fission Splitting Atom Animation
+    function drawNuclearFissionAnimation(cx, cy) {
+      ctx.fillStyle = "#c084fc";
+      ctx.font = "11px sans-serif";
+      ctx.fillText("U-235 Fission", cx - 35, cy - 35);
+
+      const cycle = (tick * 1.2) % (Math.PI * 2);
+      const splitDist = cycle > Math.PI / 2 ? (cycle - Math.PI / 2) * 12 : 0;
+
+      // Incoming Neutron
+      if (cycle < Math.PI / 2) {
+        const nx = cx - 50 + cycle * 30;
+        ctx.fillStyle = "#4ade80";
+        ctx.beginPath();
+        ctx.arc(nx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Uranium Nuclei splitting into two fragments
+      ctx.fillStyle = "#a855f7";
+      ctx.beginPath();
+      ctx.arc(cx - splitDist, cy - splitDist / 2, 12, 0, Math.PI * 2);
+      ctx.arc(cx + splitDist, cy + splitDist / 2, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Energy flash / release upon split
+      if (splitDist > 2 && splitDist < 18) {
+        ctx.strokeStyle = `rgba(250, 204, 21, ${1 - splitDist / 18})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, splitDist * 2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = "#4ade80";
+        ctx.beginPath();
+        ctx.arc(cx + splitDist * 1.5, cy - splitDist, 3, 0, Math.PI * 2);
+        ctx.arc(cx - splitDist * 1.5, cy + splitDist, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawHydroSystem() {
+      if (currentEnergy === "hydroelectric") {
+        // High Reservoir + Hydro Dam Structure
+        ctx.fillStyle = "#1e40af";
+        ctx.fillRect(60, 60, 180, 140);
+
+        // Dam Wall Structure
+        ctx.fillStyle = "#475569";
+        ctx.beginPath();
+        ctx.moveTo(240, 60);
+        ctx.lineTo(280, 280);
+        ctx.lineTo(220, 280);
+        ctx.lineTo(220, 60);
+        ctx.closePath();
+        ctx.fill();
+
+        // Sloped Penstock Pipe
+        ctx.fillStyle = "#334155";
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(220, 120);
+        ctx.lineTo(480, 220);
+        ctx.lineTo(480, 250);
+        ctx.lineTo(220, 160);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Water Flow Inside Pipe
+        ctx.fillStyle = "#38bdf8";
+        for (let i = 0; i < 8; i++) {
+          const progress = ((tick * 0.6 + i * 0.125) % 1);
+          const wx = 220 + progress * 260;
+          const wy = 135 + progress * 100;
+          ctx.beginPath();
+          ctx.arc(wx, wy, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = "#93c5fd";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText("HIGH RESERVOIR", 75, 85);
+        ctx.fillText("FALLING WATER (PENSTOCK)", 260, 130);
+
+      } else {
+        // Tidal Power Water Flow
+        ctx.fillStyle = "rgba(8, 145, 178, 0.3)";
+        ctx.fillRect(60, 120, 260, 180);
+        ctx.strokeStyle = "#0891b2";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(60, 120, 260, 180);
+
+        ctx.fillStyle = "#67e8f9";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText("OCEAN TIDAL STREAM", 75, 145);
+
+        ctx.fillStyle = "#38bdf8";
+        for (let i = 0; i < 6; i++) {
+          const xOffset = (tick * 35 + i * 60) % 380 + 60;
+          if (xOffset < 480) {
+            ctx.beginPath();
+            ctx.arc(xOffset, 210 + Math.sin(tick + i) * 8, 6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    function drawWindSystem() {
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const y = 140 + i * 35;
+        const x = (tick * 60 + i * 50) % 400;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 40, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText("WIND KINETIC FLOW", 100, 130);
+    }
+
+    function drawTurbine(cx, cy, speedFactor) {
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // Outer Casing
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 45, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Rotation Animation
+      const rotation = tick * 3.75 * speedFactor;
+      ctx.rotate(rotation);
+
+      // Blades
+      ctx.fillStyle = "#38bdf8";
+      for (let i = 0; i < 6; i++) {
+        ctx.rotate((Math.PI * 2) / 6);
+        ctx.beginPath();
+        ctx.ellipse(0, -22, 8, 22, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+
+      // Label Badge for Turbine
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText("TURBINE", cx - 25, cy + 65);
+    }
+
+    function drawGenerator(x, y) {
+      // Generator Stator Frame
+      ctx.fillStyle = "#1e293b";
+      ctx.strokeStyle = "#4ade80";
+      ctx.lineWidth = 3;
+      ctx.fillRect(x, y, 130, 100);
+      ctx.strokeRect(x, y, 130, 100);
+
+      // Copper Coil Outer Rings
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc(x + 25 + i * 26, y + 50, 14, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // ROTATING BICOLOR MAGNET (RED = NORTH, BLUE = SOUTH)
+      ctx.save();
+      ctx.translate(x + 65, y + 50);
+      ctx.rotate(tick * 3.75);
+
+      // North Pole (Red)
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(-25, -12, 25, 24);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText("N", -18, 4);
+
+      // South Pole (Blue)
+      ctx.fillStyle = "#3b82f6";
+      ctx.fillRect(0, -12, 25, 24);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText("S", 8, 4);
+
+      ctx.restore();
+
+      // Label & Magnetic Field Pulse Lines
+      ctx.fillStyle = "#4ade80";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText("GENERATOR", x + 25, y - 10);
+      ctx.font = "10px sans-serif";
+      ctx.fillText("(Rotating Magnet Coil)", x + 12, y + 115);
+
+      // Magnetic Wave Rings
+      ctx.strokeStyle = `rgba(74, 222, 128, ${0.4 + Math.sin(tick * 4.5) * 0.3})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x + 65, y + 50, 52 + Math.sin(tick * 3) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawSolarPVSystem() {
+      // Sun
+      ctx.fillStyle = "#facc15";
+      ctx.beginPath();
+      ctx.arc(120, 100, 40, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sun Rays
+      ctx.strokeStyle = "rgba(250, 204, 21, 0.4)";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 / 8) * i + tick * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(120 + Math.cos(angle) * 45, 100 + Math.sin(angle) * 45);
+        ctx.lineTo(120 + Math.cos(angle) * 70, 100 + Math.sin(angle) * 70);
+        ctx.stroke();
+      }
+
+      // Solar Photovoltaic Panel
+      ctx.save();
+      ctx.translate(260, 220);
+      ctx.rotate(-Math.PI / 8);
+      ctx.fillStyle = "#1e3a8a";
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 3;
+      ctx.fillRect(0, 0, 180, 100);
+      ctx.strokeRect(0, 0, 180, 100);
+
+      // Grid Lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 1;
+      for (let col = 30; col < 180; col += 30) {
+        ctx.beginPath();
+        ctx.moveTo(col, 0);
+        ctx.lineTo(col, 100);
+        ctx.stroke();
+      }
+      for (let row = 25; row < 100; row += 25) {
+        ctx.beginPath();
+        ctx.moveTo(0, row);
+        ctx.lineTo(180, row);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Photons striking panel
+      for (let i = 0; i < 4; i++) {
+        const progress = ((tick * 1.5 + i * 0.5) % 2) / 2;
+        const px = 120 + (260 - 120) * progress;
+        const py = 100 + (200 - 100) * progress;
+        ctx.fillStyle = "#fef08a";
+        ctx.beginPath();
+        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Solid-state Inverter Box
+      ctx.fillStyle = "#334155";
+      ctx.strokeStyle = "#eab308";
+      ctx.lineWidth = 3;
+      ctx.fillRect(520, 180, 140, 100);
+      ctx.strokeRect(520, 180, 140, 100);
+
+      ctx.fillStyle = "#eab308";
+      ctx.font = "bold 13px sans-serif";
+      ctx.fillText("DC/AC INVERTER", 535, 210);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "11px sans-serif";
+      ctx.fillText("No Turbine / Generator!", 530, 240);
+      ctx.fillText("Direct Solid State", 540, 260);
+
+      // Connecting Wire from Panel to Inverter
+      ctx.strokeStyle = "#4ade80";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(420, 240);
+      ctx.lineTo(520, 240);
+      ctx.stroke();
+
+      // Electron movement to inverter
+      const electronX = 420 + (tick * 30) % 100;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(electronX, 240, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Initialize application
+    initControls();
+    render();
+  </script>
+</body>
+</html>
