@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collapsing Can Experiment - Year 7 Science</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0b0f19;
+            color: #f1f5f9;
+        }
+
+        /* Glassmorphism containers */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Glow effects */
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
+        }
+
+        .glow-amber {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.25);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 sm:p-5 select-none">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-6xl text-center mb-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 text-xs font-semibold mb-2">
+            <span>🔬 Year 7 Interactive Science</span>
+            <span>•</span>
+            <span>Atmospheric Pressure Unit</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 tracking-tight">
+            The Collapsing Can Experiment
+        </h1>
+        <p class="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl mx-auto">
+            Observe how heating water into steam and rapidly cooling it creates a vacuum—allowing atmospheric pressure to instantly crush the can!
+        </p>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="w-full max-w-6xl flex flex-col gap-4">
+
+        <!-- Simulation Screen Container -->
+        <section class="glass-panel rounded-3xl p-3 sm:p-5 glow-cyan relative overflow-hidden flex flex-col">
+            
+            <!-- Canvas Container -->
+            <div class="relative w-full rounded-2xl overflow-hidden bg-slate-950/80 border border-slate-800 shadow-inner">
+                <canvas id="simCanvas" class="w-full h-[480px] sm:h-[520px] block cursor-crosshair"></canvas>
+
+                <!-- Stage Title Overlay Badge -->
+                <div id="stageBadge" class="absolute top-4 left-4 bg-slate-900/90 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-lg backdrop-blur-md flex items-center gap-2">
+                    <span id="stageBadgeDot" class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <span id="stageBadgeText">Stage 1: Room Temperature Setup</span>
+                </div>
+
+                <!-- Live Numerical Pressure Overlay Gauge -->
+                <div id="pressureGauge" class="hidden absolute top-4 right-4 glass-card p-3 rounded-2xl border border-slate-700/80 shadow-2xl flex flex-col gap-2.5 min-w-[190px]">
+                    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Pressure Gauges</span>
+                        <span class="text-cyan-400">kPa</span>
+                    </div>
+
+                    <!-- Outside Pressure Bar -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold text-slate-300">
+                            <span>Outside (Atmosphere)</span>
+                            <span id="valOutsideP" class="text-cyan-400">101.3</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="barOutsideP" class="bg-cyan-400 h-full transition-all duration-500" style="width: 70%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Inside Pressure Bar -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold text-slate-300">
+                            <span>Inside Can</span>
+                            <span id="valInsideP" class="text-emerald-400">101.3</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="barInsideP" class="bg-emerald-400 h-full transition-all duration-500" style="width: 70%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Net Force Status Indicator -->
+                    <div id="pressureStatusBox" class="mt-0.5 pt-2 border-t border-slate-800 text-[11px] font-semibold text-center text-slate-400">
+                        Pressures are Balanced ⚖️
+                    </div>
+                </div>
+
+                <!-- Particle Legend Overlay -->
+                <div class="absolute bottom-4 left-4 glass-card px-3 py-2 rounded-xl border border-slate-800 flex items-center gap-4 text-xs">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 border border-cyan-200 inline-block"></span>
+                        <span class="text-slate-300 font-medium">Outside Air</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3.5 h-3.5 rounded-full bg-amber-400 border border-amber-200 inline-block"></span>
+                        <span class="text-slate-300 font-medium">Inside Air/Steam</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-3.5 h-3.5 rounded-full bg-blue-500 border border-blue-300 inline-block"></span>
+                        <span class="text-slate-300 font-medium">Water Droplet</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integrated Control Panel Below Canvas -->
+            <div class="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+                
+                <!-- Stage Selection Buttons -->
+                <div class="lg:col-span-6 flex items-center gap-1.5 sm:gap-2">
+                    <button id="btnPrev" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold py-3 px-4 rounded-xl border border-slate-700 transition duration-150 text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <span>⬅️</span> Prev
+                    </button>
+
+                    <!-- Stage Direct Selector Buttons -->
+                    <div class="flex-1 grid grid-cols-4 gap-1 sm:gap-1.5 bg-slate-950/70 p-1 rounded-xl border border-slate-800">
+                        <button data-stage="1" class="stage-btn py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white">1. Setup</button>
+                        <button data-stage="2" class="stage-btn py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white">2. Heat</button>
+                        <button data-stage="3" class="stage-btn py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white">3. Cool</button>
+                        <button data-stage="4" class="stage-btn py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white">4. Crush</button>
+                    </div>
+
+                    <button id="btnNext" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl border border-cyan-500/40 transition duration-150 text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-cyan-900/30">
+                        Next <span>➡️</span>
+                    </button>
+                </div>
+
+                <!-- Toggles & Option Checkboxes -->
+                <div class="lg:col-span-6 flex items-center justify-between sm:justify-end gap-3 bg-slate-900/80 p-2 sm:p-2.5 rounded-xl border border-slate-800">
+                    <!-- Pressure Gauge Toggle -->
+                    <label class="flex items-center gap-2 cursor-pointer select-none px-2 py-1 rounded-lg hover:bg-slate-800/60 transition">
+                        <input type="checkbox" id="chkPressureGauge" class="w-4 h-4 accent-cyan-400 rounded cursor-pointer">
+                        <span class="text-xs font-bold text-slate-300">Show Pressure (kPa)</span>
+                    </label>
+
+                    <div class="h-4 w-px bg-slate-800"></div>
+
+                    <!-- Reset Button -->
+                    <button id="btnReset" class="bg-slate-800 hover:bg-rose-950 hover:border-rose-500 hover:text-rose-300 text-slate-300 font-bold py-1.5 px-3 rounded-lg border border-slate-700 transition text-xs flex items-center gap-1.5">
+                        <span>🔄</span> Reset Sim
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Educational Explanation Card -->
+        <section class="glass-panel p-4 sm:p-5 rounded-2xl border border-slate-800 flex items-start gap-4">
+            <div id="explanationIcon" class="text-3xl sm:text-4xl p-3 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-inner flex-shrink-0">
+                💧
+            </div>
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span id="explanationStepTag" class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800">Stage 1 of 4</span>
+                    <h3 id="explanationTitle" class="text-base sm:text-lg font-bold text-slate-100">Stage 1: Room Temperature Setup</h3>
+                </div>
+                <p id="explanationText" class="text-xs sm:text-sm text-slate-300 leading-relaxed pt-1">
+                    An open soda can sits at room temperature with a small amount of liquid water inside. Gas particles bounce around freely both inside and outside the can with equal energy and frequency. Because the internal pressure matches external atmospheric pressure (101.3 kPa), the can keeps its sturdy shape.
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-3 text-center text-[11px] text-slate-500">
+        Year 7 Key Stage 3 Science • Particles, Gas Pressure & Thermal Physics 🧪✨
+    </footer>
+
+    <!-- Simulation Logic -->
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Controls & Elements
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+        const btnReset = document.getElementById('btnReset');
+        const stageBtns = document.querySelectorAll('.stage-btn');
+        const chkPressureGauge = document.getElementById('chkPressureGauge');
+        const pressureGauge = document.getElementById('pressureGauge');
+        const valOutsideP = document.getElementById('valOutsideP');
+        const valInsideP = document.getElementById('valInsideP');
+        const barOutsideP = document.getElementById('barOutsideP');
+        const barInsideP = document.getElementById('barInsideP');
+        const pressureStatusBox = document.getElementById('pressureStatusBox');
+        
+        const stageBadgeText = document.getElementById('stageBadgeText');
+        const stageBadgeDot = document.getElementById('stageBadgeDot');
+        const explanationIcon = document.getElementById('explanationIcon');
+        const explanationStepTag = document.getElementById('explanationStepTag');
+        const explanationTitle = document.getElementById('explanationTitle');
+        const explanationText = document.getElementById('explanationText');
+
+        // High DPI Canvas Scaling
+        let dpr = window.devicePixelRatio || 1;
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvasWidth = rect.width;
+            canvasHeight = rect.height;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+        }
+
+        // State Machine
+        let currentStage = 1;
+        let stageProgress = 0; // 0 to 1 smooth stage transition timer/progress
+        let crushAmount = 0; // 0 = intact, 1 = crushed
+        let heatTemperature = 20; // Deg C
+        
+        // Large Dimensions for Can (Visually prominent)
+        const canBaseWidth = 140;
+        const canBaseHeight = 230;
+
+        // Particle storage
+        let outsideParticles = [];
+        let insideParticles = [];
+        let waterDroplets = [];
+        let steamBubbles = [];
+
+        // Educational Stage Content Data
+        const stagesData = {
+            1: {
+                title: "Stage 1: Room Temperature Setup",
+                badge: "Stage 1: Room Temperature Setup",
+                icon: "💧",
+                text: "An open soda can sits at room temperature with a small amount of liquid water inside. Air particles bounce around freely inside and outside the can with equal energy. Because internal gas pressure matches external atmospheric pressure (101.3 kPa), the can easily holds its shape.",
+                insideP: 101.3,
+                outsideP: 101.3,
+                status: "Pressures Balanced ⚖️",
+                statusColor: "text-slate-400",
+                badgeDot: "bg-cyan-400"
+            },
+            2: {
+                title: "Stage 2: Heating over Bunsen Burner",
+                badge: "Stage 2: Heating & Boiling Water",
+                icon: "🔥",
+                titleColor: "text-amber-400",
+                text: "The Bunsen burner heats the water to boiling point (100°C). Water turns into hot water vapor (steam). The fast, energetic steam particles expand rapidly, pushing regular air particles OUT of the top opening! The can is now filled with hot steam.",
+                insideP: 102.5,
+                outsideP: 101.3,
+                status: "Hot Steam Pushing Out 💨",
+                statusColor: "text-amber-400",
+                badgeDot: "bg-amber-400"
+            },
+            3: {
+                title: "Stage 3: Plunging Inverted into Cold Water",
+                badge: "Stage 3: Rapid Cooling & Condensation",
+                icon: "❄️",
+                text: "The hot can is quickly turned upside down and plunged into cold water. The cold water seals the opening and rapidly cools the steam inside. The steam instantly condenses back into liquid water droplets! With almost no gas left inside, the internal pressure drops drastically.",
+                insideP: 15.0,
+                outsideP: 101.3,
+                status: "Partial Vacuum Formed! ⚠️",
+                statusColor: "text-rose-400",
+                badgeDot: "bg-blue-400"
+            },
+            4: {
+                title: "Stage 4: Atmospheric Pressure Crush!",
+                badge: "Stage 4: Instant Atmospheric Collapse",
+                icon: "💥",
+                text: "Because the internal pressure is extremely low (15 kPa), there are almost no inside gas particles pushing outward to resist. The massive atmospheric pressure (101.3 kPa) slams inward from all directions, instantly crushing the soda can!",
+                insideP: 15.0,
+                outsideP: 101.3,
+                status: "MASSIVE OUTSIDE FORCE CRUSHES CAN! 💥",
+                statusColor: "text-rose-500 font-extrabold animate-pulse",
+                badgeDot: "bg-rose-500 animate-ping"
+            }
+        };
+
+        // Large Particle Class
+        class Particle {
+            constructor(x, y, isInside = false, type = 'air') {
+                this.x = x;
+                this.y = y;
+                this.isInside = isInside;
+                this.type = type; // 'air', 'steam', 'liquid'
+                this.radius = isInside ? 7 : 8; // Significantly larger particles
+                
+                this.setSpeed();
+            }
+
+            setSpeed() {
+                let speed = 2.5;
+                if (this.type === 'steam') speed = 5.5; // Fast energetic steam
+                if (currentStage === 3 && this.isInside) speed = 0.8; // Cold sluggish gas
+                
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+            }
+
+            update(canBounds) {
+                // Adjust velocity based on current thermal state
+                if (this.type === 'steam' && currentStage === 2) {
+                    let curSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    if (curSpeed < 4.5) {
+                        this.vx *= 1.05;
+                        this.vy *= 1.05;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wall & Can Collision Detection
+                if (this.isInside) {
+                    // Confined within dynamic can boundaries
+                    if (this.x < canBounds.left + this.radius) {
+                        this.x = canBounds.left + this.radius;
+                        this.vx *= -1;
+                    }
+                    if (this.x > canBounds.right - this.radius) {
+                        this.x = canBounds.right - this.radius;
+                        this.vx *= -1;
+                    }
+                    
+                    // Top opening boundary behavior
+                    if (currentStage === 2 && this.y < canBounds.top) {
+                        // In Stage 2, steam escapes out the open top!
+                        if (Math.random() < 0.08) {
+                            this.isInside = false; // Escaped to room
+                        } else {
+                            this.y = canBounds.top;
+                            this.vy *= -1;
+                        }
+                    } else if (this.y < canBounds.top + this.radius) {
+                        this.y = canBounds.top + this.radius;
+                        this.vy *= -1;
+                    }
+
+                    if (this.y > canBounds.bottom - this.radius) {
+                        this.y = canBounds.bottom - this.radius;
+                        this.vy *= -1;
+                    }
+                } else {
+                    // Outside room boundaries
+                    if (this.x < 30) { this.x = 30; this.vx *= -1; }
+                    if (this.x > canvasWidth - 30) { this.x = canvasWidth - 30; this.vx *= -1; }
+                    if (this.y < 30) { this.y = 30; this.vy *= -1; }
+                    if (this.y > canvasHeight - 30) { this.y = canvasHeight - 30; this.vy *= -1; }
+
+                    // Bounce off exterior walls of the can
+                    if (this.x > canBounds.left - this.radius && 
+                        this.x < canBounds.right + this.radius && 
+                        this.y > canBounds.top - this.radius && 
+                        this.y < canBounds.bottom + this.radius) {
+                        
+                        // Bounce direction depending on collision edge
+                        if (Math.abs(this.x - canBounds.left) < 15) {
+                            this.x = canBounds.left - this.radius;
+                            this.vx *= -1;
+                        } else if (Math.abs(this.x - canBounds.right) < 15) {
+                            this.x = canBounds.right - this.radius;
+                            this.vx *= -1;
+                        } else {
+                            this.vy *= -1;
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+
+                if (this.type === 'steam') {
+                    // Glowing yellow/amber hot steam particle
+                    let gradient = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, this.radius);
+                    gradient.addColorStop(0, '#fef08a');
+                    gradient.addColorStop(0.7, '#f59e0b');
+                    gradient.addColorStop(1, '#b45309');
+                    ctx.fillStyle = gradient;
+                    ctx.shadowColor = '#f59e0b';
+                    ctx.shadowBlur = 10;
+                } else if (this.isInside) {
+                    // Inside regular particle
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.shadowColor = '#f59e0b';
+                    ctx.shadowBlur = 4;
+                } else {
+                    // Outside Air Particle - Cyan/Blue glowing sphere
+                    let gradient = ctx.createRadialGradient(this.x - 2, this.y - 2, 1, this.x, this.y, this.radius);
+                    gradient.addColorStop(0, '#67e8f9');
+                    gradient.addColorStop(0.7, '#06b6d4');
+                    gradient.addColorStop(1, '#0e7490');
+                    ctx.fillStyle = gradient;
+                    ctx.shadowColor = '#06b6d4';
+                    ctx.shadowBlur = 6;
+                }
+
+                ctx.fill();
+                ctx.lineWidth = 1.2;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // Initialize particles based on current stage
+        function spawnParticles() {
+            outsideParticles = [];
+            insideParticles = [];
+            waterDroplets = [];
+            steamBubbles = [];
+
+            const canX = canvasWidth / 2;
+            const canY = canvasHeight / 2 + 10;
+
+            // Spawn Outside Air Particles (Large and clearly visible)
+            const numOutside = 40;
+            for (let i = 0; i < numOutside; i++) {
+                let px, py;
+                do {
+                    px = Math.random() * (canvasWidth - 100) + 50;
+                    py = Math.random() * (canvasHeight - 100) + 50;
+                } while (px > canX - 110 && px < canX + 110 && py > canY - 140 && py < canY + 140);
+
+                outsideParticles.push(new Particle(px, py, false, 'air'));
+            }
+
+            // Spawn Inside Particles
+            let numInside = 20;
+            let pType = 'air';
+
+            if (currentStage === 2) {
+                numInside = 32; // Dense fast steam
+                pType = 'steam';
+            } else if (currentStage >= 3) {
+                numInside = 4; // Condenses down to very few gas molecules!
+                pType = 'steam';
+
+                // Spawn condensed water droplets at bottom of can
+                for (let i = 0; i < 24; i++) {
+                    waterDroplets.push({
+                        x: canX + (Math.random() - 0.5) * (canBaseWidth * 0.7),
+                        y: canY + canBaseHeight/2 - 15 - Math.random() * 18,
+                        radius: 4 + Math.random() * 4
+                    });
+                }
+            }
+
+            for (let i = 0; i < numInside; i++) {
+                let px = canX + (Math.random() - 0.5) * (canBaseWidth - 30);
+                let py = canY + (Math.random() - 0.5) * (canBaseHeight - 40);
+                insideParticles.push(new Particle(px, py, true, pType));
+            }
+        }
+
+        // Calculate dynamic can boundaries
+        function getCanBounds() {
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2 + (currentStage >= 3 ? 35 : 10);
+
+            // Collapse deformation scaling
+            let curWidth = canBaseWidth * (1 - crushAmount * 0.78);
+            let curHeight = canBaseHeight * (1 - crushAmount * 0.12);
+
+            return {
+                left: centerX - curWidth / 2,
+                right: centerX + curWidth / 2,
+                top: centerY - curHeight / 2,
+                bottom: centerY + curHeight / 2,
+                width: curWidth,
+                height: curHeight,
+                cx: centerX,
+                cy: centerY
+            };
+        }
+
+        // Update UI State & Text Content
+        function updateStageUI() {
+            const data = stagesData[currentStage];
+
+            // Badge & Icons
+            stageBadgeText.textContent = data.badge;
+            stageBadgeDot.className = `w-2.5 h-2.5 rounded-full ${data.badgeDot}`;
+            explanationIcon.textContent = data.icon;
+            explanationStepTag.textContent = `Stage ${currentStage} of 4`;
+            explanationTitle.textContent = data.title;
+            explanationText.textContent = data.text;
+
+            // Pressure Gauge Updates
+            valInsideP.textContent = data.insideP.toFixed(1);
+            valOutsideP.textContent = data.outsideP.toFixed(1);
+
+            barInsideP.style.width = `${(data.insideP / 120) * 100}%`;
+            barOutsideP.style.width = `${(data.outsideP / 120) * 100}%`;
+
+            pressureStatusBox.textContent = data.status;
+            pressureStatusBox.className = `mt-0.5 pt-2 border-t border-slate-800 text-[11px] font-semibold text-center ${data.statusColor}`;
+
+            // Buttons state
+            btnPrev.disabled = currentStage === 1;
+            btnNext.disabled = currentStage === 4;
+
+            // Highlight active stage button
+            stageBtns.forEach(btn => {
+                const s = parseInt(btn.dataset.stage);
+                if (s === currentStage) {
+                    btn.className = "stage-btn py-2 text-xs font-bold rounded-lg transition bg-cyan-600 text-white shadow-md shadow-cyan-900/50";
+                } else {
+                    btn.className = "stage-btn py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white hover:bg-slate-800/50";
+                }
+            });
+
+            // Trigger reset of particle layouts for new stage
+            spawnParticles();
+        }
+
+        // Draw Scene Visual Assets
+        function drawScene() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            // Lab Bench Floor
+            let benchY = canvasHeight - 45;
+            let benchGrad = ctx.createLinearGradient(0, benchY, 0, canvasHeight);
+            benchGrad.addColorStop(0, '#1e293b');
+            benchGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = benchGrad;
+            ctx.fillRect(0, benchY, canvasWidth, 45);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, benchY);
+            ctx.lineTo(canvasWidth, benchY);
+            ctx.stroke();
+
+            const bounds = getCanBounds();
+
+            // Render Stage 2 Bunsen Burner & Flame
+            if (currentStage === 2) {
+                let burnerX = bounds.cx;
+                let burnerY = benchY;
+
+                // Burner Base & Stand
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(burnerX - 25, burnerY - 12, 50, 12);
+                ctx.fillRect(burnerX - 8, burnerY - 55, 16, 43);
+
+                // Animated Flame
+                let flameHeight = 35 + Math.sin(Date.now() * 0.01) * 6;
+                let flameGrad = ctx.createRadialGradient(burnerX, burnerY - 55 - flameHeight/2, 2, burnerX, burnerY - 55 - flameHeight/2, 20);
+                flameGrad.addColorStop(0, '#fef08a');
+                flameGrad.addColorStop(0.4, '#f97316');
+                flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+                ctx.fillStyle = flameGrad;
+                ctx.beginPath();
+                ctx.ellipse(burnerX, burnerY - 55 - flameHeight/2, 16, flameHeight/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = 'bold 11px Plus Jakarta Sans, sans-serif';
+                ctx.fillText('HOTPLATE / BUNSEN BURNER 🔥', burnerX - 85, burnerY - 65);
+            }
+
+            // Render Stage 3 & 4 Water Basin
+            if (currentStage >= 3) {
+                let basinW = 280;
+                let basinH = 140;
+                let basinX = bounds.cx - basinW / 2;
+                let basinY = benchY - basinH + 10;
+
+                // Basin Container Glass
+                ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
+                ctx.fillRect(basinX, basinY, basinW, basinH);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(basinX, basinY, basinW, basinH);
+
+                // Cold Water Fill
+                let waterGrad = ctx.createLinearGradient(basinX, basinY + 30, basinX, basinY + basinH);
+                waterGrad.addColorStop(0, 'rgba(6, 182, 212, 0.4)');
+                waterGrad.addColorStop(1, 'rgba(14, 165, 233, 0.7)');
+                ctx.fillStyle = waterGrad;
+                ctx.fillRect(basinX + 2, basinY + 25, basinW - 4, basinH - 27);
+
+                // Ice Cubes Floating
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.strokeStyle = '#bae6fd';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(basinX + 20, basinY + 20, 24, 20);
+                ctx.strokeRect(basinX + basinW - 50, basinY + 18, 26, 22);
+
+                ctx.fillStyle = '#7dd3fc';
+                ctx.font = 'bold 12px Plus Jakarta Sans, sans-serif';
+                ctx.fillText('❄️ COLD WATER BATH', basinX + 15, basinY + 15);
+            }
+
+            // Smooth crush animation in Stage 4
+            if (currentStage === 4) {
+                if (crushAmount < 1) crushAmount += 0.06;
+            } else if (currentStage === 3) {
+                crushAmount = 0.08; // minor suction dimple
+            } else {
+                crushAmount = 0;
+            }
+
+            // Draw Can Body
+            ctx.save();
+
+            // Gradient for aluminum soda can body
+            let canGrad = ctx.createLinearGradient(bounds.left, bounds.top, bounds.right, bounds.bottom);
+            canGrad.addColorStop(0, '#ef4444');
+            canGrad.addColorStop(0.3, '#f87171');
+            canGrad.addColorStop(0.7, '#dc2626');
+            canGrad.addColorStop(1, '#991b1b');
+
+            ctx.fillStyle = canGrad;
+            ctx.shadowColor = '#dc2626';
+            ctx.shadowBlur = currentStage === 2 ? 25 : 12;
+
+            // Draw crushed / intact can polygon shape
+            ctx.beginPath();
+            if (crushAmount > 0.2) {
+                // Irregular crushed polygon paths
+                const indent = bounds.width * 0.35;
+                ctx.moveTo(bounds.left, bounds.top + 10);
+                ctx.lineTo(bounds.cx - indent/2, bounds.top + bounds.height * 0.25);
+                ctx.lineTo(bounds.left + 8, bounds.top + bounds.height * 0.5);
+                ctx.lineTo(bounds.cx - indent, bounds.top + bounds.height * 0.75);
+                ctx.lineTo(bounds.left, bounds.bottom);
+                
+                ctx.lineTo(bounds.right, bounds.bottom);
+                ctx.lineTo(bounds.cx + indent, bounds.top + bounds.height * 0.7);
+                ctx.lineTo(bounds.right - 8, bounds.top + bounds.height * 0.45);
+                ctx.lineTo(bounds.cx + indent/2, bounds.top + bounds.height * 0.2);
+                ctx.lineTo(bounds.right, bounds.top + 10);
+            } else {
+                // Intact rounded cylinder
+                if (ctx.roundRect) {
+                    ctx.roundRect(bounds.left, bounds.top, bounds.width, bounds.height, [16, 16, 8, 8]);
+                } else {
+                    ctx.rect(bounds.left, bounds.top, bounds.width, bounds.height);
+                }
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#fca5a5';
+            ctx.stroke();
+
+            // Soda Label text banner on can
+            if (crushAmount < 0.6) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.fillRect(bounds.left + 5, bounds.top + bounds.height * 0.38, bounds.width - 10, bounds.height * 0.25);
+                ctx.fillStyle = '#7f1d1d';
+                ctx.font = '800 13px Plus Jakarta Sans, sans-serif';
+                ctx.fillText('SODA', bounds.cx - 18, bounds.top + bounds.height * 0.53);
+            }
+
+            // Can Top Opening / Steam Plume
+            if (currentStage === 1) {
+                // Open top lip
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(bounds.cx - 18, bounds.top - 8, 36, 8);
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = 'bold 11px Plus Jakarta Sans, sans-serif';
+                ctx.fillText('Open Top 💧', bounds.cx - 30, bounds.top - 16);
+            } else if (currentStage === 2) {
+                // Steam rising upwards out of can opening
+                ctx.fillStyle = 'rgba(254, 240, 138, 0.4)';
+                ctx.beginPath();
+                ctx.arc(bounds.cx, bounds.top - 20, 18, 0, Math.PI * 2);
+                ctx.arc(bounds.cx - 15, bounds.top - 40, 14, 0, Math.PI * 2);
+                ctx.arc(bounds.cx + 12, bounds.top - 48, 16, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = 'bold 12px Plus Jakarta Sans, sans-serif';
+                ctx.fillText('Steam Escaping! 💨', bounds.cx + 65, bounds.top - 20);
+            }
+
+            // Render Condensed Liquid Water inside can (Stage 3 & 4)
+            waterDroplets.forEach(drop => {
+                ctx.beginPath();
+                ctx.arc(drop.x, drop.y, drop.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fill();
+            });
+
+            // Update & Render Outside Particles
+            outsideParticles.forEach(p => {
+                p.update(bounds);
+                p.draw();
+            });
+
+            // Update & Render Inside Particles
+            insideParticles.forEach(p => {
+                p.update(bounds);
+                p.draw();
+            });
+
+            // High Pressure Force Vectors (Stage 4)
+            if (currentStage === 4 && crushAmount > 0.3) {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 5;
+                ctx.fillStyle = '#ef4444';
+
+                // Inward Arrows Left
+                drawArrow(bounds.left - 70, bounds.cy, bounds.left - 15, bounds.cy);
+                drawArrow(bounds.left - 60, bounds.cy - 50, bounds.left - 10, bounds.cy - 30);
+                drawArrow(bounds.left - 60, bounds.cy + 50, bounds.left - 10, bounds.cy + 30);
+
+                // Inward Arrows Right
+                drawArrow(bounds.right + 70, bounds.cy, bounds.right + 15, bounds.cy);
+                drawArrow(bounds.right + 60, bounds.cy - 50, bounds.right + 10, bounds.cy - 30);
+                drawArrow(bounds.right + 60, bounds.cy + 50, bounds.right + 10, bounds.cy + 30);
+
+                ctx.fillStyle = '#f87171';
+                ctx.font = '800 16px Plus Jakarta Sans, sans-serif';
+                ctx.fillText('💥 ATMOSPHERIC PRESSURE CRUSHES CAN! 💥', bounds.cx - 180, bounds.top - 35);
+            }
+
+            ctx.restore();
+        }
+
+        // Helper Arrow Drawing Routine
+        function drawArrow(fromx, fromy, tox, toy) {
+            let headlen = 12;
+            let dx = tox - fromx;
+            let dy = toy - fromy;
+            let angle = Math.atan2(dy, dx);
+
+            ctx.beginPath();
+            ctx.moveTo(fromx, fromy);
+            ctx.lineTo(tox, toy);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(tox, toy);
+            ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Animation Frame Loop
+        function animate() {
+            drawScene();
+            requestAnimationFrame(animate);
+        }
+
+        // Event Listeners & Navigation
+        btnNext.addEventListener('click', () => {
+            if (currentStage < 4) {
+                currentStage++;
+                updateStageUI();
+            }
+        });
+
+        btnPrev.addEventListener('click', () => {
+            if (currentStage > 1) {
+                currentStage--;
+                updateStageUI();
+            }
+        });
+
+        stageBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                currentStage = parseInt(e.target.dataset.stage);
+                updateStageUI();
+            });
+        });
+
+        btnReset.addEventListener('click', () => {
+            currentStage = 1;
+            crushAmount = 0;
+            updateStageUI();
+        });
+
+        chkPressureGauge.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                pressureGauge.classList.remove('hidden');
+            } else {
+                pressureGauge.classList.add('hidden');
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            spawnParticles();
+        });
+
+        // Initialize simulation on startup
+        window.onload = function() {
+            resizeCanvas();
+            updateStageUI();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>
+```
+
+### Key Enhancements Included:
+1. **Significantly Larger Visual Assets**: The soda can is scaled up dynamically (`140px × 230px`), and all gas particles are increased to **7px–8px radii** with radial gradients and neon glow effects for high clarity on Year 7 displays.
+2. **Polished Dark Glassmorphism Design**: Sleek dark slate layout with glass-card overlays, high-contrast typography, glowing particles, and custom scrollbars.
+3. **Responsive Integrated Layout**: Controls are grouped neatly beneath the canvas to give maximum screen real estate to the main simulation view.
+4. **Interactive Pressure Gauge (kPa)**: Checking **Show Pressure (kPa)** toggles a live side-by-side gauge comparing outside atmospheric pressure ($101.3\text{ kPa}$) with internal can pressure across all 4 stages.
