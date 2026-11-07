@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance-Time Graph Interactive Lab</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar for dark UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-slate-900/80 border-b border-slate-800 backdrop-blur-md px-4 py-3 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-xl text-white shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
+                        Distance-Time Graph Lab
+                    </h1>
+                    <p class="text-xs text-slate-400">Interactive Kinematics & Physics Paradox Simulator</p>
+                </div>
+            </div>
+
+            <!-- Mode Selector Tabs -->
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm font-medium">
+                <button id="mode-freeform" onclick="setMode('freeform')" class="px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center space-x-2 text-cyan-400 bg-slate-800 shadow-sm">
+                    <i class="fa-solid fa-hand-pointer text-xs"></i>
+                    <span>Freeform Drive</span>
+                </button>
+                <button id="mode-builder" onclick="setMode('builder')" class="px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center space-x-2 text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-pen-node text-xs"></i>
+                    <span>Graph Builder</span>
+                </button>
+                <button id="mode-presets" onclick="setMode('presets')" class="px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center space-x-2 text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-flask text-xs"></i>
+                    <span>Presets & Paradoxes</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col gap-4">
+        
+        <!-- Live Physics Analytics Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+                <div class="absolute -right-2 -bottom-2 opacity-5 text-cyan-400 text-5xl font-black">s</div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Elapsed Time</span>
+                <div class="flex items-baseline space-x-1 mt-1">
+                    <span id="val-time" class="text-2xl font-black mono-font text-cyan-400">0.0</span>
+                    <span class="text-xs text-slate-400 font-medium">sec</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
+                    <div id="bar-time" class="bg-cyan-400 h-full w-0 transition-all duration-75"></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between shadow-lg relative overflow-hidden">
+                <div class="absolute -right-2 -bottom-2 opacity-5 text-indigo-400 text-5xl font-black">d</div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Position (Distance)</span>
+                <div class="flex items-baseline space-x-1 mt-1">
+                    <span id="val-dist" class="text-2xl font-black mono-font text-indigo-400">0.0</span>
+                    <span class="text-xs text-slate-400 font-medium">meters</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
+                    <div id="bar-dist" class="bg-indigo-400 h-full w-0 transition-all duration-75"></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between shadow-lg relative overflow-hidden">
+                <div class="absolute -right-2 -bottom-2 opacity-5 text-emerald-400 text-5xl font-black">v</div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Instant Speed</span>
+                <div class="flex items-baseline space-x-1 mt-1">
+                    <span id="val-speed" class="text-2xl font-black mono-font text-emerald-400">0.0</span>
+                    <span class="text-xs text-slate-400 font-medium">m/s</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
+                    <div id="bar-speed" class="bg-emerald-400 h-full w-0 transition-all duration-75"></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between shadow-lg relative overflow-hidden">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Slope Interpretation</span>
+                <div id="val-status" class="text-sm font-bold text-amber-400 mt-1 truncate flex items-center gap-1.5">
+                    <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span>Stationary (At Rest)</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-2 truncate" id="val-slope-desc">Slope = 0.00 m/s</div>
+            </div>
+        </div>
+
+        <!-- Warning / Paradox Alert Banner -->
+        <div id="paradox-alert" class="hidden bg-rose-950/80 border border-rose-500/50 rounded-xl p-3.5 text-rose-200 flex items-start space-x-3 shadow-lg shadow-rose-950/50 animate-bounce-once">
+            <i class="fa-solid fa-triangle-exclamation text-xl text-rose-400 shrink-0 mt-0.5"></i>
+            <div class="flex-1 text-xs sm:text-sm">
+                <span class="font-bold text-rose-300 block text-sm" id="paradox-title">PHYSICS PARADOX DETECTED!</span>
+                <span id="paradox-desc">This graph violates the fundamental laws of motion!</span>
+            </div>
+        </div>
+
+        <!-- Upper Canvas Container: Distance-Time Graph -->
+        <div class="relative bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-chart-area text-cyan-400"></i>
+                        Distance vs Time Graph
+                    </span>
+                    <span id="graph-hint" class="hidden sm:inline-block text-[11px] text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700/50">
+                        Click graph to add keyframes
+                    </span>
+                </div>
+                <!-- Mini controls on graph -->
+                <div class="flex items-center space-x-2 text-xs">
+                    <button onclick="toggleGrid()" class="text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 flex items-center gap-1">
+                        <i class="fa-solid fa-grid-2"></i> Grid
+                    </button>
+                    <button onclick="resetZoom()" class="text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 flex items-center gap-1">
+                        <i class="fa-solid fa-arrows-rotate"></i> Reset Axis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Element -->
+            <div class="relative w-full h-[280px] sm:h-[340px] rounded-xl overflow-hidden bg-slate-950/90 border border-slate-800/80">
+                <canvas id="graphCanvas" class="w-full h-full cursor-crosshair block"></canvas>
+            </div>
+        </div>
+
+        <!-- Bottom Canvas Container: Interactive Vehicle Track -->
+        <div class="relative bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-road text-amber-400"></i>
+                    Physical Course / Track (0m - 100m)
+                </span>
+                <span class="text-xs text-slate-400 flex items-center gap-1">
+                    <i class="fa-solid fa-computer-mouse text-cyan-400 animate-bounce"></i>
+                    <span id="track-instruction-text">Drag vehicle horizontally to test graph</span>
+                </span>
+            </div>
+
+            <!-- Canvas Track Element -->
+            <div class="relative w-full h-[120px] sm:h-[140px] rounded-xl overflow-hidden bg-slate-950/90 border border-slate-800/80">
+                <canvas id="trackCanvas" class="w-full h-full cursor-grab active:cursor-grabbing block"></canvas>
+            </div>
+        </div>
+
+        <!-- Floating Control Deck & Presets Panel -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            
+            <!-- Playback & Scrubber Controls -->
+            <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <!-- Transport Buttons -->
+                    <div class="flex items-center space-x-2">
+                        <button id="btn-play" onclick="togglePlay()" class="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 flex items-center space-x-2 active:scale-95 transition">
+                            <i class="fa-solid fa-play text-sm"></i>
+                            <span>Play</span>
+                        </button>
+                        <button onclick="stopPlayback()" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition active:scale-95">
+                            <i class="fa-solid fa-stop text-sm"></i>
+                        </button>
+                        <button onclick="resetSimulation()" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition active:scale-95" title="Reset Simulation">
+                            <i class="fa-solid fa-rotate-left text-sm"></i>
+                        </button>
+                        <button onclick="clearData()" class="px-3 py-2 bg-slate-800 hover:bg-rose-950/50 hover:text-rose-400 text-slate-400 text-xs font-semibold rounded-xl border border-slate-700/80 transition" title="Clear Graph">
+                            <i class="fa-solid fa-trash-can mr-1"></i> Clear
+                        </button>
+                    </div>
+
+                    <!-- Speed Control Switcher -->
+                    <div class="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                        <span class="text-slate-500 px-2 font-semibold">Speed:</span>
+                        <button onclick="setPlaybackSpeed(0.5)" class="speed-btn px-2 py-1 rounded-lg text-slate-400 hover:text-white">0.5x</button>
+                        <button onclick="setPlaybackSpeed(1.0)" class="speed-btn px-2 py-1 rounded-lg bg-slate-800 text-cyan-400 font-bold">1.0x</button>
+                        <button onclick="setPlaybackSpeed(2.0)" class="speed-btn px-2 py-1 rounded-lg text-slate-400 hover:text-white">2.0x</button>
+                    </div>
+                </div>
+
+                <!-- Scrubber Slider -->
+                <div class="flex items-center space-x-3 pt-1">
+                    <span class="text-xs font-mono text-slate-400 w-10 text-right" id="scrubber-min">0.0s</span>
+                    <input type="range" id="time-scrubber" min="0" max="20" step="0.05" value="0" 
+                           oninput="onScrub(this.value)"
+                           class="flex-1 h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400 border border-slate-800">
+                    <span class="text-xs font-mono text-slate-400 w-10" id="scrubber-max">20.0s</span>
+                </div>
+            </div>
+
+            <!-- Presets & Paradox Selector Dropdowns -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Load Scenario Presets</span>
+                    <i class="fa-solid fa-lightbulb text-amber-400"></i>
+                </span>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <!-- Standard Presets -->
+                    <button onclick="loadPreset('constant')" class="p-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl text-left transition group">
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-400">Constant Speed</div>
+                        <div class="text-[10px] text-slate-400">Steady upward slope</div>
+                    </button>
+                    
+                    <button onclick="loadPreset('accelerate')" class="p-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl text-left transition group">
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-400">Acceleration</div>
+                        <div class="text-[10px] text-slate-400">Upward curve</div>
+                    </button>
+
+                    <button onclick="loadPreset('pause')" class="p-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl text-left transition group">
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-400">Stop & Go</div>
+                        <div class="text-[10px] text-slate-400">Flat line resting</div>
+                    </button>
+
+                    <button onclick="loadPreset('return')" class="p-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl text-left transition group">
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-400">Return Trip</div>
+                        <div class="text-[10px] text-slate-400">Downward slope</div>
+                    </button>
+                </div>
+
+                <!-- Impossible Graphs Dropdown -->
+                <div class="pt-1">
+                    <select id="impossible-select" onchange="loadPreset(this.value)" class="w-full bg-slate-950 border border-rose-500/40 text-rose-300 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-rose-500 transition cursor-pointer">
+                        <option value="" disabled selected>⚠️ Select Physics Paradox / Impossible Graph...</option>
+                        <option value="teleport">⚡ 1. Teleportation (Vertical Line)</option>
+                        <option value="timetravel">⏳ 2. Time Traveler (Backward Loop)</option>
+                        <option value="quantum">🌌 3. Quantum Jump (Discontinuity)</option>
+                        <option value="negative">➖ 4. Anti-Distance Drop (Negative Scalar)</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        /**
+         * Interactive Distance-Time Graph Lab
+         * Engine & Render Architecture
+         */
+
+        // Global State & Configuration
+        const CONFIG = {
+            maxTime: 20,       // Seconds
+            maxDistance: 100,  // Meters
+            minDistance: 0,    // Meters
+            padding: { top: 30, right: 30, bottom: 40, left: 55 }
+        };
+
+        let state = {
+            mode: 'freeform', // 'freeform', 'builder', 'presets'
+            isPlaying: false,
+            currentTime: 0,
+            playbackSpeed: 1.0,
+            showGrid: true,
+            
+            // Motion Data Points: Array of {t: timeSec, d: distanceMeters}
+            dataPoints: [],
+
+            // Keyframes for Graph Builder Mode: Array of {t, d, id}
+            keyframes: [
+                { t: 0, d: 0 },
+                { t: 5, d: 30 },
+                { t: 10, d: 30 },
+                { t: 15, d: 80 },
+                { t: 20, d: 100 }
+            ],
+
+            // Interaction states
+            isDraggingCar: false,
+            isDraggingKeypoint: null,
+            isScrubbing: false,
+            activeParadox: null // null or object describing error
+        };
+
+        // DOM Element References
+        let graphCanvas, graphCtx;
+        let trackCanvas, trackCtx;
+        let animationFrameId = null;
+        let lastTimestamp = null;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            graphCanvas = document.getElementById('graphCanvas');
+            graphCtx = graphCanvas.getContext('2d');
+            trackCanvas = document.getElementById('trackCanvas');
+            trackCtx = trackCanvas.getContext('2d');
+
+            resizeCanvases();
+            window.addEventListener('resize', resizeCanvases);
+
+            setupEventListeners();
+            
+            // Default to Freeform start state
+            resetSimulation();
+            requestAnimationFrame(gameLoop);
+        });
+
+        function resizeCanvases() {
+            const graphRect = graphCanvas.parentElement.getBoundingClientRect();
+            graphCanvas.width = graphRect.width * window.devicePixelRatio;
+            graphCanvas.height = graphRect.height * window.devicePixelRatio;
+            graphCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const trackRect = trackCanvas.parentElement.getBoundingClientRect();
+            trackCanvas.width = trackRect.width * window.devicePixelRatio;
+            trackCanvas.height = trackRect.height * window.devicePixelRatio;
+            trackCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            drawGraph();
+            drawTrack();
+        }
+
+        // ==========================================
+        // Mode & Preset Handling
+        // ==========================================
+
+        function setMode(newMode) {
+            state.mode = newMode;
+            stopPlayback();
+
+            // Highlight active button
+            ['freeform', 'builder', 'presets'].forEach(m => {
+                const btn = document.getElementById(`mode-${m}`);
+                if (m === newMode) {
+                    btn.className = "px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center space-x-2 text-cyan-400 bg-slate-800 shadow-sm font-semibold";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center space-x-2 text-slate-400 hover:text-slate-200";
+                }
+            });
+
+            // UI instructions update
+            const hint = document.getElementById('graph-hint');
+            const trackHint = document.getElementById('track-instruction-text');
+
+            if (newMode === 'freeform') {
+                hint.classList.add('hidden');
+                trackHint.textContent = "Drag car horizontally to record graph in real-time";
+            } else if (newMode === 'builder') {
+                hint.classList.remove('hidden');
+                hint.textContent = "Click graph to add points, drag points to reshape path";
+                trackHint.textContent = "Press PLAY or drag playhead to watch car execute graph";
+                buildDataPointsFromKeyframes();
+            } else if (newMode === 'presets') {
+                hint.classList.add('hidden');
+                trackHint.textContent = "Press PLAY to run selected preset scenario";
+            }
+
+            drawGraph();
+            drawTrack();
+        }
+
+        function setPlaybackSpeed(speed) {
+            state.playbackSpeed = speed;
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                if (parseFloat(btn.textContent) === speed) {
+                    btn.className = "speed-btn px-2 py-1 rounded-lg bg-slate-800 text-cyan-400 font-bold";
+                } else {
+                    btn.className = "speed-btn px-2 py-1 rounded-lg text-slate-400 hover:text-white";
+                }
+            });
+        }
+
+        function toggleGrid() {
+            state.showGrid = !state.showGrid;
+            drawGraph();
+        }
+
+        function resetZoom() {
+            CONFIG.maxTime = 20;
+            CONFIG.maxDistance = 100;
+            document.getElementById('time-scrubber').max = CONFIG.maxTime;
+            document.getElementById('scrubber-max').textContent = `${CONFIG.maxTime}.0s`;
+            drawGraph();
+        }
+
+        function clearData() {
+            stopPlayback();
+            state.currentTime = 0;
+            state.dataPoints = [{ t: 0, d: 0 }];
+            state.keyframes = [{ t: 0, d: 0 }, { t: 20, d: 0 }];
+            state.activeParadox = null;
+            hideParadoxAlert();
+            updateAnalytics(0, 0);
+            drawGraph();
+            drawTrack();
+        }
+
+        function resetSimulation() {
+            stopPlayback();
+            state.currentTime = 0;
+            document.getElementById('time-scrubber').value = 0;
+
+            if (state.mode === 'freeform') {
+                state.dataPoints = [{ t: 0, d: 0 }];
+            } else if (state.mode === 'builder') {
+                buildDataPointsFromKeyframes();
+            }
+
+            evaluateParadoxes();
+            updateAnalytics(state.currentTime, getCurrentDistanceAtTime(state.currentTime));
+            drawGraph();
+            drawTrack();
+        }
+
+        // Preset Definitions
+        function loadPreset(presetKey) {
+            stopPlayback();
+            state.currentTime = 0;
+            state.activeParadox = null;
+            hideParadoxAlert();
+
+            switch (presetKey) {
+                case 'constant':
+                    state.dataPoints = [
+                        { t: 0, d: 0 },
+                        { t: 20, d: 100 }
+                    ];
+                    break;
+                case 'accelerate':
+                    state.dataPoints = [];
+                    for (let t = 0; t <= 20; t += 0.5) {
+                        state.dataPoints.push({ t: t, d: (t / 20) ** 2 * 100 });
+                    }
+                    break;
+                case 'pause':
+                    state.dataPoints = [
+                        { t: 0, d: 10 },
+                        { t: 6, d: 70 },
+                        { t: 14, d: 70 },
+                        { t: 20, d: 95 }
+                    ];
+                    break;
+                case 'return':
+                    state.dataPoints = [
+                        { t: 0, d: 0 },
+                        { t: 8, d: 80 },
+                        { t: 12, d: 80 },
+                        { t: 20, d: 10 }
+                    ];
+                    break;
+
+                // Physics Paradoxes / Impossible Graphs
+                case 'teleport':
+                    state.dataPoints = [
+                        { t: 0, d: 0 },
+                        { t: 8, d: 20 },
+                        { t: 8, d: 80 }, // Vertical segment!
+                        { t: 20, d: 100 }
+                    ];
+                    showParadoxAlert(
+                        "TELEPORTATION PARADOX (Vertical Line)",
+                        "Infinite velocity! The vehicle travels 60 meters in 0.0 seconds (Δt = 0). Speed = Δd / 0 = Undefined."
+                    );
+                    break;
+
+                case 'timetravel':
+                    state.dataPoints = [];
+                    // Generate loop in graph (backward time path)
+                    for (let i = 0; i <= 40; i++) {
+                        let angle = (i / 40) * Math.PI * 1.4;
+                        let t = 8 + Math.sin(angle) * 6;
+                        let d = 20 + (i / 40) * 70;
+                        state.dataPoints.push({ t: Math.max(0, t), d: d });
+                    }
+                    showParadoxAlert(
+                        "TIME TRAVEL PARADOX (Backward Loop)",
+                        "Time cannot flow backward! A single time value (t) corresponds to multiple positions simultaneously."
+                    );
+                    break;
+
+                case 'quantum':
+                    state.dataPoints = [
+                        { t: 0, d: 0 },
+                        { t: 7, d: 30 },
+                        { t: 7.01, d: 80 }, // Jump discontinuity
+                        { t: 20, d: 100 }
+                    ];
+                    showParadoxAlert(
+                        "QUANTUM LEAP (Discontinuity)",
+                        "Motion must be continuous! The vehicle instantly vanished at 30m and re-appeared at 80m without crossing intermediate space."
+                    );
+                    break;
+
+                case 'negative':
+                    state.dataPoints = [
+                        { t: 0, d: 0 },
+                        { t: 6, d: 60 },
+                        { t: 12, d: 60 },
+                        { t: 18, d: -25 } // Drops below zero
+                    ];
+                    showParadoxAlert(
+                        "NEGATIVE DISTANCE DROP (Scalar vs Vector)",
+                        "Total accumulative distance cannot be negative! (Confusing Scalar Distance with Vector Displacement)."
+                    );
+                    break;
+            }
+
+            evaluateParadoxes();
+            updateAnalytics(0, getCurrentDistanceAtTime(0));
+            drawGraph();
+            drawTrack();
+        }
+
+        function showParadoxAlert(title, description) {
+            const banner = document.getElementById('paradox-alert');
+            document.getElementById('paradox-title').textContent = title;
+            document.getElementById('paradox-desc').textContent = description;
+            banner.classList.remove('hidden');
+        }
+
+        function hideParadoxAlert() {
+            document.getElementById('paradox-alert').classList.add('hidden');
+        }
+
+        function evaluateParadoxes() {
+            if (state.dataPoints.length < 2) return;
+
+            // Check for vertical lines or backward time step
+            for (let i = 1; i < state.dataPoints.length; i++) {
+                const p1 = state.dataPoints[i - 1];
+                const p2 = state.dataPoints[i];
+                const dt = p2.t - p1.t;
+                const dd = p2.d - p1.d;
+
+                if (dt < -0.05) {
+                    showParadoxAlert("TIME TRAVEL DETECTED", "Path loops backward in time.");
+                    return;
+                } else if (Math.abs(dt) < 0.001 && Math.abs(dd) > 1) {
+                    showParadoxAlert("TELEPORTATION DETECTED", "Infinite speed: distance changes in zero time.");
+                    return;
+                } else if (p2.d < 0) {
+                    showParadoxAlert("NEGATIVE DISTANCE DETECTED", "Distance on graph drops below zero.");
+                    return;
+                }
+            }
+        }
+
+        // ==========================================
+        // Mathematics & Helper Functions
+        // ==========================================
+
+        function timeToX(t, width) {
+            const w = width - CONFIG.padding.left - CONFIG.padding.right;
+            return CONFIG.padding.left + (t / CONFIG.maxTime) * w;
+        }
+
+        function xToTime(x, width) {
+            const w = width - CONFIG.padding.left - CONFIG.padding.right;
+            return Math.min(Math.max(0, ((x - CONFIG.padding.left) / w) * CONFIG.maxTime), CONFIG.maxTime);
+        }
+
+        function distToY(d, height) {
+            const h = height - CONFIG.padding.top - CONFIG.padding.bottom;
+            // Range from minDistance (-30 if negative preset) to maxDistance
+            const minY = -30;
+            const maxY = CONFIG.maxDistance;
+            const norm = (d - minY) / (maxY - minY);
+            return (height - CONFIG.padding.bottom) - norm * h;
+        }
+
+        function yToDist(y, height) {
+            const h = height - CONFIG.padding.top - CONFIG.padding.bottom;
+            const minY = -30;
+            const maxY = CONFIG.maxDistance;
+            const norm = ((height - CONFIG.padding.bottom) - y) / h;
+            return minY + norm * (maxY - minY);
+        }
+
+        function getCurrentDistanceAtTime(t) {
+            if (!state.dataPoints || state.dataPoints.length === 0) return 0;
+            if (state.dataPoints.length === 1) return state.dataPoints[0].d;
+
+            // Sort points by time for evaluation
+            const sorted = [...state.dataPoints].sort((a, b) => a.t - b.t);
+
+            if (t <= sorted[0].t) return sorted[0].d;
+            if (t >= sorted[sorted.length - 1].t) return sorted[sorted.length - 1].d;
+
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const p1 = sorted[i];
+                const p2 = sorted[i + 1];
+                if (t >= p1.t && t <= p2.t) {
+                    const dt = p2.t - p1.t;
+                    if (dt === 0) return p2.d;
+                    const ratio = (t - p1.t) / dt;
+                    return p1.d + ratio * (p2.d - p1.d);
+                }
+            }
+            return 0;
+        }
+
+        function calculateInstantaneousSpeed(t) {
+            const delta = 0.1;
+            const t1 = Math.max(0, t - delta);
+            const t2 = Math.min(CONFIG.maxTime, t + delta);
+            const d1 = getCurrentDistanceAtTime(t1);
+            const d2 = getCurrentDistanceAtTime(t2);
+
+            const dt = t2 - t1;
+            if (dt === 0) return 0;
+            return (d2 - d1) / dt;
+        }
+
+        function buildDataPointsFromKeyframes() {
+            state.keyframes.sort((a, b) => a.t - b.t);
+            state.dataPoints = [...state.keyframes];
+        }
+
+        // ==========================================
+        // Render Engine: Canvas Graph Drawing
+        // ==========================================
+
+        function drawGraph() {
+            const rect = graphCanvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+
+            graphCtx.clearRect(0, 0, width, height);
+
+            // Background Fill
+            graphCtx.fillStyle = '#020617'; // slate-950
+            graphCtx.fillRect(0, 0, width, height);
+
+            // 1. Grid Lines & Axis Ticks
+            if (state.showGrid) {
+                graphCtx.lineWidth = 1;
+                graphCtx.strokeStyle = '#1e293b'; // slate-800
+
+                // Vertical Time Grid Lines (Every 2s)
+                for (let t = 0; t <= CONFIG.maxTime; t += 2) {
+                    const x = timeToX(t, width);
+                    graphCtx.beginPath();
+                    graphCtx.moveTo(x, CONFIG.padding.top);
+                    graphCtx.lineTo(x, height - CONFIG.padding.bottom);
+                    graphCtx.stroke();
+                }
+
+                // Horizontal Distance Grid Lines (Every 20m)
+                for (let d = 0; d <= CONFIG.maxDistance; d += 20) {
+                    const y = distToY(d, height);
+                    graphCtx.beginPath();
+                    graphCtx.moveTo(CONFIG.padding.left, y);
+                    graphCtx.lineTo(width - CONFIG.padding.right, y);
+                    graphCtx.stroke();
+                }
+
+                // Negative Distance Line highlight if needed
+                const zeroY = distToY(0, height);
+                graphCtx.strokeStyle = '#334155';
+                graphCtx.beginPath();
+                graphCtx.moveTo(CONFIG.padding.left, zeroY);
+                graphCtx.lineTo(width - CONFIG.padding.right, zeroY);
+                graphCtx.stroke();
+            }
+
+            // 2. Axes Lines
+            graphCtx.strokeStyle = '#64748b'; // slate-500
+            graphCtx.lineWidth = 2;
+
+            // X-Axis
+            graphCtx.beginPath();
+            graphCtx.moveTo(CONFIG.padding.left, height - CONFIG.padding.bottom);
+            graphCtx.lineTo(width - CONFIG.padding.right, height - CONFIG.padding.bottom);
+            graphCtx.stroke();
+
+            // Y-Axis
+            graphCtx.beginPath();
+            graphCtx.moveTo(CONFIG.padding.left, CONFIG.padding.top);
+            graphCtx.lineTo(CONFIG.padding.left, height - CONFIG.padding.bottom);
+            graphCtx.stroke();
+
+            // Axis Labels & Numbers
+            graphCtx.fillStyle = '#94a3b8'; // slate-400
+            graphCtx.font = '11px Inter, sans-serif';
+            graphCtx.textAlign = 'center';
+
+            // X Axis Labels (Time)
+            for (let t = 0; t <= CONFIG.maxTime; t += 4) {
+                const x = timeToX(t, width);
+                graphCtx.fillText(`${t}s`, x, height - CONFIG.padding.bottom + 18);
+            }
+            graphCtx.font = 'bold 12px Inter, sans-serif';
+            graphCtx.fillText('Time (t / seconds) ➔', width / 2, height - 8);
+
+            // Y Axis Labels (Distance)
+            graphCtx.textAlign = 'right';
+            graphCtx.font = '11px Inter, sans-serif';
+            for (let d = 0; d <= CONFIG.maxDistance; d += 20) {
+                const y = distToY(d, height);
+                graphCtx.fillText(`${d}m`, CONFIG.padding.left - 10, y + 4);
+            }
+
+            // Label Y Axis Title (Rotated)
+            graphCtx.save();
+            graphCtx.translate(16, height / 2);
+            graphCtx.rotate(-Math.PI / 2);
+            graphCtx.textAlign = 'center';
+            graphCtx.font = 'bold 12px Inter, sans-serif';
+            graphCtx.fillStyle = '#cbd5e1';
+            graphCtx.fillText('▲ Distance (d / meters)', 0, 0);
+            graphCtx.restore();
+
+            // 3. Plot Graph Lines
+            if (state.dataPoints && state.dataPoints.length > 0) {
+                graphCtx.save();
+
+                // Glow effect for path
+                graphCtx.shadowColor = '#06b6d4';
+                graphCtx.shadowBlur = 10;
+                graphCtx.strokeStyle = '#22d3ee'; // cyan-400
+                graphCtx.lineWidth = 3;
+
+                graphCtx.beginPath();
+                const startX = timeToX(state.dataPoints[0].t, width);
+                const startY = distToY(state.dataPoints[0].d, height);
+                graphCtx.moveTo(startX, startY);
+
+                for (let i = 1; i < state.dataPoints.length; i++) {
+                    const ptX = timeToX(state.dataPoints[i].t, width);
+                    const ptY = distToY(state.dataPoints[i].d, height);
+                    graphCtx.lineTo(ptX, ptY);
+                }
+                graphCtx.stroke();
+                graphCtx.restore();
+            }
+
+            // 4. Render Keyframe Dots (If in Builder Mode)
+            if (state.mode === 'builder') {
+                state.keyframes.forEach((kf, idx) => {
+                    const kfX = timeToX(kf.t, width);
+                    const kfY = distToY(kf.d, height);
+
+                    graphCtx.beginPath();
+                    graphCtx.arc(kfX, kfY, 7, 0, Math.PI * 2);
+                    graphCtx.fillStyle = '#38bdf8'; // sky-400
+                    graphCtx.shadowColor = '#38bdf8';
+                    graphCtx.shadowBlur = 8;
+                    graphCtx.fill();
+                    graphCtx.lineWidth = 2;
+                    graphCtx.strokeStyle = '#ffffff';
+                    graphCtx.stroke();
+                });
+            }
+
+            // 5. Playhead Vertical Scrubber Line & Active Point Dot
+            const playheadX = timeToX(state.currentTime, width);
+            const currentDist = getCurrentDistanceAtTime(state.currentTime);
+            const activeY = distToY(currentDist, height);
+
+            // Playhead Line
+            graphCtx.strokeStyle = '#f59e0b'; // amber-500
+            graphCtx.lineWidth = 2;
+            graphCtx.setLineDash([4, 4]);
+            graphCtx.beginPath();
+            graphCtx.moveTo(playheadX, CONFIG.padding.top);
+            graphCtx.lineTo(playheadX, height - CONFIG.padding.bottom);
+            graphCtx.stroke();
+            graphCtx.setLineDash([]);
+
+            // Scrubber Handle Top Tag
+            graphCtx.fillStyle = '#f59e0b';
+            graphCtx.beginPath();
+            graphCtx.moveTo(playheadX - 6, CONFIG.padding.top);
+            graphCtx.lineTo(playheadX + 6, CONFIG.padding.top);
+            graphCtx.lineTo(playheadX, CONFIG.padding.top + 8);
+            graphCtx.closePath();
+            graphCtx.fill();
+
+            // Active Intersection Point Glow
+            graphCtx.beginPath();
+            graphCtx.arc(playheadX, activeY, 8, 0, Math.PI * 2);
+            graphCtx.fillStyle = '#f59e0b';
+            graphCtx.shadowColor = '#f59e0b';
+            graphCtx.shadowBlur = 12;
+            graphCtx.fill();
+            graphCtx.strokeStyle = '#ffffff';
+            graphCtx.lineWidth = 2;
+            graphCtx.stroke();
+
+            // Tangent / Slope Vector Visualization line
+            const speed = calculateInstantaneousSpeed(state.currentTime);
+            const dx = 20;
+            const dy = -speed * (dx / (width / CONFIG.maxTime)) * (height / CONFIG.maxDistance);
+
+            graphCtx.beginPath();
+            graphCtx.moveTo(playheadX - dx, activeY - dy);
+            graphCtx.lineTo(playheadX + dx, activeY + dy);
+            graphCtx.strokeStyle = 'rgba(236, 72, 153, 0.6)'; // pink-500
+            graphCtx.lineWidth = 2;
+            graphCtx.stroke();
+        }
+
+        // ==========================================
+        // Render Engine: Physical Track & Car
+        // ==========================================
+
+        function drawTrack() {
+            const rect = trackCanvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+
+            trackCtx.clearRect(0, 0, width, height);
+
+            // Track Background
+            trackCtx.fillStyle = '#090d16';
+            trackCtx.fillRect(0, 0, width, height);
+
+            const trackY = height / 2 + 10;
+            const trackMargin = 60;
+            const trackWidth = width - trackMargin * 2;
+
+            // 1. Asphalt Road
+            trackCtx.fillStyle = '#1e293b';
+            trackCtx.fillRect(trackMargin - 15, trackY - 25, trackWidth + 30, 45);
+
+            // Road Edge Lines
+            trackCtx.strokeStyle = '#475569';
+            trackCtx.lineWidth = 2;
+            trackCtx.beginPath();
+            trackCtx.moveTo(trackMargin - 15, trackY - 25);
+            trackCtx.lineTo(trackMargin + trackWidth + 15, trackY - 25);
+            trackCtx.moveTo(trackMargin - 15, trackY + 20);
+            trackCtx.lineTo(trackMargin + trackWidth + 15, trackY + 20);
+            trackCtx.stroke();
+
+            // Dashed Center Line
+            trackCtx.strokeStyle = '#f59e0b';
+            trackCtx.lineWidth = 2;
+            trackCtx.setLineDash([12, 12]);
+            trackCtx.beginPath();
+            trackCtx.moveTo(trackMargin - 10, trackY - 2);
+            trackCtx.lineTo(trackMargin + trackWidth + 10, trackY - 2);
+            trackCtx.stroke();
+            trackCtx.setLineDash([]);
+
+            // 2. Distance Distance Markers (0m, 20m, 40m, 60m, 80m, 100m)
+            trackCtx.fillStyle = '#94a3b8';
+            trackCtx.font = '10px Inter, sans-serif';
+            trackCtx.textAlign = 'center';
+
+            for (let d = 0; d <= 100; d += 20) {
+                const markX = trackMargin + (d / 100) * trackWidth;
+
+                // Marker Line
+                trackCtx.strokeStyle = '#64748b';
+                trackCtx.lineWidth = 2;
+                trackCtx.beginPath();
+                trackCtx.moveTo(markX, trackY + 20);
+                trackCtx.lineTo(markX, trackY + 28);
+                trackCtx.stroke();
+
+                // Text
+                trackCtx.fillText(`${d}m`, markX, trackY + 42);
+            }
+
+            // Start & Finish Flags
+            trackCtx.font = 'bold 11px Inter, sans-serif';
+            trackCtx.fillStyle = '#22c35e';
+            trackCtx.fillText('START (0m)', trackMargin, trackY - 32);
+
+            trackCtx.fillStyle = '#ef4444';
+            trackCtx.fillText('FINISH (100m)', trackMargin + trackWidth, trackY - 32);
+
+            // 3. Render Draggable Car
+            const currentDist = getCurrentDistanceAtTime(state.currentTime);
+            // Clamp car rendering to visible track boundaries
+            const clampedDist = Math.min(Math.max(-10, currentDist), 110);
+            const carX = trackMargin + (clampedDist / 100) * trackWidth;
+            const carY = trackY - 6;
+
+            drawCarGraphic(trackCtx, carX, carY);
+        }
+
+        function drawCarGraphic(ctx, x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Car Body Glow
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = state.isDraggingCar ? 15 : 6;
+
+            // Main Chassis (Cyberpunk Style Car)
+            ctx.fillStyle = state.isDraggingCar ? '#38bdf8' : '#06b6d4';
+            ctx.beginPath();
+            ctx.roundRect(-24, -14, 48, 20, 6);
+            ctx.fill();
+
+            // Roof Cabin
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.roundRect(-12, -22, 26, 12, 4);
+            ctx.fill();
+
+            // Windshield
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(4, -20, 8, 8);
+
+            // Wheels
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#020617';
+            ctx.beginPath();
+            ctx.arc(-14, 8, 6, 0, Math.PI * 2);
+            ctx.arc(14, 8, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Headlight beam
+            ctx.fillStyle = 'rgba(254, 240, 138, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(24, -6);
+            ctx.lineTo(44, -14);
+            ctx.lineTo(44, 4);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // ==========================================
+        // Event Listeners & Drag Engine
+        // ==========================================
+
+        function setupEventListeners() {
+            // Track Canvas Dragging (Freeform Driving)
+            trackCanvas.addEventListener('pointerdown', (e) => {
+                const rect = trackCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const trackMargin = 60;
+                const trackWidth = rect.width - trackMargin * 2;
+
+                const currentDist = getCurrentDistanceAtTime(state.currentTime);
+                const carX = trackMargin + (currentDist / 100) * trackWidth;
+
+                if (Math.abs(mouseX - carX) < 40) {
+                    state.isDraggingCar = true;
+                    stopPlayback();
+                    if (state.mode !== 'freeform') {
+                        setMode('freeform');
+                    }
+                }
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (state.isDraggingCar) {
+                    const rect = trackCanvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const trackMargin = 60;
+                    const trackWidth = rect.width - trackMargin * 2;
+
+                    let newDist = ((mouseX - trackMargin) / trackWidth) * 100;
+                    newDist = Math.min(Math.max(0, newDist), 100);
+
+                    // Record Point in Freeform mode
+                    state.currentTime += 0.08;
+                    if (state.currentTime > CONFIG.maxTime) {
+                        state.currentTime = CONFIG.maxTime;
+                        state.isDraggingCar = false;
+                    }
+
+                    // Push point or overwrite
+                    state.dataPoints.push({
+                        t: parseFloat(state.currentTime.toFixed(2)),
+                        d: parseFloat(newDist.toFixed(1))
+                    });
+
+                    updateAnalytics(state.currentTime, newDist);
+                    drawGraph();
+                    drawTrack();
+                } else if (state.isDraggingKeypoint !== null) {
+                    const rect = graphCanvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+
+                    let newT = xToTime(mouseX, rect.width);
+                    let newD = yToDist(mouseY, rect.height);
+
+                    // Lock first keyframe to T=0
+                    if (state.isDraggingKeypoint === 0) newT = 0;
+
+                    state.keyframes[state.isDraggingKeypoint].t = parseFloat(newT.toFixed(2));
+                    state.keyframes[state.isDraggingKeypoint].d = parseFloat(newD.toFixed(1));
+
+                    buildDataPointsFromKeyframes();
+                    evaluateParadoxes();
+                    drawGraph();
+                    drawTrack();
+                }
+            });
+
+            window.addEventListener('pointerup', () => {
+                state.isDraggingCar = false;
+                state.isDraggingKeypoint = null;
+            });
+
+            // Graph Canvas Interactive Keyframe Placement (Builder Mode)
+            graphCanvas.addEventListener('pointerdown', (e) => {
+                if (state.mode !== 'builder') return;
+
+                const rect = graphCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                // Check if user clicked an existing keyframe
+                for (let i = 0; i < state.keyframes.length; i++) {
+                    const kfX = timeToX(state.keyframes[i].t, rect.width);
+                    const kfY = distToY(state.keyframes[i].d, rect.height);
+
+                    if (Math.hypot(mouseX - kfX, mouseY - kfY) < 15) {
+                        state.isDraggingKeypoint = i;
+                        return;
+                    }
+                }
+
+                // Otherwise, add a new keyframe point
+                const newT = xToTime(mouseX, rect.width);
+                const newD = yToDist(mouseY, rect.height);
+
+                state.keyframes.push({
+                    t: parseFloat(newT.toFixed(2)),
+                    d: parseFloat(newD.toFixed(1))
+                });
+
+                buildDataPointsFromKeyframes();
+                drawGraph();
+                drawTrack();
+            });
+        }
+
+        // ==========================================
+        // Playback & Animation Loop
+        // ==========================================
+
+        function togglePlay() {
+            if (state.isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        }
+
+        function startPlayback() {
+            if (state.currentTime >= CONFIG.maxTime) {
+                state.currentTime = 0;
+            }
+            state.isPlaying = true;
+            lastTimestamp = performance.now();
+            document.getElementById('btn-play').innerHTML = '<i class="fa-solid fa-pause text-sm"></i><span>Pause</span>';
+            document.getElementById('btn-play').className = "px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold rounded-xl shadow-lg shadow-amber-500/25 flex items-center space-x-2 active:scale-95 transition";
+        }
+
+        function stopPlayback() {
+            state.isPlaying = false;
+            document.getElementById('btn-play').innerHTML = '<i class="fa-solid fa-play text-sm"></i><span>Play</span>';
+            document.getElementById('btn-play').className = "px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 flex items-center space-x-2 active:scale-95 transition";
+        }
+
+        function onScrub(val) {
+            stopPlayback();
+            state.currentTime = parseFloat(val);
+            updateAnalytics(state.currentTime, getCurrentDistanceAtTime(state.currentTime));
+            drawGraph();
+            drawTrack();
+        }
+
+        function gameLoop(timestamp) {
+            if (state.isPlaying) {
+                if (!lastTimestamp) lastTimestamp = timestamp;
+                const elapsedSec = (timestamp - lastTimestamp) / 1000;
+                lastTimestamp = timestamp;
+
+                state.currentTime += elapsedSec * state.playbackSpeed;
+
+                if (state.currentTime >= CONFIG.maxTime) {
+                    state.currentTime = CONFIG.maxTime;
+                    stopPlayback();
+                }
+
+                document.getElementById('time-scrubber').value = state.currentTime;
+                updateAnalytics(state.currentTime, getCurrentDistanceAtTime(state.currentTime));
+                drawGraph();
+                drawTrack();
+            } else {
+                lastTimestamp = null;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==========================================
+        // Live Analytics & Physics Calculations
+        // ==========================================
+
+        function updateAnalytics(timeSec, distMeters) {
+            document.getElementById('val-time').textContent = timeSec.toFixed(1);
+            document.getElementById('val-dist').textContent = distMeters.toFixed(1);
+
+            // Progress bar updates
+            document.getElementById('bar-time').style.width = `${(timeSec / CONFIG.maxTime) * 100}%`;
+            document.getElementById('bar-dist').style.width = `${Math.min(100, Math.max(0, (distMeters / CONFIG.maxDistance) * 100))}%`;
+
+            // Calculate Speed & Slope
+            const speed = calculateInstantaneousSpeed(timeSec);
+            document.getElementById('val-speed').textContent = Math.abs(speed).toFixed(1);
+            document.getElementById('bar-speed').style.width = `${Math.min(100, (Math.abs(speed) / 15) * 100)}%`;
+
+            // Slope Verbal Interpretation
+            const statusEl = document.getElementById('val-status');
+            const descEl = document.getElementById('val-slope-desc');
+
+            descEl.textContent = `Gradient / Slope = ${speed.toFixed(2)} m/s`;
+
+            if (Math.abs(speed) > 50) {
+                statusEl.className = "text-sm font-bold text-rose-400 mt-1 truncate flex items-center gap-1.5";
+                statusEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-rose-400 animate-ping"></span> Infinite Speed (Paradox)`;
+            } else if (Math.abs(speed) < 0.1) {
+                statusEl.className = "text-sm font-bold text-amber-400 mt-1 truncate flex items-center gap-1.5";
+                statusEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span> Stationary (At Rest)`;
+            } else if (speed > 0) {
+                statusEl.className = "text-sm font-bold text-emerald-400 mt-1 truncate flex items-center gap-1.5";
+                statusEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> Moving Forward (+v)`;
+            } else {
+                statusEl.className = "text-sm font-bold text-indigo-400 mt-1 truncate flex items-center gap-1.5";
+                statusEl.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-indigo-400"></span> Returning / Backward (-v)`;
+            }
+        }
+    </script>
+</body>
+</html>
