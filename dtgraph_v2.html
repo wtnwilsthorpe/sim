@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance-Time Graph Interactive Simulation</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --text-light: #f8fafc;
+            --text-dim: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 950px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        header {
+            text-align: center;
+            background: var(--panel-bg);
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--accent-blue);
+            margin-bottom: 4px;
+        }
+
+        header p {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .stage {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background: #090d16;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Realtime Recording Indicator */
+        .rec-indicator {
+            position: absolute;
+            top: 12px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+
+        .rec-indicator.active {
+            opacity: 1;
+        }
+
+        .rec-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+        }
+
+        .rec-indicator.active .rec-dot {
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Track / Car Area */
+        .track-container {
+            position: relative;
+            height: 120px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .road {
+            position: absolute;
+            bottom: 25px;
+            left: 50px;
+            right: 50px;
+            height: 40px;
+            background: #334155;
+            border-top: 2px solid #64748b;
+            border-bottom: 2px solid #64748b;
+        }
+
+        .road-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            border-top: 2px dashed #94a3b8;
+            transform: translateY(-50%);
+        }
+
+        .car {
+            position: absolute;
+            bottom: 28px;
+            left: 50px; /* modified dynamically */
+            width: 60px;
+            height: 34px;
+            margin-left: -30px;
+            cursor: grab;
+            transition: transform 0.1s ease;
+            z-index: 10;
+        }
+
+        .car:active {
+            cursor: grabbing;
+            transform: scale(1.08);
+        }
+
+        .car-body {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            border-radius: 8px 15px 4px 4px;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 1px solid #7dd3fc;
+        }
+
+        .car-roof {
+            position: absolute;
+            top: -10px;
+            left: 14px;
+            width: 28px;
+            height: 12px;
+            background: #0284c7;
+            border-radius: 6px 6px 0 0;
+            border-top: 1px solid #7dd3fc;
+        }
+
+        .car-wheel {
+            position: absolute;
+            bottom: -6px;
+            width: 14px;
+            height: 14px;
+            background: #0f172a;
+            border: 2px solid #94a3b8;
+            border-radius: 50%;
+        }
+
+        .wheel-left { left: 8px; }
+        .wheel-right { right: 8px; }
+
+        .track-markers {
+            position: absolute;
+            bottom: 5px;
+            left: 50px;
+            right: 50px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        .drag-prompt {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            pointer-events: none;
+            animation: bounce 1.5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -4px); }
+        }
+
+        /* Controls & Dashboard */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .metric-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            font-family: monospace;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button {
+            background: var(--border-color);
+            color: var(--text-light);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            background: #475569;
+            transform: translateY(-1px);
+        }
+
+        button.btn-primary {
+            background: var(--accent-blue);
+            color: #0f172a;
+        }
+
+        button.btn-primary:hover {
+            background: #7dd3fc;
+        }
+
+        button.btn-danger {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        button.btn-danger:hover {
+            background: #f87171;
+        }
+
+        .preset-select {
+            background: var(--panel-bg);
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .instruction-box {
+            background: rgba(30, 41, 59, 0.5);
+            border-left: 4px solid var(--accent-blue);
+            padding: 10px 14px;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Distance-Time Graph Real-Time Lab</h1>
+        <p>Drag the car to start a 20-second live recording session!</p>
+    </header>
+
+    <div class="stage">
+        <!-- Canvas Graph -->
+        <div class="canvas-container">
+            <canvas id="graphCanvas"></canvas>
+            <div class="rec-indicator" id="recIndicator">
+                <div class="rec-dot"></div>
+                <span id="recText">LIVE RECORDING (20s)</span>
+            </div>
+        </div>
+
+        <!-- Car Track Area -->
+        <div class="track-container" id="trackContainer">
+            <div class="drag-prompt" id="dragPrompt">👇 Drag the car to start 20s recording!</div>
+            <div class="road">
+                <div class="road-line"></div>
+            </div>
+            
+            <div class="car" id="car">
+                <div class="car-roof"></div>
+                <div class="car-body">
+                    <div class="car-wheel wheel-left"></div>
+                    <div class="car-wheel wheel-right"></div>
+                </div>
+            </div>
+
+            <div class="track-markers">
+                <span>0m (Start)</span>
+                <span>25m</span>
+                <span>50m</span>
+                <span>75m</span>
+                <span>100m (End)</span>
+            </div>
+        </div>
+
+        <!-- Real-time Dashboard -->
+        <div class="dashboard">
+            <div class="metric-card">
+                <div class="metric-label">Time Elapsed</div>
+                <div class="metric-value" id="valTime">0.0 s</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Distance</div>
+                <div class="metric-value" id="valDistance">0.0 m</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Instant Speed</div>
+                <div class="metric-value" id="valSpeed">0.0 m/s</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Graph Slope</div>
+                <div class="metric-value" id="valSlope">0.0</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button id="btnPlay" class="btn-primary">▶ Play Graph</button>
+            <button id="btnReset" class="btn-danger">↺ Clear / Reset</button>
+            <select class="preset-select" id="presetSelect">
+                <option value="" disabled selected>-- Select a Preset Motion --</option>
+                <option value="constant">1. Constant Speed (Steady Walk)</option>
+                <option value="accelerate">2. Accelerating (Speeding Up)</option>
+                <option value="pause">3. Walk, Stop & Go</option>
+                <option value="teleport">⚡ 4. Impossible: Teleportation (Vertical Line)</option>
+                <option value="timetravel">🌀 5. Impossible: Time Travel Loop</option>
+            </select>
+        </div>
+
+        <div class="instruction-box" id="infoBox">
+            💡 <strong>How to use:</strong> Click and drag the cyan car along the track. As soon as you move it, a <strong>20-second timer</strong> begins running, plotting your exact movements live on the graph above!
+        </div>
+    </div>
+</div>
+
+<script>
+    // System Constants
+    const MAX_TIME = 20; // 20 seconds duration
+    const MAX_DIST = 100; // 100 meters course length
+
+    // Canvas & Context Setup
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // DOM Elements
+    const car = document.getElementById('car');
+    const trackContainer = document.getElementById('trackContainer');
+    const dragPrompt = document.getElementById('dragPrompt');
+    const recIndicator = document.getElementById('recIndicator');
+    const recText = document.getElementById('recText');
+    const infoBox = document.getElementById('infoBox');
+
+    // Display Values
+    const valTime = document.getElementById('valTime');
+    const valDistance = document.getElementById('valDistance');
+    const valSpeed = document.getElementById('valSpeed');
+    const valSlope = document.getElementById('valSlope');
+
+    // Buttons
+    const btnPlay = document.getElementById('btnPlay');
+    const btnReset = document.getElementById('btnReset');
+    const presetSelect = document.getElementById('presetSelect');
+
+    // State Variables
+    let timePoints = []; // Stores {t, d} data points
+    let currentTime = 0;
+    let currentDist = 0;
+    let isRecording = false;
+    let isPlaying = false;
+    let recStartTime = 0;
+    let animationFrameId = null;
+
+    // Track positioning boundaries
+    let trackLeft = 50;
+    let trackWidth = 100;
+
+    function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        
+        // Update track limits
+        const trackRect = trackContainer.getBoundingClientRect();
+        trackLeft = 50;
+        trackWidth = trackRect.width - 100;
+        
+        updateCarPosition(currentDist);
+        renderGraph();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initial setup after load
+    setTimeout(resizeCanvas, 50);
+
+    // Coordinate conversion utilities
+    const margin = { top: 30, right: 30, bottom: 40, left: 50 };
+
+    function getX(t) {
+        const plotW = canvas.width - margin.left - margin.right;
+        return margin.left + (t / MAX_TIME) * plotW;
+    }
+
+    function getY(d) {
+        const plotH = canvas.height - margin.top - margin.bottom;
+        return canvas.height - margin.bottom - (d / MAX_DIST) * plotH;
+    }
+
+    function updateCarPosition(d) {
+        currentDist = Math.max(0, Math.min(MAX_DIST, d));
+        const clampRatio = currentDist / MAX_DIST;
+        const pixelPos = trackLeft + clampRatio * trackWidth;
+        car.style.left = `${pixelPos}px`;
+        valDistance.textContent = `${currentDist.toFixed(1)} m`;
+    }
+
+    // Live Recording Engine
+    function startRecording(initialDistance) {
+        if (isRecording) return;
+        
+        // Reset state for new recording session
+        isPlaying = false;
+        isRecording = true;
+        timePoints = [{ t: 0, d: initialDistance }];
+        recStartTime = performance.now();
+        currentTime = 0;
+
+        dragPrompt.style.display = 'none';
+        recIndicator.classList.add('active');
+        btnPlay.disabled = true;
+
+        requestAnimationFrame(recordLoop);
+    }
+
+    function recordLoop(now) {
+        if (!isRecording) return;
+
+        currentTime = (now - recStartTime) / 1000;
+
+        if (currentTime >= MAX_TIME) {
+            currentTime = MAX_TIME;
+            stopRecording();
+            return;
+        }
+
+        // Add current state to graph dataset
+        timePoints.push({ t: currentTime, d: currentDist });
+
+        // Calculate Instantaneous Speed
+        calculateTelemetry();
+        
+        renderGraph();
+        updateDashboard();
+
+        requestAnimationFrame(recordLoop);
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        recIndicator.classList.remove('active');
+        btnPlay.disabled = false;
+        infoBox.innerHTML = '✅ <strong>Recording Finished!</strong> Click <strong>"▶ Play Graph"</strong> to watch your custom run playback, or drag the car to record again.';
+    }
+
+    // Car Dragging Controls
+    let isDraggingCar = false;
+
+    function handlePointerDown(e) {
+        isDraggingCar = true;
+        if (!isRecording && !isPlaying) {
+            const dist = calculateDistFromPointer(e.clientX);
+            startRecording(dist);
+        }
+    }
+
+    function handlePointerMove(e) {
+        if (!isDraggingCar) return;
+        const dist = calculateDistFromPointer(e.clientX);
+        updateCarPosition(dist);
+    }
+
+    function handlePointerUp() {
+        isDraggingCar = false;
+    }
+
+    function calculateDistFromPointer(clientX) {
+        const trackRect = trackContainer.getBoundingClientRect();
+        const relX = clientX - trackRect.left - trackLeft;
+        const ratio = Math.max(0, Math.min(1, relX / trackWidth));
+        return ratio * MAX_DIST;
+    }
+
+    car.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+
+    car.addEventListener('touchstart', (e) => handlePointerDown(e.touches[0]), { passive: true });
+    window.addEventListener('touchmove', (e) => {
+        if (isDraggingCar) handlePointerMove(e.touches[0]);
+    }, { passive: true });
+    window.addEventListener('touchend', handlePointerUp);
+
+    // Playback Engine
+    function startPlayback() {
+        if (timePoints.length === 0 || isRecording) return;
+        isPlaying = true;
+        btnPlay.textContent = '⏸ Pause';
+        
+        let playStart = performance.now() - (currentTime / MAX_TIME) * (MAX_TIME * 1000);
+        
+        function playStep(now) {
+            if (!isPlaying) return;
+
+            currentTime = (now - playStart) / 1000;
+
+            if (currentTime >= MAX_TIME) {
+                currentTime = MAX_TIME;
+                isPlaying = false;
+                btnPlay.textContent = '▶ Play Graph';
+            }
+
+            // Interpolate position from dataset
+            const interpolatedDist = getDistanceAtTime(currentTime);
+            updateCarPosition(interpolatedDist);
+            calculateTelemetry();
+            renderGraph();
+            updateDashboard();
+
+            if (isPlaying) {
+                requestAnimationFrame(playStep);
+            }
+        }
+
+        requestAnimationFrame(playStep);
+    }
+
+    function getDistanceAtTime(t) {
+        if (timePoints.length === 0) return 0;
+        if (t <= timePoints[0].t) return timePoints[0].d;
+        if (t >= timePoints[timePoints.length - 1].t) return timePoints[timePoints.length - 1].d;
+
+        for (let i = 0; i < timePoints.length - 1; i++) {
+            if (t >= timePoints[i].t && t <= timePoints[i + 1].t) {
+                const ratio = (t - timePoints[i].t) / (timePoints[i + 1].t - timePoints[i].t);
+                return timePoints[i].d + ratio * (timePoints[i + 1].d - timePoints[i].d);
+            }
+        }
+        return 0;
+    }
+
+    function calculateTelemetry() {
+        let speed = 0;
+        if (timePoints.length > 2) {
+            const last = timePoints[timePoints.length - 1];
+            const prev = timePoints[Math.max(0, timePoints.length - 5)];
+            const dt = last.t - prev.t;
+            const dd = last.d - prev.d;
+            if (dt > 0) speed = Math.abs(dd / dt);
+        }
+        valSpeed.textContent = `${speed.toFixed(1)} m/s`;
+        valSlope.textContent = speed.toFixed(1);
+    }
+
+    function updateDashboard() {
+        valTime.textContent = `${currentTime.toFixed(1)} s`;
+        valDistance.textContent = `${currentDist.toFixed(1)} m`;
+    }
+
+    // Graph Renderer
+    function renderGraph() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const plotW = canvas.width - margin.left - margin.right;
+        const plotH = canvas.height - margin.top - margin.bottom;
+
+        // Draw Axes Grid
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        ctx.setFont = '10px sans-serif';
+        ctx.fillStyle = '#94a3b8';
+
+        // Vertical lines (Time)
+        for (let t = 0; t <= MAX_TIME; t += 2) {
+            const x = getX(t);
+            ctx.beginPath();
+            ctx.moveTo(x, margin.top);
+            ctx.lineTo(x, canvas.height - margin.bottom);
+            ctx.stroke();
+
+            ctx.fillText(`${t}s`, x - 8, canvas.height - margin.bottom + 18);
+        }
+
+        // Horizontal lines (Distance)
+        for (let d = 0; d <= MAX_DIST; d += 20) {
+            const y = getY(d);
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(canvas.width - margin.right, y);
+            ctx.stroke();
+
+            ctx.fillText(`${d}m`, margin.left - 35, y + 4);
+        }
+
+        // Axis Titles
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('Distance (meters)', margin.left, 18);
+        ctx.fillText('Time (seconds)', canvas.width - margin.right - 80, canvas.height - 10);
+
+        // Draw Data Curve
+        if (timePoints.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+
+            ctx.moveTo(getX(timePoints[0].t), getY(timePoints[0].d));
+            for (let i = 1; i < timePoints.length; i++) {
+                ctx.lineTo(getX(timePoints[i].t), getY(timePoints[i].d));
+            }
+            ctx.stroke();
+        }
+
+        // Current Playhead Cursor
+        if (currentTime > 0) {
+            const curX = getX(currentTime);
+            const curY = getY(currentDist);
+
+            // Vertical Cursor line
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(curX, margin.top);
+            ctx.lineTo(curX, canvas.height - margin.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Animated dot on graph
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(curX, curY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+
+    // Reset Lab
+    function resetLab() {
+        isPlaying = false;
+        isRecording = false;
+        currentTime = 0;
+        currentDist = 0;
+        timePoints = [];
+        
+        updateCarPosition(0);
+        recIndicator.classList.remove('active');
+        dragPrompt.style.display = 'block';
+        btnPlay.textContent = '▶ Play Graph';
+        btnPlay.disabled = false;
+
+        valTime.textContent = '0.0 s';
+        valDistance.textContent = '0.0 m';
+        valSpeed.textContent = '0.0 m/s';
+        valSlope.textContent = '0.0';
+
+        infoBox.innerHTML = '💡 <strong>How to use:</strong> Click and drag the cyan car along the track. As soon as you move it, a <strong>20-second timer</strong> begins running, plotting your exact movements live on the graph above!';
+        presetSelect.value = '';
+
+        renderGraph();
+    }
+
+    // Presets Loader
+    function loadPreset(preset) {
+        resetLab();
+        dragPrompt.style.display = 'none';
+
+        const steps = 100;
+        timePoints = [];
+
+        if (preset === 'constant') {
+            for (let i = 0; i <= steps; i++) {
+                let t = (i / steps) * MAX_TIME;
+                timePoints.push({ t: t, d: (t / MAX_TIME) * MAX_DIST });
+            }
+            infoBox.innerHTML = '📘 <strong>Constant Speed:</strong> A straight diagonal line shows constant speed. The slope is identical everywhere.';
+        } else if (preset === 'accelerate') {
+            for (let i = 0; i <= steps; i++) {
+                let t = (i / steps) * MAX_TIME;
+                timePoints.push({ t: t, d: Math.pow(t / MAX_TIME, 2) * MAX_DIST });
+            }
+            infoBox.innerHTML = '🚀 <strong>Acceleration:</strong> A curve steepening upward shows speed increasing over time.';
+        } else if (preset === 'pause') {
+            for (let i = 0; i <= steps; i++) {
+                let t = (i / steps) * MAX_TIME;
+                let d = 0;
+                if (t < 6) d = (t / 6) * 50;
+                else if (t < 14) d = 50;
+                else d = 50 + ((t - 14) / 6) * 50;
+                timePoints.push({ t: t, d: d });
+            }
+            infoBox.innerHTML = '🛑 <strong>Walk, Stop & Go:</strong> Flat horizontal section represents 0 speed (stationary object).';
+        } else if (preset === 'teleport') {
+            timePoints = [
+                { t: 0, d: 0 },
+                { t: 8, d: 20 },
+                { t: 8, d: 80 }, // Vertical segment
+                { t: 20, d: 100 }
+            ];
+            infoBox.innerHTML = '⚠️ <strong>IMPOSSIBLE (Infinite Speed):</strong> A vertical line means traveling distance in 0 seconds ($v = \\Delta d / 0 = \\infty$).';
+        } else if (preset === 'timetravel') {
+            for (let i = 0; i <= steps; i++) {
+                let angle = (i / steps) * Math.PI * 1.5;
+                let t = 10 + Math.sin(angle) * 6;
+                let d = (i / steps) * MAX_DIST;
+                timePoints.push({ t: Math.max(0, t), d: d });
+            }
+            infoBox.innerHTML = '🌀 <strong>IMPOSSIBLE (Time Travel):</strong> The line loops backward on time. An object cannot be in two locations at the exact same instant!';
+        }
+
+        renderGraph();
+    }
+
+    // Event Listeners
+    btnPlay.addEventListener('click', () => {
+        if (isPlaying) {
+            isPlaying = false;
+            btnPlay.textContent = '▶ Play Graph';
+        } else {
+            startPlayback();
+        }
+    });
+
+    btnReset.addEventListener('click', resetLab);
+
+    presetSelect.addEventListener('change', (e) => {
+        loadPreset(e.target.value);
+    });
+
+    // Initial render call
+    renderGraph();
+</script>
+
+</body>
+</html>
