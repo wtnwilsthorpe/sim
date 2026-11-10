@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KS3 Physics: Forces & Motion Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        /* Custom scrollbar for control drawers */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(71, 85, 105, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4 shadow-lg shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md shadow-indigo-600/30 flex items-center justify-center">
+                <i class="fa-solid fa-scale-balanced text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-white flex items-center gap-2">
+                    KS3 Physics: Forces & Motion
+                    <span class="text-xs bg-indigo-500/20 text-indigo-300 font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">Interactive Lab</span>
+                </h1>
+                <p class="text-xs text-slate-400">Explore Balanced, Unbalanced & Resultant Forces</p>
+            </div>
+        </div>
+
+        <!-- Mode Presets -->
+        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium overflow-x-auto max-w-full">
+            <button id="preset-tug" onclick="setPreset('tug')" class="preset-btn px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-people-pulling text-indigo-400"></i> Box Push / Tug
+            </button>
+            <button id="preset-car" onclick="setPreset('car')" class="preset-btn px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-car text-emerald-400"></i> Car Constant Speed
+            </button>
+            <button id="preset-skydive" onclick="setPreset('skydive')" class="preset-btn px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-parachute-box text-amber-400"></i> Skydiver
+            </button>
+            <button id="preset-rocket" onclick="setPreset('rocket')" class="preset-btn px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-rocket text-rose-400"></i> Rocket
+            </button>
+            <button id="preset-free" onclick="setPreset('free')" class="preset-btn px-3 py-1.5 rounded-lg transition-all text-slate-300 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-flask text-cyan-400"></i> Free Lab
+            </button>
+        </div>
+
+        <!-- Action / Quiz Toggle -->
+        <div class="flex items-center gap-2">
+            <button onclick="toggleQuizModal()" class="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold rounded-lg border border-amber-500/30 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-lightbulb"></i> Concept Quiz
+            </button>
+            <button onclick="toggleInfoModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition-all flex items-center gap-2">
+                <i class="fa-solid fa-book-open"></i> Key Rules
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col lg:flex-row gap-4 p-4 min-h-0 overflow-y-auto">
+        
+        <!-- Left Panel: Simulation Canvas & Direct Telemetry -->
+        <div class="flex-1 flex flex-col gap-3 min-h-[450px]">
+            <!-- Canvas Container -->
+            <div class="relative flex-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-inner flex flex-col">
+                
+                <!-- Overlay Telemetry Bar (Top) -->
+                <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none z-10">
+                    <!-- Stat Badges -->
+                    <div class="flex flex-wrap gap-2 pointer-events-auto">
+                        <div class="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2 shadow-lg">
+                            <span class="text-slate-400 text-xs font-medium">Net Force (F<sub>net</sub>):</span>
+                            <span id="readout-fnet" class="font-mono font-bold text-sm text-cyan-400">0.0 N</span>
+                        </div>
+                        <div class="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2 shadow-lg">
+                            <span class="text-slate-400 text-xs font-medium">Velocity (v):</span>
+                            <span id="readout-vel" class="font-mono font-bold text-sm text-emerald-400">0.0 m/s</span>
+                        </div>
+                        <div class="bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2 shadow-lg">
+                            <span class="text-slate-400 text-xs font-medium">Acceleration (a):</span>
+                            <span id="readout-acc" class="font-mono font-bold text-sm text-amber-400">0.0 m/s²</span>
+                        </div>
+                    </div>
+
+                    <!-- State Status Card -->
+                    <div id="motion-status-badge" class="pointer-events-auto bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 shadow-lg">
+                        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span id="motion-status-text">Balanced Forces (Stationary)</span>
+                    </div>
+                </div>
+
+                <!-- Canvas -->
+                <canvas id="simCanvas" class="w-full h-full flex-1 bg-slate-950 cursor-grab active:cursor-grabbing"></canvas>
+
+                <!-- Free Body Diagram Widget (Bottom Left Overlay) -->
+                <div class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-slate-800 p-3 rounded-xl shadow-xl hidden sm:block w-44 pointer-events-auto">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex justify-between items-center">
+                        <span>Free Body Diagram</span>
+                        <i class="fa-solid fa-arrows-to-dot text-slate-500"></i>
+                    </div>
+                    <canvas id="fbdCanvas" width="150" height="130" class="mx-auto"></canvas>
+                </div>
+
+                <!-- Interactive Push Controls Overlay (Bottom Center) -->
+                <div class="absolute bottom-3 right-3 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-2 rounded-xl shadow-xl pointer-events-auto">
+                    <button onmousedown="startAppliedForce(-1)" onmouseup="stopAppliedForce()" onmouseleave="stopAppliedForce()" ontouchstart="startAppliedForce(-1)" ontouchend="stopAppliedForce()" class="px-3.5 py-2 bg-rose-600/80 hover:bg-rose-500 active:scale-95 text-white font-bold rounded-lg transition-all flex items-center gap-1.5 text-xs shadow-md shadow-rose-900/30">
+                        <i class="fa-solid fa-arrow-left"></i> Push Left
+                    </button>
+                    <button onclick="zeroForces()" class="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-semibold rounded-lg transition-all text-xs" title="Reset Thrust / Push Force to 0">
+                        <i class="fa-solid fa-circle-minus"></i> Zero Force
+                    </button>
+                    <button onmousedown="startAppliedForce(1)" onmouseup="stopAppliedForce()" onmouseleave="stopAppliedForce()" ontouchstart="startAppliedForce(1)" ontouchend="stopAppliedForce()" class="px-3.5 py-2 bg-blue-600/80 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-lg transition-all flex items-center gap-1.5 text-xs shadow-md shadow-blue-900/30">
+                        Push Right <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulation Playback & Time Controls -->
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md">
+                <div class="flex items-center gap-2">
+                    <button id="btn-play" onclick="togglePlayPause()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl transition-all shadow-md flex items-center gap-2">
+                        <i id="play-icon" class="fa-solid fa-pause"></i> <span id="play-text">Pause</span>
+                    </button>
+                    <button onclick="stepSim()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5" title="Step forward 0.05 seconds">
+                        <i class="fa-solid fa-forward-step"></i> Step
+                    </button>
+                    <button onclick="resetSim()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+                </div>
+
+                <!-- Visual Options & Speed Toggles -->
+                <div class="flex items-center gap-4 text-xs text-slate-400">
+                    <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200">
+                        <input type="checkbox" id="chk-vectors" checked onchange="draw()" class="rounded accent-indigo-500">
+                        <span>Show Vectors</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200">
+                        <input type="checkbox" id="chk-values" checked onchange="draw()" class="rounded accent-indigo-500">
+                        <span>Show Values (N)</span>
+                    </label>
+                    <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                        <span class="text-[11px] font-medium text-slate-500">Speed:</span>
+                        <button onclick="setSimSpeed(0.5)" class="speed-btn px-1.5 py-0.5 rounded text-[11px] text-slate-400 hover:text-white">0.5x</button>
+                        <button onclick="setSimSpeed(1.0)" class="speed-btn px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px]">1x</button>
+                        <button onclick="setSimSpeed(2.0)" class="speed-btn px-1.5 py-0.5 rounded text-[11px] text-slate-400 hover:text-white">2x</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Force Control Sliders & Real-Time Graphs -->
+        <div class="w-full lg:w-96 flex flex-col gap-4 shrink-0">
+            
+            <!-- Physics Parameter Adjustment Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col gap-3.5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-400"></i> Object & Force Controls
+                    </h2>
+                    <span id="preset-title-badge" class="text-[11px] font-semibold text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
+                        Custom Lab
+                    </span>
+                </div>
+
+                <!-- Mass Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-medium mb-1">
+                        <span class="text-slate-300">Object Mass (m):</span>
+                        <span id="val-mass" class="font-mono text-indigo-400 font-bold">10 kg</span>
+                    </div>
+                    <input type="range" id="slider-mass" min="1" max="100" value="10" step="1" oninput="updateParams()" class="w-full accent-indigo-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Applied / Thrust Force Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-medium mb-1">
+                        <span class="text-slate-300">Applied Force / Thrust (F<sub>app</sub>):</span>
+                        <span id="val-applied" class="font-mono text-blue-400 font-bold">0 N</span>
+                    </div>
+                    <input type="range" id="slider-applied" min="-300" max="300" value="0" step="5" oninput="updateParams()" class="w-full accent-blue-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Surface Friction Coefficient Slider -->
+                <div id="friction-control-group">
+                    <div class="flex justify-between text-xs font-medium mb-1">
+                        <span class="text-slate-300 flex items-center gap-1.5">
+                            <span>Surface Friction (μ):</span>
+                            <span id="surface-type-label" class="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">Smooth</span>
+                        </span>
+                        <span id="val-friction" class="font-mono text-amber-400 font-bold">0.20</span>
+                    </div>
+                    <input type="range" id="slider-friction" min="0" max="1" value="0.2" step="0.05" oninput="updateParams()" class="w-full accent-amber-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+                    <!-- Quick Surface Presets -->
+                    <div class="flex gap-1.5 mt-2">
+                        <button onclick="setFrictionPreset(0.0)" class="flex-1 py-1 bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 rounded border border-slate-800 transition-all">Ice (0.0)</button>
+                        <button onclick="setFrictionPreset(0.2)" class="flex-1 py-1 bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 rounded border border-slate-800 transition-all">Wood (0.2)</button>
+                        <button onclick="setFrictionPreset(0.6)" class="flex-1 py-1 bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 rounded border border-slate-800 transition-all">Grass (0.6)</button>
+                    </div>
+                </div>
+
+                <!-- Air Drag Coefficient Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-medium mb-1">
+                        <span class="text-slate-300">Air Resistance / Drag (k):</span>
+                        <span id="val-drag" class="font-mono text-purple-400 font-bold">0.05</span>
+                    </div>
+                    <input type="range" id="slider-drag" min="0" max="0.5" value="0.05" step="0.01" oninput="updateParams()" class="w-full accent-purple-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Gravity & Environment Toggle -->
+                <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <span class="text-slate-300 font-medium">Gravity (g = 9.8 m/s²)</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-gravity" checked onchange="updateParams()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Live Telemetry Graph Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex-1 flex flex-col min-h-[220px]">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                    <h3 class="text-xs font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-emerald-400"></i> Motion Graphs (Time vs Speed / Net Force)
+                    </h3>
+                    <button onclick="clearGraphHistory()" class="text-[10px] text-slate-400 hover:text-slate-200 bg-slate-800 px-2 py-0.5 rounded transition-all">Clear</button>
+                </div>
+
+                <!-- Real-time Plot Canvas -->
+                <div class="flex-1 relative w-full h-full min-h-[140px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800/60">
+                    <canvas id="graphCanvas" class="w-full h-full"></canvas>
+                </div>
+
+                <!-- Graph Legend -->
+                <div class="flex items-center justify-center gap-6 text-[11px] font-medium mt-2">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-3 h-0.5 bg-emerald-400 rounded-full"></div>
+                        <span class="text-slate-300">Speed (m/s)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-3 h-0.5 bg-cyan-400 rounded-full"></div>
+                        <span class="text-slate-300">Net Force (N)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Key Concept Rules Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative">
+            <button onclick="toggleInfoModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-indigo-600/20 text-indigo-400 p-3 rounded-xl border border-indigo-500/30">
+                    <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">KS3 Forces & Motion Rules</h3>
+                    <p class="text-xs text-slate-400">Core Newton's Laws Summary for Lessons</p>
+                </div>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-300">
+                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-indigo-400 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-scale-balanced"></i> 1. Balanced Forces (Net Force = 0 N)
+                    </h4>
+                    <p class="leading-relaxed">
+                        If forces are equal and opposite, the resultant force is <strong>0 N</strong>.
+                    </p>
+                    <ul class="list-disc list-inside mt-1 space-y-1 text-slate-400">
+                        <li>If the object is <strong>stationary</strong>, it remains <strong>stationary</strong>.</li>
+                        <li>If the object is <strong>moving</strong>, it continues moving at a <strong>CONSTANT SPEED</strong> in a straight line.</li>
+                    </ul>
+                </div>
+
+                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-amber-400 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-gauge-high"></i> 2. Unbalanced Forces (Net Force ≠ 0 N)
+                    </h4>
+                    <p class="leading-relaxed">
+                        If forces do not cancel out, a <strong>resultant force</strong> exists. This causes the object to <strong>change speed</strong> (accelerate or decelerate).
+                    </p>
+                    <p class="mt-1 font-mono text-cyan-300 bg-cyan-950/40 p-1.5 rounded text-center border border-cyan-800/40">
+                        Acceleration (a) = Net Force (F) ÷ Mass (m)
+                    </p>
+                </div>
+
+                <div class="p-3 bg-rose-950/20 rounded-xl border border-rose-900/40">
+                    <h4 class="font-bold text-rose-400 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Common KS3 Misconception!
+                    </h4>
+                    <p class="leading-relaxed text-slate-300">
+                        <strong>"Balanced forces make moving objects stop."</strong> — <em>FALSE!</em> Friction or drag stops moving objects. Without friction, a moving object with balanced forces keeps moving forever at the exact same speed!
+                    </p>
+                </div>
+            </div>
+
+            <button onclick="toggleInfoModal()" class="w-full mt-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg">
+                Got it, Return to Lab
+            </button>
+        </div>
+    </div>
+
+    <!-- Misconception Quiz Modal -->
+    <div id="quizModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="toggleQuizModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-amber-500/20 text-amber-400 p-3 rounded-xl border border-amber-500/30">
+                    <i class="fa-solid fa-brain text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">KS3 Concept Challenge</h3>
+                    <p class="text-xs text-slate-400">Question <span id="quiz-num">1</span> of 5</p>
+                </div>
+            </div>
+
+            <div id="quiz-body" class="space-y-4">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <p id="quiz-question" class="text-sm text-slate-200 font-medium">Question text goes here...</p>
+                </div>
+
+                <div id="quiz-options" class="space-y-2 text-xs">
+                    <!-- Options injected via JavaScript -->
+                </div>
+
+                <div id="quiz-feedback" class="p-3 rounded-xl hidden text-xs font-medium">
+                    <!-- Feedback injected here -->
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mt-6 pt-3 border-t border-slate-800">
+                <span id="quiz-score" class="text-xs font-semibold text-slate-400">Score: 0/0</span>
+                <button id="quiz-next-btn" onclick="nextQuestion()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all hidden">
+                    Next Question <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Logic Script -->
+    <script>
+        /**
+         * Physics State & Global Variables
+         */
+        const state = {
+            preset: 'free',
+            playing: true,
+            simSpeed: 1.0,
+            
+            // Physical Parameters
+            mass: 10,           // kg
+            x: 0,               // position meters (0 = center)
+            vx: 0,              // velocity m/s
+            ax: 0,              // acceleration m/s²
+            
+            appliedForce: 0,    // N (positive = right, negative = left)
+            frictionCoeff: 0.2, // mu
+            dragCoeff: 0.05,    // air resistance coefficient k
+            gravityEnabled: true,
+            g: 9.81,            // m/s²
+
+            // Active push state via buttons
+            activePushDir: 0,
+            
+            // Visual / Canvas scaling
+            scale: 25,          // pixels per meter
+            time: 0,
+            
+            // Calculated Forces (N)
+            weight: 0,
+            normal: 0,
+            friction: 0,
+            drag: 0,
+            netForce: 0
+        };
+
+        // Telemetry Graph History
+        const graphHistory = {
+            maxPoints: 300,
+            time: [],
+            speed: [],
+            fnet: []
+        };
+
+        // References to Canvases
+        let simCanvas, simCtx;
+        let fbdCanvas, fbdCtx;
+        let graphCanvas, graphCtx;
+
+        // Visual Assets / Pre-render Helpers
+        let animFrameId = null;
+        let lastTimestamp = 0;
+
+        /**
+         * Initialization on DOM Ready
+         */
+        window.onload = function () {
+            simCanvas = document.getElementById('simCanvas');
+            simCtx = simCanvas.getContext('2d');
+
+            fbdCanvas = document.getElementById('fbdCanvas');
+            fbdCtx = fbdCanvas.getContext('2d');
+
+            graphCanvas = document.getElementById('graphCanvas');
+            graphCtx = graphCanvas.getContext('2d');
+
+            // Handle Resize
+            window.addEventListener('resize', resizeCanvases);
+            resizeCanvases();
+
+            // Set initial preset
+            setPreset('tug');
+
+            // Setup Quiz
+            loadQuizQuestion(0);
+
+            // Start Animation Loop
+            lastTimestamp = performance.now();
+            requestAnimationFrame(simLoop);
+        };
+
+        function resizeCanvases() {
+            const container = simCanvas.parentElement;
+            simCanvas.width = container.clientWidth;
+            simCanvas.height = container.clientHeight;
+
+            const graphContainer = graphCanvas.parentElement;
+            graphCanvas.width = graphContainer.clientWidth;
+            graphCanvas.height = graphContainer.clientHeight;
+
+            draw();
+            drawGraph();
+        }
+
+        /**
+         * Preset Configurations
+         */
+        function setPreset(type) {
+            state.preset = type;
+            state.vx = 0;
+            state.ax = 0;
+            state.x = 0;
+            state.time = 0;
+            clearGraphHistory();
+
+            // Update UI buttons styling
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('bg-slate-800', 'text-white', 'font-bold', 'border', 'border-slate-700');
+                btn.classList.add('text-slate-300');
+            });
+            const activeBtn = document.getElementById(`preset-${type}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-slate-800', 'text-white', 'font-bold', 'border', 'border-slate-700');
+            }
+
+            const titleBadge = document.getElementById('preset-title-badge');
+
+            switch (type) {
+                case 'tug':
+                    titleBadge.innerText = 'Preset: Box Push / Tug';
+                    state.mass = 15;
+                    state.appliedForce = 0;
+                    state.frictionCoeff = 0.3;
+                    state.dragCoeff = 0.0;
+                    state.gravityEnabled = true;
+                    break;
+
+                case 'car':
+                    titleBadge.innerText = 'Preset: Car Constant Speed';
+                    state.mass = 50;
+                    state.appliedForce = 120;
+                    state.vx = 15; // Start already moving!
+                    state.frictionCoeff = 0.15;
+                    state.dragCoeff = 0.04;
+                    state.gravityEnabled = true;
+                    break;
+
+                case 'skydive':
+                    titleBadge.innerText = 'Preset: Skydiver Drop';
+                    state.mass = 70;
+                    state.appliedForce = 0;
+                    state.vx = 0;
+                    state.frictionCoeff = 0.0; // No surface friction
+                    state.dragCoeff = 0.15; // High air resistance
+                    state.gravityEnabled = true;
+                    break;
+
+                case 'rocket':
+                    titleBadge.innerText = 'Preset: Rocket Launch';
+                    state.mass = 40;
+                    state.appliedForce = 600; // Vertical thrust upward
+                    state.vx = 0;
+                    state.frictionCoeff = 0.0;
+                    state.dragCoeff = 0.03;
+                    state.gravityEnabled = true;
+                    break;
+
+                case 'free':
+                default:
+                    titleBadge.innerText = 'Preset: Free Lab';
+                    state.mass = 10;
+                    state.appliedForce = 0;
+                    state.frictionCoeff = 0.2;
+                    state.dragCoeff = 0.05;
+                    state.gravityEnabled = true;
+                    break;
+            }
+
+            syncControlsFromState();
+            updatePhysicsCalculations(0);
+            draw();
+        }
+
+        function syncControlsFromState() {
+            document.getElementById('slider-mass').value = state.mass;
+            document.getElementById('val-mass').innerText = `${state.mass} kg`;
+
+            document.getElementById('slider-applied').value = state.appliedForce;
+            document.getElementById('val-applied').innerText = `${state.appliedForce} N`;
+
+            document.getElementById('slider-friction').value = state.frictionCoeff;
+            document.getElementById('val-friction').innerText = state.frictionCoeff.toFixed(2);
+
+            document.getElementById('slider-drag').value = state.dragCoeff;
+            document.getElementById('val-drag').innerText = state.dragCoeff.toFixed(2);
+
+            document.getElementById('toggle-gravity').checked = state.gravityEnabled;
+
+            // Update friction label
+            const fLabel = document.getElementById('surface-type-label');
+            if (state.frictionCoeff === 0) fLabel.innerText = "Icy / Frictionless";
+            else if (state.frictionCoeff < 0.3) fLabel.innerText = "Smooth Wood";
+            else if (state.frictionCoeff < 0.7) fLabel.innerText = "Rough Grass";
+            else fLabel.innerText = "High Friction Rubber";
+        }
+
+        function updateParams() {
+            state.mass = parseFloat(document.getElementById('slider-mass').value);
+            state.appliedForce = parseFloat(document.getElementById('slider-applied').value);
+            state.frictionCoeff = parseFloat(document.getElementById('slider-friction').value);
+            state.dragCoeff = parseFloat(document.getElementById('slider-drag').value);
+            state.gravityEnabled = document.getElementById('toggle-gravity').checked;
+
+            syncControlsFromState();
+            updatePhysicsCalculations(0);
+            draw();
+        }
+
+        function setFrictionPreset(val) {
+            document.getElementById('slider-friction').value = val;
+            updateParams();
+        }
+
+        function startAppliedForce(dir) {
+            state.activePushDir = dir;
+            state.appliedForce = dir * 150;
+            document.getElementById('slider-applied').value = state.appliedForce;
+            syncControlsFromState();
+        }
+
+        function stopAppliedForce() {
+            if (state.activePushDir !== 0) {
+                state.activePushDir = 0;
+                // Soft reset push force if using push buttons
+                state.appliedForce = 0;
+                document.getElementById('slider-applied').value = 0;
+                syncControlsFromState();
+            }
+        }
+
+        function zeroForces() {
+            state.appliedForce = 0;
+            document.getElementById('slider-applied').value = 0;
+            syncControlsFromState();
+        }
+
+        /**
+         * Core Physics Integration Step
+         */
+        function updatePhysicsCalculations(dt) {
+            const isVerticalMode = (state.preset === 'skydive' || state.preset === 'rocket');
+
+            if (isVerticalMode) {
+                // Vertical Physics (y-axis)
+                state.weight = state.gravityEnabled ? state.mass * state.g : 0;
+                state.normal = 0;
+
+                // Drag acts opposite to velocity
+                const dragMag = state.dragCoeff * state.vx * Math.abs(state.vx);
+                state.drag = -dragMag;
+
+                state.friction = 0;
+
+                // Rocket thrust or vertical applied force
+                // In rocket mode, applied force acts upward (+)
+                // Gravity acts downward (-)
+                let totalF = state.appliedForce - state.weight + state.drag;
+
+                state.netForce = totalF;
+                state.ax = state.netForce / state.mass;
+
+                if (dt > 0) {
+                    state.vx += state.ax * dt;
+                    state.x += state.vx * dt; // x acts as height here
+                }
+            } else {
+                // Horizontal Physics (x-axis)
+                state.weight = state.gravityEnabled ? state.mass * state.g : 0;
+                state.normal = state.weight; // On flat horizontal surface
+
+                // Max static/kinetic friction force magnitude
+                const maxFriction = state.frictionCoeff * state.normal;
+
+                // Air Drag Force (opposite to velocity direction)
+                const dragForce = -Math.sign(state.vx) * state.dragCoeff * (state.vx * state.vx);
+                state.drag = dragForce;
+
+                // Calculate Net Horizontal Force excluding friction first
+                let rawFx = state.appliedForce + state.drag;
+
+                // Calculate friction direction and magnitude
+                if (Math.abs(state.vx) > 0.01) {
+                    // Moving: Kinetic Friction resists velocity
+                    state.friction = -Math.sign(state.vx) * maxFriction;
+                } else {
+                    // Stationary: Static Friction opposes applied push up to maxFriction
+                    if (Math.abs(rawFx) <= maxFriction) {
+                        state.friction = -rawFx; // Perfectly balances applied force!
+                    } else {
+                        state.friction = -Math.sign(rawFx) * maxFriction;
+                    }
+                }
+
+                state.netForce = state.appliedForce + state.friction + state.drag;
+                
+                // Avoid tiny floating point jitter when static
+                if (Math.abs(state.vx) < 0.01 && Math.abs(state.netForce) < 0.05) {
+                    state.netForce = 0;
+                    state.vx = 0;
+                }
+
+                state.ax = state.netForce / state.mass;
+
+                if (dt > 0) {
+                    state.vx += state.ax * dt;
+                    state.x += state.vx * dt;
+
+                    // If velocity crossed zero due to friction, stop object
+                    if (Math.sign(state.vx - state.ax * dt) !== Math.sign(state.vx) && Math.abs(state.appliedForce) <= maxFriction && state.dragCoeff === 0) {
+                        // state.vx = 0;
+                    }
+                }
+            }
+
+            // Update UI Telemetry Readouts
+            document.getElementById('readout-fnet').innerText = `${state.netForce.toFixed(1)} N`;
+            document.getElementById('readout-vel').innerText = `${state.vx.toFixed(1)} m/s`;
+            document.getElementById('readout-acc').innerText = `${state.ax.toFixed(2)} m/s²`;
+
+            // Update Motion Status Badge Text
+            const badge = document.getElementById('motion-status-badge');
+            const statusText = document.getElementById('motion-status-text');
+
+            if (Math.abs(state.netForce) < 0.1) {
+                if (Math.abs(state.vx) < 0.1) {
+                    badge.className = "pointer-events-auto bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 shadow-lg";
+                    statusText.innerText = "Balanced Forces (Stationary)";
+                } else {
+                    badge.className = "pointer-events-auto bg-blue-500/10 border border-blue-500/30 text-blue-300 px-3 py-1.5 rounded-xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 shadow-lg";
+                    statusText.innerText = "Balanced Forces (Constant Speed!)";
+                }
+            } else {
+                if (state.netForce * state.vx > 0 || state.vx === 0) {
+                    badge.className = "pointer-events-auto bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 shadow-lg";
+                    statusText.innerText = "Unbalanced Forces (Accelerating)";
+                } else {
+                    badge.className = "pointer-events-auto bg-rose-500/10 border border-rose-500/30 text-rose-300 px-3 py-1.5 rounded-xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 shadow-lg";
+                    statusText.innerText = "Unbalanced Forces (Decelerating)";
+                }
+            }
+        }
+
+        /**
+         * Main Render & Loop Function
+         */
+        function simLoop(timestamp) {
+            const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.1);
+            lastTimestamp = timestamp;
+
+            if (state.playing) {
+                const stepDt = dt * state.simSpeed;
+                state.time += stepDt;
+                updatePhysicsCalculations(stepDt);
+                recordGraphPoint(state.time, Math.abs(state.vx), state.netForce);
+            }
+
+            draw();
+            drawFBD();
+            drawGraph();
+
+            requestAnimationFrame(simLoop);
+        }
+
+        /**
+         * Main Simulation Canvas Rendering
+         */
+        function draw() {
+            if (!simCtx) return;
+            const width = simCanvas.width;
+            const height = simCanvas.height;
+
+            // Clear Background
+            simCtx.clearRect(0, 0, width, height);
+
+            const isVertical = (state.preset === 'skydive' || state.preset === 'rocket');
+
+            if (isVertical) {
+                drawVerticalEnvironment(width, height);
+            } else {
+                drawHorizontalEnvironment(width, height);
+            }
+        }
+
+        function drawHorizontalEnvironment(width, height) {
+            const groundY = height * 0.7;
+
+            // Sky Background Gradient
+            const skyGrad = simCtx.createLinearGradient(0, 0, 0, groundY);
+            skyGrad.addColorStop(0, '#0f172a');
+            skyGrad.addColorStop(1, '#1e293b');
+            simCtx.fillStyle = skyGrad;
+            simCtx.fillRect(0, 0, width, groundY);
+
+            // Ground Surface (changes texture based on friction)
+            let groundColor = '#334155';
+            if (state.frictionCoeff === 0) groundColor = '#38bdf8'; // Ice blue
+            else if (state.frictionCoeff > 0.4) groundColor = '#15803d'; // Grass green
+
+            simCtx.fillStyle = groundColor;
+            simCtx.fillRect(0, groundY, width, height - groundY);
+
+            // Ground Top Border Line
+            simCtx.strokeStyle = '#64748b';
+            simCtx.lineWidth = 3;
+            simCtx.beginPath();
+            simCtx.moveTo(0, groundY);
+            simCtx.lineTo(width, groundY);
+            simCtx.stroke();
+
+            // Scrolling Grid Markers to show relative motion speed
+            const gridSpacing = 80;
+            const offsetX = (-state.x * state.scale) % gridSpacing;
+
+            simCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            simCtx.lineWidth = 1.5;
+            for (let x = offsetX - gridSpacing; x < width + gridSpacing; x += gridSpacing) {
+                simCtx.beginPath();
+                simCtx.moveTo(x, groundY);
+                simCtx.lineTo(x, groundY + 20);
+                simCtx.stroke();
+            }
+
+            // Object Position on Screen
+            const objWidth = 100 + Math.min(state.mass, 100) * 0.4;
+            const objHeight = 70;
+            const objX = width / 2 - objWidth / 2;
+            const objY = groundY - objHeight;
+
+            // Motion Blur / Velocity Trail
+            if (Math.abs(state.vx) > 1) {
+                const trailLen = Math.min(Math.abs(state.vx) * 3, 60);
+                const dir = Math.sign(state.vx);
+                const trailGrad = simCtx.createLinearGradient(objX + objWidth / 2, objY, objX + objWidth / 2 - dir * trailLen, objY);
+                trailGrad.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
+                trailGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                simCtx.fillStyle = trailGrad;
+                simCtx.fillRect(objX + (dir > 0 ? 0 : objWidth), objY, -dir * trailLen, objHeight);
+            }
+
+            // Draw Primary Object (Car or Box depending on preset)
+            if (state.preset === 'car') {
+                drawCar(objX, objY, objWidth, objHeight);
+            } else {
+                drawBox(objX, objY, objWidth, objHeight);
+            }
+
+            // Draw Force Vectors Overlay
+            const showVectors = document.getElementById('chk-vectors').checked;
+            const showValues = document.getElementById('chk-values').checked;
+
+            if (showVectors) {
+                const centerX = objX + objWidth / 2;
+                const centerY = objY + objHeight / 2;
+
+                // Applied Push/Thrust Vector (Blue)
+                if (Math.abs(state.appliedForce) > 0.5) {
+                    drawVectorArrow(simCtx, centerX, centerY, state.appliedForce * 0.7, 0, '#3b82f6', `Applied: ${Math.abs(state.appliedForce).toFixed(0)} N`, showValues);
+                }
+
+                // Friction Vector (Amber)
+                if (Math.abs(state.friction) > 0.5) {
+                    drawVectorArrow(simCtx, centerX, groundY - 5, state.friction * 0.7, 0, '#f59e0b', `Friction: ${Math.abs(state.friction).toFixed(0)} N`, showValues);
+                }
+
+                // Air Drag Vector (Purple)
+                if (Math.abs(state.drag) > 0.5) {
+                    drawVectorArrow(simCtx, centerX, centerY - 15, state.drag * 0.7, 0, '#a855f7', `Drag: ${Math.abs(state.drag).toFixed(0)} N`, showValues);
+                }
+
+                // Weight Vector Downward (Rose)
+                if (state.weight > 0) {
+                    drawVectorArrow(simCtx, centerX, centerY, 0, Math.min(state.weight * 0.3, 100), '#ef4444', `Weight: ${state.weight.toFixed(0)} N`, showValues);
+                }
+
+                // Normal Force Vector Upward (Emerald)
+                if (state.normal > 0) {
+                    drawVectorArrow(simCtx, centerX, centerY, 0, -Math.min(state.normal * 0.3, 100), '#10b981', `Normal: ${state.normal.toFixed(0)} N`, showValues);
+                }
+            }
+        }
+
+        function drawVerticalEnvironment(width, height) {
+            // Sky to Space Gradient background
+            const bgGrad = simCtx.createLinearGradient(0, 0, 0, height);
+            if (state.preset === 'rocket') {
+                bgGrad.addColorStop(0, '#020617'); // Space
+                bgGrad.addColorStop(1, '#1e1b4b'); // High atmosphere
+            } else {
+                bgGrad.addColorStop(0, '#0369a1'); // Sky blue
+                bgGrad.addColorStop(1, '#0f172a'); // Lower ground sky
+            }
+            simCtx.fillStyle = bgGrad;
+            simCtx.fillRect(0, 0, width, height);
+
+            // Cloud lines scrolling vertically
+            const offsetY = (state.x * state.scale) % height;
+            simCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            for (let i = 0; i < 5; i++) {
+                const cy = (offsetY + i * 150) % height;
+                simCtx.beginPath();
+                simCtx.arc(80 + (i * 120) % width, cy, 35, 0, Math.PI * 2);
+                simCtx.fill();
+            }
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            if (state.preset === 'skydive') {
+                // Skydiver Avatar
+                simCtx.fillStyle = '#f59e0b';
+                simCtx.beginPath();
+                simCtx.arc(centerX, centerY - 20, 14, 0, Math.PI * 2); // Head
+                simCtx.fill();
+
+                simCtx.strokeStyle = '#38bdf8';
+                simCtx.lineWidth = 8;
+                simCtx.lineCap = 'round';
+                // Body & Parachute Harness
+                simCtx.beginPath();
+                simCtx.moveTo(centerX, centerY - 10);
+                simCtx.lineTo(centerX, centerY + 25);
+                simCtx.stroke();
+
+                // Parachute canopy if deployed/high drag
+                if (state.dragCoeff > 0.1) {
+                    simCtx.fillStyle = '#ef4444';
+                    simCtx.beginPath();
+                    simCtx.arc(centerX, centerY - 70, 50, Math.PI, 0);
+                    simCtx.fill();
+                    simCtx.strokeStyle = '#ffffff';
+                    simCtx.lineWidth = 1.5;
+                    simCtx.beginPath();
+                    simCtx.moveTo(centerX - 45, centerY - 70);
+                    simCtx.lineTo(centerX, centerY - 20);
+                    simCtx.moveTo(centerX + 45, centerY - 70);
+                    simCtx.lineTo(centerX, centerY - 20);
+                    simCtx.stroke();
+                }
+            } else if (state.preset === 'rocket') {
+                // Rocket Body
+                simCtx.fillStyle = '#e2e8f0';
+                simCtx.fillRect(centerX - 20, centerY - 40, 40, 80);
+                // Nose Cone
+                simCtx.fillStyle = '#ef4444';
+                simCtx.beginPath();
+                simCtx.moveTo(centerX - 20, centerY - 40);
+                simCtx.lineTo(centerX + 20, centerY - 40);
+                simCtx.lineTo(centerX, centerY - 75);
+                simCtx.fill();
+
+                // Thrust Flame
+                if (state.appliedForce > 0) {
+                    const flameLen = Math.min(state.appliedForce * 0.2, 80);
+                    simCtx.fillStyle = '#f97316';
+                    simCtx.beginPath();
+                    simCtx.moveTo(centerX - 15, centerY + 40);
+                    simCtx.lineTo(centerX + 15, centerY + 40);
+                    simCtx.lineTo(centerX, centerY + 40 + flameLen + Math.random() * 10);
+                    simCtx.fill();
+                }
+            }
+
+            // Draw Vectors for Vertical Mode
+            const showVectors = document.getElementById('chk-vectors').checked;
+            const showValues = document.getElementById('chk-values').checked;
+
+            if (showVectors) {
+                // Thrust / Applied Upward (Blue)
+                if (state.appliedForce > 0.5) {
+                    drawVectorArrow(simCtx, centerX, centerY - 40, 0, -state.appliedForce * 0.3, '#3b82f6', `Thrust: ${state.appliedForce.toFixed(0)} N`, showValues);
+                }
+
+                // Air Drag (Purple - opposes motion direction)
+                if (Math.abs(state.drag) > 0.5) {
+                    drawVectorArrow(simCtx, centerX + 30, centerY, 0, -state.drag * 0.4, '#a855f7', `Drag: ${Math.abs(state.drag).toFixed(0)} N`, showValues);
+                }
+
+                // Weight (Rose - Downward)
+                if (state.weight > 0) {
+                    drawVectorArrow(simCtx, centerX, centerY + 30, 0, state.weight * 0.3, '#ef4444', `Weight: ${state.weight.toFixed(0)} N`, showValues);
+                }
+            }
+        }
+
+        // Object Drawing Helpers
+        function drawBox(x, y, w, h) {
+            simCtx.fillStyle = '#3b82f6';
+            simCtx.beginPath();
+            simCtx.roundRect(x, y, w, h, 12);
+            simCtx.fill();
+            simCtx.strokeStyle = '#60a5fa';
+            simCtx.lineWidth = 3;
+            simCtx.stroke();
+
+            // Label on Box
+            simCtx.fillStyle = '#ffffff';
+            simCtx.font = 'bold 13px Inter';
+            simCtx.textAlign = 'center';
+            simCtx.fillText(`${state.mass} kg`, x + w / 2, y + h / 2 + 5);
+        }
+
+        function drawCar(x, y, w, h) {
+            // Car Body
+            simCtx.fillStyle = '#10b981';
+            simCtx.beginPath();
+            simCtx.roundRect(x, y + 20, w, h - 20, 10);
+            simCtx.fill();
+
+            // Cabin Roof
+            simCtx.fillStyle = '#059669';
+            simCtx.beginPath();
+            simCtx.moveTo(x + 20, y + 20);
+            simCtx.lineTo(x + 35, y);
+            simCtx.lineTo(x + w - 25, y);
+            simCtx.lineTo(x + w - 10, y + 20);
+            simCtx.fill();
+
+            // Wheels
+            simCtx.fillStyle = '#0f172a';
+            simCtx.beginPath();
+            simCtx.arc(x + 25, y + h, 14, 0, Math.PI * 2);
+            simCtx.arc(x + w - 25, y + h, 14, 0, Math.PI * 2);
+            simCtx.fill();
+
+            simCtx.fillStyle = '#ffffff';
+            simCtx.font = 'bold 11px Inter';
+            simCtx.textAlign = 'center';
+            simCtx.fillText(`${state.mass} kg`, x + w / 2, y + 38);
+        }
+
+        /**
+         * Dynamic Vector Arrow Drawing Utility
+         */
+        function drawVectorArrow(ctx, startX, startY, dx, dy, color, label, showVal) {
+            const mag = Math.hypot(dx, dy);
+            if (mag < 2) return;
+
+            // Cap length for visual clarity
+            const maxPixelLen = 140;
+            const len = Math.min(mag, maxPixelLen);
+            const angle = Math.atan2(dy, dx);
+
+            const endX = startX + len * Math.cos(angle);
+            const endY = startY + len * Math.sin(angle);
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+
+            // Shaft
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            // Arrow Head
+            const headLen = 10;
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            // Label Text
+            if (showVal && label) {
+                ctx.font = 'bold 11px Inter';
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                const textX = endX + 25 * Math.cos(angle);
+                const textY = endY + 15 * Math.sin(angle);
+                ctx.fillText(label, textX, textY);
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * Free Body Diagram (FBD) Mini-Widget Rendering
+         */
+        function drawFBD() {
+            if (!fbdCtx) return;
+            const w = fbdCanvas.width;
+            const h = fbdCanvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            fbdCtx.clearRect(0, 0, w, h);
+
+            // Center Point representing Mass
+            fbdCtx.fillStyle = '#818cf8';
+            fbdCtx.beginPath();
+            fbdCtx.arc(cx, cy, 10, 0, Math.PI * 2);
+            fbdCtx.fill();
+
+            const scale = 0.25;
+
+            // F_Applied
+            if (Math.abs(state.appliedForce) > 0.5) {
+                drawVectorArrow(fbdCtx, cx, cy, state.appliedForce * scale, 0, '#3b82f6', null, false);
+            }
+            // Friction
+            if (Math.abs(state.friction) > 0.5) {
+                drawVectorArrow(fbdCtx, cx, cy, state.friction * scale, 0, '#f59e0b', null, false);
+            }
+            // Weight
+            if (state.weight > 0) {
+                drawVectorArrow(fbdCtx, cx, cy, 0, Math.min(state.weight * scale, 45), '#ef4444', null, false);
+            }
+            // Normal
+            if (state.normal > 0) {
+                drawVectorArrow(fbdCtx, cx, cy, 0, -Math.min(state.normal * scale, 45), '#10b981', null, false);
+            }
+            // Drag
+            if (Math.abs(state.drag) > 0.5) {
+                drawVectorArrow(fbdCtx, cx, cy, state.drag * scale, 0, '#a855f7', null, false);
+            }
+        }
+
+        /**
+         * Real-time Graphing Functions
+         */
+        function recordGraphPoint(t, speed, fnet) {
+            graphHistory.time.push(t);
+            graphHistory.speed.push(speed);
+            graphHistory.fnet.push(fnet);
+
+            if (graphHistory.time.length > graphHistory.maxPoints) {
+                graphHistory.time.shift();
+                graphHistory.speed.shift();
+                graphHistory.fnet.shift();
+            }
+        }
+
+        function clearGraphHistory() {
+            graphHistory.time = [];
+            graphHistory.speed = [];
+            graphHistory.fnet = [];
+            drawGraph();
+        }
+
+        function drawGraph() {
+            if (!graphCtx) return;
+            const w = graphCanvas.width;
+            const h = graphCanvas.height;
+
+            graphCtx.clearRect(0, 0, w, h);
+
+            if (graphHistory.time.length < 2) return;
+
+            const n = graphHistory.time.length;
+            const maxSpeed = Math.max(30, ...graphHistory.speed);
+            const maxForce = Math.max(100, ...graphHistory.fnet.map(Math.abs));
+
+            // Plot Speed (Emerald line)
+            graphCtx.strokeStyle = '#34d399';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+            for (let i = 0; i < n; i++) {
+                const px = (i / (graphHistory.maxPoints - 1)) * w;
+                const py = h - (graphHistory.speed[i] / maxSpeed) * (h - 20) - 10;
+                if (i === 0) graphCtx.moveTo(px, py);
+                else graphCtx.lineTo(px, py);
+            }
+            graphCtx.stroke();
+
+            // Plot Net Force (Cyan line)
+            graphCtx.strokeStyle = '#22d3ee';
+            graphCtx.lineWidth = 1.5;
+            graphCtx.setLineDash([3, 3]);
+            graphCtx.beginPath();
+            for (let i = 0; i < n; i++) {
+                const px = (i / (graphHistory.maxPoints - 1)) * w;
+                const py = h / 2 - (graphHistory.fnet[i] / maxForce) * (h / 2 - 15);
+                if (i === 0) graphCtx.moveTo(px, py);
+                else graphCtx.lineTo(px, py);
+            }
+            graphCtx.stroke();
+            graphCtx.setLineDash([]);
+        }
+
+        /**
+         * Simulation Control Helpers
+         */
+        function togglePlayPause() {
+            state.playing = !state.playing;
+            const btnText = document.getElementById('play-text');
+            const btnIcon = document.getElementById('play-icon');
+
+            if (state.playing) {
+                btnText.innerText = 'Pause';
+                btnIcon.className = 'fa-solid fa-pause';
+            } else {
+                btnText.innerText = 'Play';
+                btnIcon.className = 'fa-solid fa-play';
+            }
+        }
+
+        function stepSim() {
+            state.playing = false;
+            document.getElementById('play-text').innerText = 'Play';
+            document.getElementById('play-icon').className = 'fa-solid fa-play';
+
+            const dt = 0.05;
+            state.time += dt;
+            updatePhysicsCalculations(dt);
+            recordGraphPoint(state.time, Math.abs(state.vx), state.netForce);
+            draw();
+            drawFBD();
+            drawGraph();
+        }
+
+        function resetSim() {
+            state.vx = 0;
+            state.ax = 0;
+            state.x = 0;
+            state.time = 0;
+            clearGraphHistory();
+            updatePhysicsCalculations(0);
+            draw();
+        }
+
+        function setSimSpeed(spd) {
+            state.simSpeed = spd;
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.className = 'speed-btn px-1.5 py-0.5 rounded text-[11px] text-slate-400 hover:text-white';
+            });
+            event.target.className = 'speed-btn px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px]';
+        }
+
+        function toggleInfoModal() {
+            const modal = document.getElementById('infoModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function toggleQuizModal() {
+            const modal = document.getElementById('quizModal');
+            modal.classList.toggle('hidden');
+        }
+
+        /**
+         * Interactive Concept Quiz Data & Logic
+         */
+        const quizQuestions = [
+            {
+                q: "A car is traveling on a straight highway at a constant speed of 60 mph. What can you deduce about the forces acting on it?",
+                options: [
+                    "The forward thrust force is greater than friction & air drag.",
+                    "The net force is zero because the forces are balanced.",
+                    "There are no forces acting on the car at all.",
+                    "The car is decelerating slowly."
+                ],
+                correct: 1,
+                explanation: "Correct! Newton's First Law states that if an object moves at a CONSTANT SPEED, the net force MUST be 0 N (forces are perfectly balanced)."
+            },
+            {
+                q: "If you push a stationary heavy box with 50 N of force, but it does NOT move, what is the friction force?",
+                options: [
+                    "0 N",
+                    "50 N in the opposite direction",
+                    "100 N",
+                    "Greater than 50 N"
+                ],
+                correct: 1,
+                explanation: "Spot on! Because the box stays stationary, the net force is 0 N. Friction must produce an equal and opposite 50 N force."
+            },
+            {
+                q: "A parachutist reaches 'Terminal Velocity' during freefall. What does this mean?",
+                options: [
+                    "Gravity has stopped acting on the parachutist.",
+                    "Air resistance equals weight, so velocity remains constant.",
+                    "The parachutist immediately stops falling.",
+                    "Acceleration is at its maximum value."
+                ],
+                correct: 1,
+                explanation: "Exactly! At terminal velocity, air resistance upwards equals weight downwards ($F_{net} = 0$). Speed remains constant!"
+            },
+            {
+                q: "What happens to an object when an UNBALANCED force acts in the direction of its motion?",
+                options: [
+                    "It continues at constant speed.",
+                    "It immediately comes to a full stop.",
+                    "It accelerates (speed increases).",
+                    "Its mass increases."
+                ],
+                correct: 2,
+                explanation: "Great job! An unbalanced resultant force causes an acceleration ($F = ma$)."
+            },
+            {
+                q: "If an ice puck glides across perfectly frictionless ice in deep space, what force is needed to keep it moving at constant speed?",
+                options: [
+                    "0 N (No force is needed)",
+                    "A continuous push equal to its weight",
+                    "A force proportional to its speed",
+                    "A force that constantly increases"
+                ],
+                correct: 0,
+                explanation: "Correct! Objects in motion keep moving forever at constant velocity unless acted upon by an external force."
+            }
+        ];
+
+        let currentQuizIdx = 0;
+        let quizScore = 0;
+
+        function loadQuizQuestion(idx) {
+            currentQuizIdx = idx;
+            const q = quizQuestions[idx];
+
+            document.getElementById('quiz-num').innerText = idx + 1;
+            document.getElementById('quiz-question').innerText = q.q;
+
+            const optsContainer = document.getElementById('quiz-options');
+            optsContainer.innerHTML = '';
+
+            q.options.forEach((optText, i) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-all flex items-center justify-between";
+                btn.innerHTML = `<span>${optText}</span> <i class="fa-regular fa-circle text-slate-600"></i>`;
+                btn.onclick = () => checkQuizAnswer(i, btn);
+                optsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quiz-feedback').className = 'p-3 rounded-xl hidden text-xs font-medium';
+            document.getElementById('quiz-next-btn').classList.add('hidden');
+        }
+
+        function checkQuizAnswer(selectedIdx, btnEl) {
+            const q = quizQuestions[currentQuizIdx];
+            const feedbackEl = document.getElementById('quiz-feedback');
+            const allBtns = document.getElementById('quiz-options').children;
+
+            // Disable all buttons after choice
+            for (let b of allBtns) {
+                b.disabled = true;
+            }
+
+            if (selectedIdx === q.correct) {
+                quizScore++;
+                btnEl.className = "w-full text-left p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-200 flex items-center justify-between font-semibold";
+                btnEl.querySelector('i').className = "fa-solid fa-circle-check text-emerald-400";
+
+                feedbackEl.className = "p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs leading-relaxed block";
+                feedbackEl.innerText = q.explanation;
+            } else {
+                btnEl.className = "w-full text-left p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-200 flex items-center justify-between font-semibold";
+                btnEl.querySelector('i').className = "fa-solid fa-circle-xmark text-rose-400";
+
+                // Highlight correct button
+                allBtns[q.correct].className = "w-full text-left p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 flex items-center justify-between";
+
+                feedbackEl.className = "p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs leading-relaxed block";
+                feedbackEl.innerText = `Incorrect. ${q.explanation}`;
+            }
+
+            document.getElementById('quiz-score').innerText = `Score: ${quizScore}/${currentQuizIdx + 1}`;
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            if (currentQuizIdx + 1 < quizQuestions.length) {
+                loadQuizQuestion(currentQuizIdx + 1);
+            } else {
+                // Quiz Complete
+                document.getElementById('quiz-body').innerHTML = `
+                    <div class="text-center py-6 space-y-3">
+                        <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto border border-indigo-500/30 text-2xl">
+                            <i class="fa-solid fa-award"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white">Quiz Completed!</h4>
+                        <p class="text-xs text-slate-300">You scored <span class="font-bold text-indigo-400">${quizScore} out of ${quizQuestions.length}</span>.</p>
+                        <button onclick="loadQuizQuestion(0); quizScore=0; document.getElementById('quiz-score').innerText='Score: 0/0';" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all">
+                            Retake Quiz
+                        </button>
+                    </div>
+                `;
+                document.getElementById('quiz-next-btn').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
