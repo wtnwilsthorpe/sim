@@ -1,0 +1,2689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microscopy & Magnification Lab — Interactive Calculation Explorer</title>
+  <style>
+    :root {
+      --bg-app: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8fafc;
+      --border-color: #cbd5e1;
+      --border-light: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+
+      /* Semantic Variable Colors */
+      --color-I: #2563eb;       /* Image Size - Royal Blue */
+      --color-I-bg: #eff6ff;
+      --color-I-border: #bfdbfe;
+
+      --color-A: #059669;       /* Actual Size - Emerald Green */
+      --color-A-bg: #ecfdf5;
+      --color-A-border: #a7f3d0;
+
+      --color-M: #d97706;       /* Magnification - Amber/Orange */
+      --color-M-bg: #fffbeb;
+      --color-M-border: #fde68a;
+
+      --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      padding: 1rem 1.5rem;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand p {
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+
+    /* Mode Tabs */
+    .mode-tabs {
+      display: flex;
+      background: rgba(15, 23, 42, 0.55);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      gap: 4px;
+    }
+
+    .mode-tab {
+      border: none;
+      background: transparent;
+      color: #cbd5e1;
+      padding: 0.5rem 1rem;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .mode-tab:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .mode-tab.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Explore Mode Grid */
+    .lab-grid {
+      display: grid;
+      grid-template-columns: 330px minmax(360px, 1.15fr) 390px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+      .lab-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .panel-solver {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .lab-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card Component */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 0.9rem 1.15rem;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--bg-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .card-body {
+      padding: 1.15rem;
+    }
+
+    /* Algebraic Equation Selector & Rearrangement Controls */
+    .algebra-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .alg-btn {
+      width: 100%;
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.55rem 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+
+    .alg-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .alg-btn .alg-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .alg-btn .alg-eq {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.86rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+    }
+
+    .alg-btn.active-M {
+      background: var(--color-M-bg);
+      border-color: var(--color-M);
+      box-shadow: 0 0 0 1px var(--color-M);
+    }
+    .alg-btn.active-M .alg-eq {
+      color: #b45309;
+      border-color: var(--color-M-border);
+    }
+
+    .alg-btn.active-A {
+      background: var(--color-A-bg);
+      border-color: var(--color-A);
+      box-shadow: 0 0 0 1px var(--color-A);
+    }
+    .alg-btn.active-A .alg-eq {
+      color: #047857;
+      border-color: var(--color-A-border);
+    }
+
+    .alg-btn.active-I {
+      background: var(--color-I-bg);
+      border-color: var(--color-I);
+      box-shadow: 0 0 0 1px var(--color-I);
+    }
+    .alg-btn.active-I .alg-eq {
+      color: #1d4ed8;
+      border-color: var(--color-I-border);
+    }
+
+    .formula-banner {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border-radius: var(--radius-md);
+      text-align: center;
+      font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 1.15rem;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+      margin-bottom: 0.4rem;
+    }
+
+    .formula-banner.mode-M {
+      background: var(--color-M-bg);
+      border-color: var(--color-M-border);
+      color: #92400e;
+    }
+    .formula-banner.mode-I {
+      background: var(--color-I-bg);
+      border-color: var(--color-I-border);
+      color: #1e40af;
+    }
+    .formula-banner.mode-A {
+      background: var(--color-A-bg);
+      border-color: var(--color-A-border);
+      color: #065f46;
+    }
+
+    .formula-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: center;
+      background: var(--bg-subtle);
+      padding: 0.45rem 0.65rem;
+      border-radius: 7px;
+      border: 1px solid var(--border-light);
+    }
+
+    /* Variable Inputs */
+    .var-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-top: 1rem;
+    }
+
+    .var-box {
+      border: 1.5px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 0.75rem;
+      transition: all 0.2s ease;
+      background: #ffffff;
+    }
+
+    .var-box.target-I {
+      background: var(--color-I-bg);
+      border-color: var(--color-I);
+    }
+    .var-box.target-A {
+      background: var(--color-A-bg);
+      border-color: var(--color-A);
+    }
+    .var-box.target-M {
+      background: var(--color-M-bg);
+      border-color: var(--color-M);
+    }
+
+    .var-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.45rem;
+    }
+
+    .var-label {
+      font-size: 0.84rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.12rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-I { background: var(--color-I); color: #fff; }
+    .badge-A { background: var(--color-A); color: #fff; }
+    .badge-M { background: var(--color-M); color: #fff; }
+
+    .target-pill {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.08);
+      color: var(--text-main);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.45rem;
+    }
+
+    .input-row input,
+    .input-row select {
+      border: 1px solid var(--border-color);
+      border-radius: 7px;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .input-row input:focus,
+    .input-row select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .input-row input:disabled {
+      background: rgba(255, 255, 255, 0.75);
+      color: var(--text-main);
+      font-weight: 800;
+      cursor: not-allowed;
+      border-style: dashed;
+    }
+
+    /* Microscope Viewport Center Panel */
+    .specimen-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .specimen-btn {
+      flex: 1 1 calc(33.333% - 0.5rem);
+      min-width: 115px;
+      padding: 0.45rem 0.55rem;
+      border: 1px solid var(--border-color);
+      background: var(--bg-subtle);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+
+    .specimen-btn:hover {
+      border-color: #94a3b8;
+      background: #f1f5f9;
+    }
+
+    .specimen-btn.active {
+      border-color: var(--color-A);
+      background: var(--color-A-bg);
+      box-shadow: 0 0 0 1px var(--color-A);
+    }
+
+    .specimen-btn .sp-name {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .specimen-btn .sp-size {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--color-A);
+      font-weight: 600;
+    }
+
+    /* Canvas Container */
+    .viewport-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 440px;
+      margin: 0 auto;
+      background: #090d16;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6), var(--shadow-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      touch-action: none;
+    }
+
+    canvas#microscopeCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 10px;
+      cursor: crosshair;
+    }
+
+    .viewport-controls {
+      margin-top: 0.95rem;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .mag-readout {
+      color: var(--color-M);
+      background: var(--color-M-bg);
+      border: 1px solid var(--color-M-border);
+      padding: 0.15rem 0.55rem;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.92rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--color-M);
+      cursor: pointer;
+    }
+
+    .preset-mags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .preset-mag-btn {
+      flex: 1;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+
+    .preset-mag-btn:hover {
+      background: var(--color-M-bg);
+      color: var(--color-M);
+      border-color: var(--color-M-border);
+    }
+
+    .viewport-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding-top: 0.4rem;
+      border-top: 1px solid var(--border-light);
+      font-size: 0.8rem;
+    }
+
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .btn-sm {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid var(--color-I-border);
+      background: var(--color-I-bg);
+      color: var(--color-I);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-sm:hover {
+      background: var(--color-I);
+      color: #ffffff;
+    }
+
+    .caliper-tip {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      background: #fff;
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      border-left: 3px solid var(--color-I);
+    }
+
+    /* Right Panel: Unit Ladder & Step-by-Step Solver */
+    .unit-ladder {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .ladder-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-light);
+      margin-bottom: 0.55rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ladder-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.25rem;
+      text-align: center;
+    }
+
+    .ladder-node {
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.35rem 0.5rem;
+      min-width: 56px;
+      transition: all 0.2s;
+    }
+
+    .ladder-node.active-unit {
+      border-color: var(--color-I);
+      background: var(--color-I-bg);
+      color: var(--color-I);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    .ladder-node strong {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .ladder-node span {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--text-light);
+    }
+
+    .ladder-arrows {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      line-height: 1.25;
+    }
+
+    .arrow-top {
+      color: #2563eb;
+      border-bottom: 1px dashed #cbd5e1;
+      padding-bottom: 2px;
+      margin-bottom: 2px;
+    }
+
+    .arrow-bot {
+      color: #059669;
+    }
+
+    /* Step-by-Step Cards */
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .step-item {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 0.85rem;
+      background: #ffffff;
+      position: relative;
+    }
+
+    .step-item.step-final {
+      background: #f8fafc;
+      border: 1.5px solid #94a3b8;
+    }
+
+    .step-num {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-light);
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .step-content {
+      font-size: 0.88rem;
+      color: var(--text-main);
+    }
+
+    .math-block {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      margin-top: 0.4rem;
+      font-size: 0.86rem;
+      overflow-x: auto;
+    }
+
+    .highlight-I { color: var(--color-I); font-weight: 700; }
+    .highlight-A { color: var(--color-A); font-weight: 700; }
+    .highlight-M { color: var(--color-M); font-weight: 700; }
+
+    .final-answer-box {
+      margin-top: 0.45rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .final-answer-box.ans-I { background: var(--color-I-bg); color: var(--color-I); border: 1px solid var(--color-I-border); }
+    .final-answer-box.ans-A { background: var(--color-A-bg); color: var(--color-A); border: 1px solid var(--color-A-border); }
+    .final-answer-box.ans-M { background: var(--color-M-bg); color: var(--color-M); border: 1px solid var(--color-M-border); }
+
+    /* Quiz Mode Styles */
+    .quiz-container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .quiz-stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 0.9rem 1.25rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-pills {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .difficulty-select {
+      padding: 0.4rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 0.85rem;
+      background: #fff;
+    }
+
+    .question-prompt {
+      font-size: 1.12rem;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.6;
+      background: var(--bg-subtle);
+      border-left: 4px solid #3b82f6;
+      padding: 1rem 1.2rem;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 1.25rem;
+    }
+
+    .quiz-visual-cue {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+      padding: 0.75rem;
+      background: #ffffff;
+      border: 1px dashed var(--border-color);
+      border-radius: 10px;
+    }
+
+    .cue-chip {
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .quiz-answer-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-answer-area input {
+      flex: 1;
+      min-width: 180px;
+      padding: 0.65rem 0.85rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: 2px solid var(--border-color);
+      border-radius: 9px;
+      outline: none;
+    }
+
+    .quiz-answer-area input:focus {
+      border-color: #2563eb;
+    }
+
+    .quiz-answer-area select {
+      padding: 0.65rem 0.85rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border: 2px solid var(--border-color);
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 0.68rem 1.25rem;
+      border-radius: 9px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      padding: 0.65rem 1.1rem;
+      border-radius: 9px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .feedback-box {
+      padding: 0.9rem 1.1rem;
+      border-radius: 10px;
+      font-weight: 600;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .feedback-box.correct {
+      display: block;
+      background: #ecfdf5;
+      border: 1.5px solid #10b981;
+      color: #065f46;
+    }
+
+    .feedback-box.incorrect {
+      display: block;
+      background: #fef2f2;
+      border: 1.5px solid #ef4444;
+      color: #991b1b;
+    }
+
+    .worked-solution-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .worked-solution-box.visible {
+      display: block;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.78rem;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 18h8"/>
+          <path d="M3 22h18"/>
+          <path d="M14 22a7 7 0 1 0 0-14h-1"/>
+          <path d="M9 14h2"/>
+          <path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/>
+          <path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Microscopy &amp; Magnification Lab</h1>
+        <p>Interactive Visual Guide to <strong>M = I &divide; A</strong> &amp; Unit Conversions</p>
+      </div>
+    </div>
+
+    <div class="mode-tabs" role="tablist">
+      <button class="mode-tab active" id="tabExplore" role="tab" aria-selected="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Interactive Lab
+      </button>
+      <button class="mode-tab" id="tabQuiz" role="tab" aria-selected="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Practice Quiz
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ==================== EXPLORE / SIMULATION VIEW ==================== -->
+    <section id="exploreView" class="lab-grid">
+
+      <!-- LEFT COLUMN: Algebraic Rearrangement & Variable Inputs -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 4H6l6 8-6 8h12"/></svg>
+            1. Algebraic Equation
+          </span>
+          <span style="font-size: 0.72rem; color: var(--text-light); font-weight: 600;">Choose target variable</span>
+        </div>
+        <div class="card-body">
+          <div class="algebra-selector" role="group" aria-label="Select variable to solve for">
+            <button type="button" id="btnSolveM" class="alg-btn active-M" aria-pressed="true">
+              <span class="alg-label">Solve for Magnification</span>
+              <span class="alg-eq">M = I &divide; A</span>
+            </button>
+            <button type="button" id="btnSolveA" class="alg-btn" aria-pressed="false">
+              <span class="alg-label">Solve for Actual Size</span>
+              <span class="alg-eq">A = I &divide; M</span>
+            </button>
+            <button type="button" id="btnSolveI" class="alg-btn" aria-pressed="false">
+              <span class="alg-label">Solve for Image Size</span>
+              <span class="alg-eq">I = A &times; M</span>
+            </button>
+          </div>
+
+          <div id="formulaBanner" class="formula-banner mode-M">
+            M = I &divide; A
+          </div>
+          <p id="formulaHint" class="formula-hint">
+            <strong>Base Equation:</strong> Magnification is the ratio of Image size (I) to Actual size (A).
+          </p>
+
+          <!-- Variable Inputs -->
+          <div class="var-group">
+            <!-- Image Size (I) -->
+            <div class="var-box" id="boxI">
+              <div class="var-header">
+                <span class="var-label" style="color: var(--color-I);">
+                  <span class="badge badge-I">I</span> Image Size (Drawing / Photo)
+                </span>
+                <span class="target-pill hidden" id="pillI">SOLVING FOR I</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="inputI" step="any" min="0.0001" value="24" aria-label="Image size value" />
+                <select id="unitI" aria-label="Image size unit">
+                  <option value="mm" selected>mm</option>
+                  <option value="cm">cm</option>
+                  <option value="um">&mu;m</option>
+                  <option value="nm">nm</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Actual Size (A) -->
+            <div class="var-box" id="boxA">
+              <div class="var-header">
+                <span class="var-label" style="color: var(--color-A);">
+                  <span class="badge badge-A">A</span> Actual Specimen Size
+                </span>
+                <span class="target-pill hidden" id="pillA">SOLVING FOR A</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="inputA" step="any" min="0.0001" value="60" aria-label="Actual size value" />
+                <select id="unitA" aria-label="Actual size unit">
+                  <option value="mm">mm</option>
+                  <option value="um" selected>&mu;m</option>
+                  <option value="nm">nm</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Magnification (M) -->
+            <div class="var-box target-M" id="boxM">
+              <div class="var-header">
+                <span class="var-label" style="color: var(--color-M);">
+                  <span class="badge badge-M">M</span> Magnification
+                </span>
+                <span class="target-pill" id="pillM">SOLVING FOR M</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="inputM" step="any" min="1" value="400" disabled aria-label="Magnification value" />
+                <span style="display:flex; align-items:center; padding: 0 0.65rem; font-weight:800; color:var(--color-M); background:#fff; border:1px solid var(--border-color); border-radius:7px;">&times;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER COLUMN: Interactive Microscope Viewport -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+            2. Microscope Field of View
+          </span>
+          <span id="microscopeTypeBadge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 6px; background: #e0f2fe; color: #0369a1;">
+            Light Microscope
+          </span>
+        </div>
+        <div class="card-body">
+          <!-- Specimen Presets -->
+          <div class="specimen-bar" id="specimenBar" role="group" aria-label="Biological Specimen Presets">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Microscope Canvas -->
+          <div class="viewport-container">
+            <canvas id="microscopeCanvas"></canvas>
+          </div>
+
+          <!-- Magnification & Ruler Controls -->
+          <div class="viewport-controls">
+            <div>
+              <div class="slider-header">
+                <span>Optical / Digital Magnification</span>
+                <span class="mag-readout" id="sliderMagLabel">400&times;</span>
+              </div>
+              <input type="range" id="magSlider" min="0" max="1000" value="460" aria-label="Magnification slider" />
+              <div class="preset-mags" style="margin-top: 0.45rem;">
+                <button class="preset-mag-btn" data-mag="40">40&times;</button>
+                <button class="preset-mag-btn" data-mag="100">100&times;</button>
+                <button class="preset-mag-btn" data-mag="400">400&times;</button>
+                <button class="preset-mag-btn" data-mag="1000">1,000&times;</button>
+                <button class="preset-mag-btn" data-mag="10000">10,000&times; (EM)</button>
+                <button class="preset-mag-btn" data-mag="100000">100,000&times; (EM)</button>
+              </div>
+            </div>
+
+            <div class="viewport-toggles">
+              <label class="toggle-label">
+                <input type="checkbox" id="toggleCaliper" checked />
+                Show Measurement Caliper (I)
+              </label>
+              <label class="toggle-label">
+                <input type="checkbox" id="toggleGrid" checked />
+                Eyepiece Graticule
+              </label>
+              <button class="btn-sm" id="btnSnapCaliper" title="Snap caliper handles to specimen width">
+                Snap Caliper to Specimen
+              </button>
+            </div>
+
+            <div class="caliper-tip">
+              <strong>Interactive Caliper:</strong> Drag the blue handles <strong>(A &amp; B)</strong> across the specimen in the viewport to measure its <strong>Image Size (I)</strong> in millimeters!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Unit Conversion Ladder & Step-by-Step Solver -->
+      <div class="card panel-solver">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2"><path d="M4 19h16"/><path d="M4 15h16"/><path d="M4 11h16"/><path d="M4 7h16"/></svg>
+            3. Step-by-Step Calculation
+          </span>
+          <label class="toggle-label" style="font-size: 0.74rem;">
+            <input type="checkbox" id="toggleStdForm" />
+            Standard Form
+          </label>
+        </div>
+        <div class="card-body">
+          <!-- Unit Conversion Ladder -->
+          <div class="unit-ladder">
+            <div class="ladder-title">
+              <span>Unit Conversion Ladder</span>
+              <span>1 mm = 1,000 &mu;m</span>
+            </div>
+            <div class="ladder-diagram">
+              <div class="ladder-node" id="node-mm">
+                <strong>mm</strong>
+                <span>10<sup>-3</sup> m</span>
+              </div>
+              <div class="ladder-arrows">
+                <span class="arrow-top">&times; 1,000 &rarr;</span>
+                <span class="arrow-bot">&larr; &divide; 1,000</span>
+              </div>
+              <div class="ladder-node" id="node-um">
+                <strong>&mu;m</strong>
+                <span>10<sup>-6</sup> m</span>
+              </div>
+              <div class="ladder-arrows">
+                <span class="arrow-top">&times; 1,000 &rarr;</span>
+                <span class="arrow-bot">&larr; &divide; 1,000</span>
+              </div>
+              <div class="ladder-node" id="node-nm">
+                <strong>nm</strong>
+                <span>10<sup>-9</sup> m</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Steps -->
+          <div class="steps-list" id="stepsContainer">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== PRACTICE / QUIZ VIEW ==================== -->
+    <section id="quizView" class="quiz-container hidden">
+      <div class="quiz-stats-bar">
+        <div class="stat-pills">
+          <div class="stat-pill">Score: <span id="quizScore" style="color: var(--color-A);">0</span> / <span id="quizTotal">0</span></div>
+          <div class="stat-pill">Streak: <span id="quizStreak" style="color: var(--color-M);">0</span> &#128293;</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label for="quizDifficulty" style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">Level:</label>
+          <select id="quizDifficulty" class="difficulty-select">
+            <option value="mixed" selected>Mixed Exam Questions</option>
+            <option value="foundation">Foundation (Same / Simple Units)</option>
+            <option value="higher">Higher (mm, &mu;m &amp; nm Conversions)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" id="quizQuestionHeader">Question 1 — Calculate Magnification (M)</span>
+          <span class="badge badge-M" id="quizTargetBadge">Find M</span>
+        </div>
+        <div class="card-body">
+          <div class="question-prompt" id="quizPromptText">
+            Loading question...
+          </div>
+
+          <div class="quiz-visual-cue" id="quizVisualCue">
+            <!-- Populated by JS -->
+          </div>
+
+          <div class="quiz-answer-area">
+            <input type="number" id="quizInput" step="any" placeholder="Enter your numerical answer..." aria-label="Quiz numerical answer" />
+            <select id="quizUnitSelect" aria-label="Quiz answer unit">
+              <option value="x">&times; (magnification)</option>
+              <option value="mm">mm</option>
+              <option value="um">&mu;m</option>
+              <option value="nm">nm</option>
+            </select>
+            <button class="btn-primary" id="btnCheckAnswer">Check Answer</button>
+            <button class="btn-secondary" id="btnShowSolution">Show Worked Steps</button>
+            <button class="btn-secondary" id="btnNextQuestion">Next Question &rarr;</button>
+          </div>
+
+          <div id="quizFeedback" class="feedback-box"></div>
+
+          <div id="quizWorkedSolution" class="worked-solution-box">
+            <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-main);">Worked Solution:</h4>
+            <div id="quizSolutionSteps" class="steps-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Interactive Biology &amp; Microscopy Simulation &bull; Remember: Always convert <strong>Image Size (I)</strong> and <strong>Actual Size (A)</strong> into the same units before dividing!
+  </footer>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* =========================================================================
+         1. DATA & CONSTANTS
+         ========================================================================= */
+
+      // Conversion factors relative to 1 micrometer (µm)
+      const UNIT_TO_UM = {
+        cm: 10000,
+        mm: 1000,
+        um: 1,
+        nm: 0.001
+      };
+
+      const UNIT_LABELS = {
+        cm: "cm",
+        mm: "mm",
+        um: "µm",
+        nm: "nm"
+      };
+
+      // Biological specimens with realistic dimensions (in µm) and default microscope settings
+      const SPECIMENS = [
+        {
+          id: "cheek",
+          name: "Human Cheek Cell",
+          category: "Animal Cell",
+          actualUm: 60,
+          defaultMag: 400,
+          defaultUnitI: "mm",
+          defaultUnitA: "um",
+          color: "#ec4899",
+          description: "Irregular eukaryotic animal cell with prominent central nucleus."
+        },
+        {
+          id: "rbc",
+          name: "Red Blood Cell",
+          category: "Human Erythrocyte",
+          actualUm: 7.5,
+          defaultMag: 1000,
+          defaultUnitI: "mm",
+          defaultUnitA: "um",
+          color: "#dc2626",
+          description: "Biconcave disc without a nucleus, adapted for oxygen transport."
+        },
+        {
+          id: "onion",
+          name: "Onion Epidermal Cell",
+          category: "Plant Cell",
+          actualUm: 250,
+          defaultMag: 100,
+          defaultUnitI: "mm",
+          defaultUnitA: "um",
+          color: "#16a34a",
+          description: "Rectangular plant cell with rigid cellulose cell wall and large vacuole."
+        },
+        {
+          id: "ecoli",
+          name: "E. coli Bacterium",
+          category: "Prokaryote",
+          actualUm: 2.0,
+          defaultMag: 10000,
+          defaultUnitI: "mm",
+          defaultUnitA: "um",
+          color: "#0284c7",
+          description: "Rod-shaped (bacillus) prokaryotic bacterium with flagella."
+        },
+        {
+          id: "mitochondrion",
+          name: "Mitochondrion",
+          category: "Organelle",
+          actualUm: 3.0,
+          defaultMag: 15000,
+          defaultUnitI: "mm",
+          defaultUnitA: "um",
+          color: "#ea580c",
+          description: "Double-membrane organelle with folded cristae for aerobic respiration."
+        },
+        {
+          id: "virus",
+          name: "Influenza Virus",
+          category: "Virion (EM)",
+          actualUm: 0.1, // 100 nm
+          defaultMag: 100000,
+          defaultUnitI: "mm",
+          defaultUnitA: "nm",
+          color: "#7c3aed",
+          description: "Spherical enveloped virus studded with surface glycoproteins (100 nm)."
+        }
+      ];
+
+      // Physical calibration for the circular field of view on screen:
+      // Let the circular microscope field of view represent an image diameter of 100 mm (10 cm) on a standard exam print/projection.
+      const FOV_IMAGE_MM = 100;
+
+      /* =========================================================================
+         2. APPLICATION STATE
+         ========================================================================= */
+      const state = {
+        solveFor: "M", // 'M' | 'I' | 'A'
+        specimenId: "cheek",
+        // Stored values in user-selected display units
+        valI: 24,
+        unitI: "mm",
+        valA: 60,
+        unitA: "um",
+        valM: 400,
+        // Viewport options
+        showCaliper: true,
+        showGrid: true,
+        useStdForm: false,
+        // Caliper endpoints in normalized canvas coordinates (-1 to +1 relative to FOV radius)
+        caliperA: { x: -0.24, y: 0.0 },
+        caliperB: { x: 0.24, y: 0.0 },
+        draggingHandle: null // 'A' | 'B' | 'BAR' | null
+      };
+
+      /* =========================================================================
+         3. DOM REFERENCES
+         ========================================================================= */
+      const el = {
+        tabExplore: document.getElementById("tabExplore"),
+        tabQuiz: document.getElementById("tabQuiz"),
+        exploreView: document.getElementById("exploreView"),
+        quizView: document.getElementById("quizView"),
+
+        btnSolveI: document.getElementById("btnSolveI"),
+        btnSolveA: document.getElementById("btnSolveA"),
+        btnSolveM: document.getElementById("btnSolveM"),
+        formulaBanner: document.getElementById("formulaBanner"),
+        formulaHint: document.getElementById("formulaHint"),
+
+        boxI: document.getElementById("boxI"),
+        boxA: document.getElementById("boxA"),
+        boxM: document.getElementById("boxM"),
+        pillI: document.getElementById("pillI"),
+        pillA: document.getElementById("pillA"),
+        pillM: document.getElementById("pillM"),
+
+        inputI: document.getElementById("inputI"),
+        unitI: document.getElementById("unitI"),
+        inputA: document.getElementById("inputA"),
+        unitA: document.getElementById("unitA"),
+        inputM: document.getElementById("inputM"),
+
+        specimenBar: document.getElementById("specimenBar"),
+        microscopeTypeBadge: document.getElementById("microscopeTypeBadge"),
+        canvas: document.getElementById("microscopeCanvas"),
+        magSlider: document.getElementById("magSlider"),
+        sliderMagLabel: document.getElementById("sliderMagLabel"),
+        toggleCaliper: document.getElementById("toggleCaliper"),
+        toggleGrid: document.getElementById("toggleGrid"),
+        btnSnapCaliper: document.getElementById("btnSnapCaliper"),
+
+        toggleStdForm: document.getElementById("toggleStdForm"),
+        stepsContainer: document.getElementById("stepsContainer"),
+        nodeMm: document.getElementById("node-mm"),
+        nodeUm: document.getElementById("node-um"),
+        nodeNm: document.getElementById("node-nm"),
+
+        // Quiz elements
+        quizScore: document.getElementById("quizScore"),
+        quizTotal: document.getElementById("quizTotal"),
+        quizStreak: document.getElementById("quizStreak"),
+        quizDifficulty: document.getElementById("quizDifficulty"),
+        quizQuestionHeader: document.getElementById("quizQuestionHeader"),
+        quizTargetBadge: document.getElementById("quizTargetBadge"),
+        quizPromptText: document.getElementById("quizPromptText"),
+        quizVisualCue: document.getElementById("quizVisualCue"),
+        quizInput: document.getElementById("quizInput"),
+        quizUnitSelect: document.getElementById("quizUnitSelect"),
+        btnCheckAnswer: document.getElementById("btnCheckAnswer"),
+        btnShowSolution: document.getElementById("btnShowSolution"),
+        btnNextQuestion: document.getElementById("btnNextQuestion"),
+        quizFeedback: document.getElementById("quizFeedback"),
+        quizWorkedSolution: document.getElementById("quizWorkedSolution"),
+        quizSolutionSteps: document.getElementById("quizSolutionSteps")
+      };
+
+      const ctx = el.canvas.getContext("2d");
+
+      /* =========================================================================
+         4. NUMBER FORMATTING HELPERS
+         ========================================================================= */
+      function formatNumber(num, forceStd = false) {
+        if (!isFinite(num) || isNaN(num)) return "—";
+        if (num === 0) return "0";
+
+        const abs = Math.abs(num);
+        if (forceStd || abs >= 1e6 || (abs > 0 && abs < 0.001)) {
+          const expStr = num.toExponential(2); // e.g., "2.50e+4"
+          const [coeff, exp] = expStr.split("e");
+          const cleanCoeff = parseFloat(coeff).toString();
+          const cleanExp = parseInt(exp, 10);
+          return `${cleanCoeff} × 10^${cleanExp}`;
+        }
+
+        // Round cleanly to up to 4 significant decimal places without trailing zeros
+        if (abs >= 100) {
+          return Number(num.toFixed(1)).toLocaleString("en-GB");
+        } else if (abs >= 1) {
+          return Number(num.toFixed(2)).toLocaleString("en-GB");
+        } else {
+          return Number(num.toPrecision(3)).toString();
+        }
+      }
+
+      function formatHTMLNumber(num, forceStd = false) {
+        if (!isFinite(num) || isNaN(num)) return "—";
+        if (num === 0) return "0";
+
+        const abs = Math.abs(num);
+        if (forceStd || abs >= 1e6 || (abs > 0 && abs < 0.001)) {
+          const expStr = num.toExponential(2);
+          const [coeff, exp] = expStr.split("e");
+          const cleanCoeff = parseFloat(coeff).toString();
+          const cleanExp = parseInt(exp, 10);
+          return `${cleanCoeff} &times; 10<sup>${cleanExp}</sup>`;
+        }
+
+        if (abs >= 100) {
+          return Number(num.toFixed(1)).toLocaleString("en-GB");
+        } else if (abs >= 1) {
+          return Number(num.toFixed(2)).toLocaleString("en-GB");
+        } else {
+          return Number(num.toPrecision(3)).toString();
+        }
+      }
+
+      function roundInput(num) {
+        if (!isFinite(num) || isNaN(num)) return 0;
+        if (Math.abs(num) >= 100) return Number(num.toFixed(1));
+        if (Math.abs(num) >= 1) return Number(num.toFixed(2));
+        return Number(num.toPrecision(3));
+      }
+
+      /* =========================================================================
+         5. LOGARITHMIC SLIDER MAPPING (40x to 200,000x)
+         ========================================================================= */
+      const MIN_MAG = 40;
+      const MAX_MAG = 200000;
+
+      function sliderToMag(sliderVal) {
+        const t = sliderVal / 1000;
+        const mag = MIN_MAG * Math.pow(MAX_MAG / MIN_MAG, t);
+        if (mag < 100) return Math.round(mag);
+        if (mag < 1000) return Math.round(mag / 5) * 5;
+        if (mag < 10000) return Math.round(mag / 50) * 50;
+        return Math.round(mag / 500) * 500;
+      }
+
+      function magToSlider(mag) {
+        const clamped = Math.max(MIN_MAG, Math.min(MAX_MAG, mag));
+        const t = Math.log(clamped / MIN_MAG) / Math.log(MAX_MAG / MIN_MAG);
+        return Math.round(t * 1000);
+      }
+
+      /* =========================================================================
+         6. CORE CALCULATION & SYNCHRONIZATION ENGINE
+         ========================================================================= */
+      function recalculate() {
+        const factorI = UNIT_TO_UM[state.unitI];
+        const factorA = UNIT_TO_UM[state.unitA];
+
+        if (state.solveFor === "M") {
+          const iUm = state.valI * factorI;
+          const aUm = state.valA * factorA;
+          state.valM = aUm > 0 ? iUm / aUm : 0;
+        } else if (state.solveFor === "I") {
+          const aUm = state.valA * factorA;
+          const iUm = aUm * state.valM;
+          state.valI = iUm / factorI;
+        } else if (state.solveFor === "A") {
+          const iUm = state.valI * factorI;
+          const aUm = state.valM > 0 ? iUm / state.valM : 0;
+          state.valA = aUm / factorA;
+        }
+
+        syncInputsFromState();
+        syncCaliperToImageSize();
+        updateSolverPanel();
+        drawMicroscope();
+      }
+
+      function syncInputsFromState() {
+        el.inputI.value = roundInput(state.valI);
+        el.unitI.value = state.unitI;
+        el.inputA.value = roundInput(state.valA);
+        el.unitA.value = state.unitA;
+        el.inputM.value = roundInput(state.valM);
+
+        el.magSlider.value = magToSlider(state.valM);
+        el.sliderMagLabel.innerHTML = `${formatHTMLNumber(state.valM)}&times;`;
+
+        // Update Light vs Electron microscope badge
+        if (state.valM > 1500) {
+          el.microscopeTypeBadge.textContent = "Electron Microscope (EM)";
+          el.microscopeTypeBadge.style.background = "#fef3c7";
+          el.microscopeTypeBadge.style.color = "#92400e";
+        } else {
+          el.microscopeTypeBadge.textContent = "Light Microscope (LM)";
+          el.microscopeTypeBadge.style.background = "#e0f2fe";
+          el.microscopeTypeBadge.style.color = "#0369a1";
+        }
+      }
+
+      function syncCaliperToImageSize() {
+        // Keep caliper centered horizontally at current Image Size (in mm)
+        const iMm = (state.valI * UNIT_TO_UM[state.unitI]) / 1000;
+        // Clamp visual caliper span within the FOV diameter (100 mm)
+        const clampedMm = Math.max(2, Math.min(FOV_IMAGE_MM * 0.96, iMm));
+        const halfNorm = clampedMm / FOV_IMAGE_MM;
+        const centerY = (state.caliperA.y + state.caliperB.y) / 2;
+        const centerX = (state.caliperA.x + state.caliperB.x) / 2;
+        // Keep within circle bounds
+        const safeX = Math.max(-0.85 + halfNorm, Math.min(0.85 - halfNorm, centerX));
+        state.caliperA = { x: safeX - halfNorm, y: centerY };
+        state.caliperB = { x: safeX + halfNorm, y: centerY };
+      }
+
+      function setSolveMode(target) {
+        state.solveFor = target;
+
+        // Reset equation selector buttons
+        [el.btnSolveI, el.btnSolveA, el.btnSolveM].forEach((btn) => {
+          btn.classList.remove("active-I", "active-A", "active-M");
+          btn.setAttribute("aria-pressed", "false");
+        });
+
+        // Reset boxes and pills
+        [el.boxI, el.boxA, el.boxM].forEach((b) => b.classList.remove("target-I", "target-A", "target-M"));
+        [el.pillI, el.pillA, el.pillM].forEach((p) => p.classList.add("hidden"));
+
+        el.inputI.disabled = target === "I";
+        el.inputA.disabled = target === "A";
+        el.inputM.disabled = target === "M";
+
+        el.formulaBanner.className = `formula-banner mode-${target}`;
+
+        if (target === "M") {
+          el.btnSolveM.classList.add("active-M");
+          el.btnSolveM.setAttribute("aria-pressed", "true");
+          el.boxM.classList.add("target-M");
+          el.pillM.classList.remove("hidden");
+          el.formulaBanner.innerHTML = "M = I &divide; A";
+          el.formulaHint.innerHTML = "<strong>Base Equation:</strong> Magnification is the ratio of Image size (I) to Actual size (A).";
+        } else if (target === "I") {
+          el.btnSolveI.classList.add("active-I");
+          el.btnSolveI.setAttribute("aria-pressed", "true");
+          el.boxI.classList.add("target-I");
+          el.pillI.classList.remove("hidden");
+          el.formulaBanner.innerHTML = "I = A &times; M";
+          el.formulaHint.innerHTML = "<strong>Rearrangement:</strong> Multiply both sides of <em>M = I &divide; A</em> by <strong>A</strong> to isolate <strong>I</strong>.";
+        } else if (target === "A") {
+          el.btnSolveA.classList.add("active-A");
+          el.btnSolveA.setAttribute("aria-pressed", "true");
+          el.boxA.classList.add("target-A");
+          el.pillA.classList.remove("hidden");
+          el.formulaBanner.innerHTML = "A = I &divide; M";
+          el.formulaHint.innerHTML = "<strong>Rearrangement:</strong> Multiply by <strong>A</strong> (<em>I = A &times; M</em>), then divide both sides by <strong>M</strong>.";
+        }
+
+        recalculate();
+      }
+
+      /* =========================================================================
+         7. STEP-BY-STEP SOLVER & UNIT LADDER RENDERING
+         ========================================================================= */
+      function updateSolverPanel() {
+        const std = state.useStdForm;
+        const target = state.solveFor;
+
+        // Highlight active units on ladder
+        [el.nodeMm, el.nodeUm, el.nodeNm].forEach((n) => n.classList.remove("active-unit"));
+        if (state.unitI === "mm" || state.unitA === "mm") el.nodeMm.classList.add("active-unit");
+        if (state.unitI === "um" || state.unitA === "um") el.nodeUm.classList.add("active-unit");
+        if (state.unitI === "nm" || state.unitA === "nm") el.nodeNm.classList.add("active-unit");
+
+        const iUm = state.valI * UNIT_TO_UM[state.unitI];
+        const aUm = state.valA * UNIT_TO_UM[state.unitA];
+        const mVal = state.valM;
+
+        let html = "";
+
+        if (target === "M") {
+          // Step 1: Identify values
+          html += `
+            <div class="step-item">
+              <div class="step-num"><span>Step 1: Identify Known Values</span><span class="badge badge-M">Find M</span></div>
+              <div class="step-content">
+                <span class="highlight-I">Image Size (I)</span> = ${formatHTMLNumber(state.valI, std)} ${UNIT_LABELS[state.unitI]}<br/>
+                <span class="highlight-A">Actual Size (A)</span> = ${formatHTMLNumber(state.valA, std)} ${UNIT_LABELS[state.unitA]}
+              </div>
+            </div>
+          `;
+
+          // Step 2: Unit conversion to common unit (µm)
+          const needConv = state.unitI !== state.unitA;
+          const targetUnitLabel = state.unitA === "nm" && state.unitI === "nm" ? "nm" : "&mu;m";
+          const iConverted = state.unitA === "nm" && state.unitI === "nm" ? state.valI : iUm;
+          const aConverted = state.unitA === "nm" && state.unitI === "nm" ? state.valA : aUm;
+
+          let convText = "";
+          if (!needConv) {
+            convText = `Both measurements are already in <strong>${UNIT_LABELS[state.unitI]}</strong>. No unit conversion needed!`;
+          } else {
+            const multI = UNIT_TO_UM[state.unitI];
+            const multA = UNIT_TO_UM[state.unitA];
+            const lines = [];
+            if (multI !== 1) {
+              const op = multI > 1 ? `&times; ${multI.toLocaleString("en-GB")}` : `&divide; ${(1 / multI).toLocaleString("en-GB")}`;
+              lines.push(`<span class="highlight-I">I</span> = ${formatHTMLNumber(state.valI)} ${UNIT_LABELS[state.unitI]} ${op} = <strong>${formatHTMLNumber(iUm, std)} &mu;m</strong>`);
+            } else {
+              lines.push(`<span class="highlight-I">I</span> = <strong>${formatHTMLNumber(iUm, std)} &mu;m</strong>`);
+            }
+            if (multA !== 1) {
+              const op = multA > 1 ? `&times; ${multA.toLocaleString("en-GB")}` : `&divide; ${(1 / multA).toLocaleString("en-GB")}`;
+              lines.push(`<span class="highlight-A">A</span> = ${formatHTMLNumber(state.valA)} ${UNIT_LABELS[state.unitA]} ${op} = <strong>${formatHTMLNumber(aUm, std)} &mu;m</strong>`);
+            } else {
+              lines.push(`<span class="highlight-A">A</span> = <strong>${formatHTMLNumber(aUm, std)} &mu;m</strong>`);
+            }
+            convText = `Convert both to the same unit (&mu;m) so units cancel:<div class="math-block">${lines.join("<br/>")}</div>`;
+          }
+
+          html += `
+            <div class="step-item">
+              <div class="step-num"><span>Step 2: Match Units</span></div>
+              <div class="step-content">${convText}</div>
+            </div>
+          `;
+
+          // Step 3: Substitute & Calculate
+          html += `
+            <div class="step-item step-final">
+              <div class="step-num"><span>Step 3: Apply M = I &divide; A</span><span>No units!</span></div>
+              <div class="step-content">
+                <div class="math-block">
+                  M = ${formatHTMLNumber(iConverted, std)} ${targetUnitLabel} &divide; ${formatHTMLNumber(aConverted, std)} ${targetUnitLabel}
+                </div>
+                <div class="final-answer-box ans-M">
+                  <span>Magnification (M)</span>
+                  <span>&times;${formatHTMLNumber(mVal, std)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        } else if (target === "I") {
+          // Solving for Image Size (I = A * M)
+          html += `
+            <div class="step-item">
+              <div class="step-num"><span>Step 1: Identify Known Values</span><span class="badge badge-I">Find I</span></div>
+              <div class="step-content">
+                <span class="highlight-A">Actual Size (A)</span> = ${formatHTMLNumber(state.valA, std)} ${UNIT_LABELS[state.unitA]}<br/>
+                <span class="highlight-M">Magnification (M)</span> = &times;${formatHTMLNumber(mVal, std)}
+              </div>
+            </div>
+          `;
+
+          const rawResultInUnitA = state.valA * mVal;
+          const convFactor = UNIT_TO_UM[state.unitA] / UNIT_TO_UM[state.unitI];
+          let convBlock = "";
+          if (state.unitA === state.unitI) {
+            convBlock = `Answer is already in your chosen output unit (<strong>${UNIT_LABELS[state.unitI]}</strong>).`;
+          } else {
+            const opText = convFactor < 1
+              ? `&divide; ${Math.round(1 / convFactor).toLocaleString("en-GB")}`
+              : `&times; ${convFactor.toLocaleString("en-GB")}`;
+            convBlock = `Convert from ${UNIT_LABELS[state.unitA]} to ${UNIT_LABELS[state.unitI]}:<div class="math-block">${formatHTMLNumber(rawResultInUnitA, std)} ${UNIT_LABELS[state.unitA]} ${opText} = <strong>${formatHTMLNumber(state.valI, std)} ${UNIT_LABELS[state.unitI]}</strong></div>`;
+          }
+
+          html += `
+            <div class="step-item">
+              <div class="step-num"><span>Step 2: Rearrange &amp; Multiply (I = A &times; M)</span></div>
+              <div class="step-content">
+                From <em>M = I &divide; A</em>, multiply both sides by <strong>A</strong>:
+                <div class="math-block">
+                  I = ${formatHTMLNumber(state.valA, std)} ${UNIT_LABELS[state.unitA]} &times; ${formatHTMLNumber(mVal, std)} = <strong>${formatHTMLNumber(rawResultInUnitA, std)} ${UNIT_LABELS[state.unitA]}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="step-item step-final">
+              <div class="step-num"><span>Step 3: Convert to Desired Unit</span></div>
+              <div class="step-content">
+                ${convBlock}
+                <div class="final-answer-box ans-I">
+                  <span>Image Size (I)</span>
+                  <span>${formatHTMLNumber(state.valI, std)} ${UNIT_LABELS[state.unitI]}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        } else if (target === "A") {
+          // Solving for Actual Size (A = I / M)
+          html += `
+            <div class="step-item">
+              <div class="step-num"><span>Step 1: Identify Known Values</span><span class="badge badge-A">Find A</span></div>
+              <div class="step-content">
+                <span class="highlight-I">Image Size (I)</span> = ${formatHTMLNumber(state.valI, std)} ${UNIT_LABELS[state.unitI]}<br/>
+                <span class="highlight-M">Magnification (M)</span> = &times;${formatHTMLNumber(mVal, std)}
+              </div>
+            </div>
+          `;
+
+          const convFactor = UNIT_TO_UM[state.unitI] / UNIT_TO_UM[state.unitA];
+          const iInTargetUnit = state.valI * convFactor;
+          let step2Html = "";
+          if (state.unitI === state.unitA) {
+            step2Html = `Image size is already in <strong>${UNIT_LABELS[state.unitA]}</strong>.`;
+          } else {
+            const opText = convFactor >= 1
+              ? `&times; ${convFactor.toLocaleString("en-GB")}`
+              : `&divide; ${Math.round(1 / convFactor).toLocaleString("en-GB")}`;
+            step2Html = `Convert <span class="highlight-I">I</span> from ${UNIT_LABELS[state.unitI]} to ${UNIT_LABELS[state.unitA]} first:<div class="math-block">I = ${formatHTMLNumber(state.valI)} ${UNIT_LABELS[state.unitI]} ${opText} = <strong>${formatHTMLNumber(iInTargetUnit, std)} ${UNIT_LABELS[state.unitA]}</strong></div>`;
+          }
+
+          html += `
+            <div class="step-item">
+              <div class="step-num"><span>Step 2: Convert Image Size to ${UNIT_LABELS[state.unitA]}</span></div>
+              <div class="step-content">${step2Html}</div>
+            </div>
+            <div class="step-item step-final">
+              <div class="step-num"><span>Step 3: Rearrange &amp; Divide (A = I &divide; M)</span></div>
+              <div class="step-content">
+                From <em>M = I &divide; A</em>, rearrange for <strong>A</strong> (<em>A = I &divide; M</em>):
+                <div class="math-block">
+                  A = ${formatHTMLNumber(iInTargetUnit, std)} ${UNIT_LABELS[state.unitA]} &divide; ${formatHTMLNumber(mVal, std)}
+                </div>
+                <div class="final-answer-box ans-A">
+                  <span>Actual Size (A)</span>
+                  <span>${formatHTMLNumber(state.valA, std)} ${UNIT_LABELS[state.unitA]}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        el.stepsContainer.innerHTML = html;
+      }
+
+      /* =========================================================================
+         8. SPECIMEN PRESET UI & SELECTION
+         ========================================================================= */
+      function buildSpecimenButtons() {
+        el.specimenBar.innerHTML = "";
+        SPECIMENS.forEach((sp) => {
+          const btn = document.createElement("button");
+          btn.className = "specimen-btn" + (sp.id === state.specimenId ? " active" : "");
+          btn.dataset.id = sp.id;
+          const sizeDisplay = sp.actualUm < 1
+            ? `${Math.round(sp.actualUm * 1000)} nm`
+            : `${sp.actualUm} µm`;
+
+          btn.innerHTML = `
+            <span class="sp-name">${sp.name}</span>
+            <span class="sp-size">Actual: ~${sizeDisplay}</span>
+          `;
+          btn.addEventListener("click", () => selectSpecimen(sp.id));
+          el.specimenBar.appendChild(btn);
+        });
+      }
+
+      function selectSpecimen(id) {
+        const sp = SPECIMENS.find((s) => s.id === id);
+        if (!sp) return;
+        state.specimenId = sp.id;
+
+        document.querySelectorAll(".specimen-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.id === id);
+        });
+
+        // Set specimen actual size and default magnification
+        state.unitA = sp.defaultUnitA;
+        state.valA = sp.actualUm / UNIT_TO_UM[sp.defaultUnitA];
+        state.valM = sp.defaultMag;
+        state.unitI = sp.defaultUnitI;
+
+        // Calculate corresponding image size I = A * M
+        const iUm = sp.actualUm * sp.defaultMag;
+        state.valI = iUm / UNIT_TO_UM[state.unitI];
+
+        // Center caliper horizontally
+        state.caliperA.y = 0;
+        state.caliperB.y = 0;
+
+        recalculate();
+      }
+
+      /* =========================================================================
+         9. MICROSCOPE CANVAS RENDERING (SPECIMENS, RETICLE, SCALE BAR, CALIPER)
+         ========================================================================= */
+      function resizeCanvas() {
+        const rect = el.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        el.canvas.width = Math.round(rect.width * dpr);
+        el.canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawMicroscope();
+      }
+
+      function drawMicroscope() {
+        const width = el.canvas.clientWidth;
+        const height = el.canvas.clientHeight;
+        if (width === 0 || height === 0) return;
+
+        const cx = width / 2;
+        const cy = height / 2;
+        const radius = Math.min(width, height) * 0.46;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Outer dark microscope housing
+        ctx.fillStyle = "#090d16";
+        ctx.fillRect(0, 0, width, height);
+
+        // Clip to circular microscope field of view
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.clip();
+
+        // Background illumination (Brightfield warm white for LM, cool slate for EM)
+        const isEM = state.valM > 1500;
+        const grad = ctx.createRadialGradient(cx, cy, radius * 0.1, cx, cy, radius);
+        if (isEM) {
+          grad.addColorStop(0, "#e2e8f0");
+          grad.addColorStop(0.85, "#cbd5e1");
+          grad.addColorStop(1, "#94a3b8");
+        } else {
+          grad.addColorStop(0, "#fefce8");
+          grad.addColorStop(0.82, "#fef9c3");
+          grad.addColorStop(1, "#fde68a");
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+
+        // Calculate pixel width of the specimen in the viewport:
+        // Total FOV diameter = 2 * radius pixels = FOV_IMAGE_MM (100 mm)
+        const iMm = (state.valI * UNIT_TO_UM[state.unitI]) / 1000;
+        const specimenPxWidth = (iMm / FOV_IMAGE_MM) * (2 * radius);
+
+        // Draw the active biological specimen centered at (cx, cy)
+        drawSpecimenArt(ctx, cx, cy, specimenPxWidth, state.specimenId, isEM);
+
+        // Eyepiece Graticule / Reticle Grid
+        if (state.showGrid) {
+          drawGraticule(ctx, cx, cy, radius, isEM);
+        }
+
+        // Dynamic Scale Bar in bottom-left inside FOV
+        drawDynamicScaleBar(ctx, cx, cy, radius, isEM);
+
+        ctx.restore(); // End circular clip
+
+        // Crisp circular lens rim
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#334155";
+        ctx.stroke();
+
+        // Top HUD label inside housing
+        ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
+        ctx.fillRect(10, 10, 152, 24);
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "700 11px ui-monospace, SFMono-Regular, monospace";
+        ctx.fillText(`FOV Diameter: ${FOV_IMAGE_MM} mm`, 18, 26);
+
+        // Draw Interactive Measurement Caliper (I)
+        if (state.showCaliper) {
+          drawCaliperOverlay(ctx, cx, cy, radius);
+        }
+      }
+
+      function drawSpecimenArt(ctx, cx, cy, pxWidth, id, isEM) {
+        // Clamp visual rendering scale slightly if astronomically huge so browser stays fast
+        const w = Math.max(4, Math.min(4000, pxWidth));
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        if (id === "cheek") {
+          // Human Cheek Cell: irregular wavy polygon + granular cytoplasm + prominent nucleus
+          const r = w / 2;
+          ctx.beginPath();
+          const pts = 16;
+          for (let i = 0; i <= pts; i++) {
+            const angle = (i / pts) * Math.PI * 2;
+            const wobble = 1 + 0.14 * Math.sin(angle * 3 + 0.5) + 0.08 * Math.cos(angle * 5);
+            const px = Math.cos(angle) * r * wobble;
+            const py = Math.sin(angle) * r * 0.78 * wobble;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fillStyle = isEM ? "rgba(148, 163, 184, 0.55)" : "rgba(244, 114, 182, 0.35)";
+          ctx.fill();
+          ctx.lineWidth = Math.max(1.5, w * 0.015);
+          ctx.strokeStyle = isEM ? "#475569" : "#db2777";
+          ctx.stroke();
+
+          // Cytoplasm granules
+          ctx.fillStyle = isEM ? "rgba(71, 85, 105, 0.35)" : "rgba(190, 24, 93, 0.25)";
+          for (let g = 0; g < 18; g++) {
+            const ga = g * 2.1;
+            const gr = ((g % 5) / 6) * r * 0.65;
+            ctx.beginPath();
+            ctx.arc(Math.cos(ga) * gr, Math.sin(ga) * gr * 0.7, Math.max(1, w * 0.012), 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Nucleus (approx 1/6th of cell diameter)
+          ctx.beginPath();
+          ctx.arc(-r * 0.08, r * 0.04, Math.max(2, r * 0.22), 0, Math.PI * 2);
+          ctx.fillStyle = isEM ? "#334155" : "#9d174d";
+          ctx.fill();
+        } else if (id === "rbc") {
+          // Red Blood Cell: circular biconcave disc with pale center
+          const r = w / 2;
+          const rbGrad = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r);
+          if (isEM) {
+            rbGrad.addColorStop(0, "#cbd5e1");
+            rbGrad.addColorStop(0.55, "#64748b");
+            rbGrad.addColorStop(1, "#334155");
+          } else {
+            rbGrad.addColorStop(0, "#fca5a5");
+            rbGrad.addColorStop(0.55, "#ef4444");
+            rbGrad.addColorStop(1, "#991b1b");
+          }
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fillStyle = rbGrad;
+          ctx.fill();
+          ctx.lineWidth = Math.max(1.5, w * 0.02);
+          ctx.strokeStyle = isEM ? "#1e293b" : "#7f1d1d";
+          ctx.stroke();
+        } else if (id === "onion") {
+          // Onion Epidermal Cell: brick-like rectangular plant cell with cell wall, vacuole & peripheral nucleus
+          const h = w * 0.44;
+          const wallThick = Math.max(2, w * 0.03);
+
+          // Neighboring faint cells for context
+          ctx.strokeStyle = isEM ? "rgba(71, 85, 105, 0.3)" : "rgba(22, 163, 74, 0.3)";
+          ctx.lineWidth = wallThick * 0.8;
+          ctx.strokeRect(-w * 1.5, -h / 2, w, h);
+          ctx.strokeRect(w * 0.5, -h / 2, w, h);
+          ctx.strokeRect(-w * 0.8, -h * 1.5, w, h);
+          ctx.strokeRect(-w * 0.2, h * 0.5, w, h);
+
+          // Main focal cell
+          ctx.fillStyle = isEM ? "rgba(203, 213, 225, 0.6)" : "rgba(187, 247, 208, 0.45)";
+          ctx.fillRect(-w / 2, -h / 2, w, h);
+          ctx.lineWidth = wallThick;
+          ctx.strokeStyle = isEM ? "#334155" : "#15803d";
+          ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+          // Large central vacuole
+          ctx.strokeStyle = isEM ? "rgba(100,116,139,0.5)" : "rgba(21,128,61,0.35)";
+          ctx.lineWidth = Math.max(1, w * 0.01);
+          ctx.strokeRect(-w * 0.42, -h * 0.36, w * 0.84, h * 0.72);
+
+          // Nucleus pushed to side
+          ctx.beginPath();
+          ctx.ellipse(w * 0.34, -h * 0.15, Math.max(2, w * 0.055), Math.max(2, h * 0.14), 0, 0, Math.PI * 2);
+          ctx.fillStyle = isEM ? "#1e293b" : "#166534";
+          ctx.fill();
+        } else if (id === "ecoli") {
+          // E. coli Bacterium: capsule/rod shape with flagella & nucleoid DNA loop
+          const h = w * 0.42;
+          const r = h / 2;
+          const bodyLen = Math.max(0, w - h);
+
+          // Flagella tails
+          ctx.beginPath();
+          ctx.moveTo(-w / 2, -r * 0.3);
+          ctx.bezierCurveTo(-w * 0.75, -r * 1.4, -w * 0.9, r * 0.9, -w * 1.15, -r * 0.2);
+          ctx.moveTo(-w / 2, r * 0.3);
+          ctx.bezierCurveTo(-w * 0.7, r * 1.3, -w * 0.95, -r * 0.8, -w * 1.1, r * 0.5);
+          ctx.strokeStyle = isEM ? "#475569" : "#0284c7";
+          ctx.lineWidth = Math.max(1, w * 0.014);
+          ctx.stroke();
+
+          // Capsule body
+          ctx.beginPath();
+          ctx.roundRect(-w / 2, -h / 2, w, h, r);
+          ctx.fillStyle = isEM ? "#94a3b8" : "#bae6fd";
+          ctx.fill();
+          ctx.lineWidth = Math.max(1.5, w * 0.025);
+          ctx.strokeStyle = isEM ? "#1e293b" : "#0369a1";
+          ctx.stroke();
+
+          // Tangled nucleoid DNA strand inside
+          ctx.beginPath();
+          ctx.moveTo(-bodyLen * 0.35, 0);
+          ctx.bezierCurveTo(-bodyLen * 0.1, -r * 0.5, bodyLen * 0.1, r * 0.5, bodyLen * 0.35, 0);
+          ctx.strokeStyle = isEM ? "#334155" : "#1d4ed8";
+          ctx.lineWidth = Math.max(1, w * 0.02);
+          ctx.stroke();
+        } else if (id === "mitochondrion") {
+          // Mitochondrion: oval double-membrane with folded cristae
+          const h = w * 0.48;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+          ctx.fillStyle = isEM ? "#cbd5e1" : "#fed7aa";
+          ctx.fill();
+          ctx.lineWidth = Math.max(1.5, w * 0.024);
+          ctx.strokeStyle = isEM ? "#1e293b" : "#c2410c";
+          ctx.stroke();
+
+          // Inner folded membrane (cristae)
+          ctx.beginPath();
+          const folds = 6;
+          for (let i = -folds; i <= folds; i++) {
+            const x = (i / (folds + 1)) * (w * 0.4);
+            const yTip = (i % 2 === 0 ? 1 : -1) * (h * 0.32);
+            ctx.moveTo(x, -yTip);
+            ctx.lineTo(x, yTip * 0.6);
+          }
+          ctx.strokeStyle = isEM ? "#475569" : "#ea580c";
+          ctx.lineWidth = Math.max(1, w * 0.022);
+          ctx.stroke();
+        } else if (id === "virus") {
+          // Influenza Virus: spherical capsid with radiating glycoprotein spikes
+          const r = w * 0.38;
+          const spikes = 16;
+          for (let i = 0; i < spikes; i++) {
+            const a = (i / spikes) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+            ctx.lineTo(Math.cos(a) * (w / 2), Math.sin(a) * (w / 2));
+            ctx.strokeStyle = isEM ? "#334155" : "#6d28d9";
+            ctx.lineWidth = Math.max(1.2, w * 0.022);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * (w / 2), Math.sin(a) * (w / 2), Math.max(1.5, w * 0.03), 0, Math.PI * 2);
+            ctx.fillStyle = isEM ? "#1e293b" : "#7c3aed";
+            ctx.fill();
+          }
+
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fillStyle = isEM ? "#94a3b8" : "#ddd6fe";
+          ctx.fill();
+          ctx.lineWidth = Math.max(1.5, w * 0.025);
+          ctx.strokeStyle = isEM ? "#1e293b" : "#5b21b6";
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawGraticule(ctx, cx, cy, radius, isEM) {
+        ctx.save();
+        ctx.strokeStyle = isEM ? "rgba(15, 23, 42, 0.22)" : "rgba(15, 23, 42, 0.16)";
+        ctx.lineWidth = 1;
+
+        // Crosshairs
+        ctx.beginPath();
+        ctx.moveTo(cx - radius, cy);
+        ctx.lineTo(cx + radius, cy);
+        ctx.moveTo(cx, cy - radius);
+        ctx.lineTo(cx, cy + radius);
+        ctx.stroke();
+
+        // 10mm intervals along axes (10 subdivisions across diameter = 10mm each)
+        const step = (2 * radius) / 10;
+        for (let i = -4; i <= 4; i++) {
+          if (i === 0) continue;
+          const pos = i * step;
+          // Horizontal ticks
+          ctx.beginPath();
+          ctx.moveTo(cx + pos, cy - 6);
+          ctx.lineTo(cx + pos, cy + 6);
+          ctx.stroke();
+
+          // Vertical ticks
+          ctx.beginPath();
+          ctx.moveTo(cx - 6, cy + pos);
+          ctx.lineTo(cx + 6, cy + pos);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawDynamicScaleBar(ctx, cx, cy, radius, isEM) {
+        // Choose a clean actual scale bar length that occupies roughly 20-35% of FOV diameter
+        const fovActualUm = (FOV_IMAGE_MM * 1000) / state.valM;
+        const targetBarUm = fovActualUm * 0.25;
+
+        const niceSteps = [
+          0.01, 0.02, 0.05, 0.1, 0.2, 0.5,
+          1, 2, 5, 10, 20, 50, 100, 200, 500, 1000
+        ];
+        let chosenUm = niceSteps[0];
+        for (const s of niceSteps) {
+          if (s <= targetBarUm * 1.4) chosenUm = s;
+        }
+
+        const barPx = (chosenUm / fovActualUm) * (2 * radius);
+        const label = chosenUm < 1 ? `${Math.round(chosenUm * 1000)} nm` : `${chosenUm} µm`;
+
+        const bx = cx - barPx / 2;
+        const by = cy + radius * 0.76;
+
+        ctx.save();
+        ctx.fillStyle = "rgba(15, 23, 42, 0.82)";
+        ctx.beginPath();
+        ctx.roundRect(bx - 12, by - 22, barPx + 24, 34, 6);
+        ctx.fill();
+
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + barPx, by);
+        ctx.moveTo(bx, by - 4);
+        ctx.lineTo(bx, by + 4);
+        ctx.moveTo(bx + barPx, by - 4);
+        ctx.lineTo(bx + barPx, by + 4);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "700 11px -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`Scale: ${label}`, cx, by - 8);
+        ctx.restore();
+      }
+
+      function drawCaliperOverlay(ctx, cx, cy, radius) {
+        const ax = cx + state.caliperA.x * radius;
+        const ay = cy + state.caliperA.y * radius;
+        const bx = cx + state.caliperB.x * radius;
+        const by = cy + state.caliperB.y * radius;
+
+        const distPx = Math.hypot(bx - ax, by - ay);
+        const measuredMm = (distPx / (2 * radius)) * FOV_IMAGE_MM;
+
+        ctx.save();
+
+        // Extension guide lines
+        ctx.strokeStyle = "rgba(37, 99, 235, 0.55)";
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay - 22);
+        ctx.lineTo(ax, ay + 22);
+        ctx.moveTo(bx, by - 22);
+        ctx.lineTo(bx, by + 22);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Main caliper bar
+        ctx.strokeStyle = "#2563eb";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+
+        // Handle A & Handle B
+        [
+          { x: ax, y: ay, tag: "A" },
+          { x: bx, y: by, tag: "B" }
+        ].forEach((pt) => {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 10, 0, Math.PI * 2);
+          ctx.fillStyle = "#2563eb";
+          ctx.fill();
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(pt.tag, pt.x, pt.y);
+        });
+
+        // Floating Measurement Pill above the caliper
+        const midX = (ax + bx) / 2;
+        const midY = (ay + by) / 2 - 22;
+        const pillText = `I = ${measuredMm.toFixed(1)} mm`;
+        ctx.font = "800 12px ui-monospace, SFMono-Regular, monospace";
+        const textW = ctx.measureText(pillText).width + 18;
+
+        ctx.fillStyle = "#1d4ed8";
+        ctx.beginPath();
+        ctx.roundRect(midX - textW / 2, midY - 12, textW, 24, 12);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(pillText, midX, midY);
+
+        ctx.restore();
+      }
+
+      /* =========================================================================
+         10. INTERACTIVE CALIPER POINTER / TOUCH DRAGGING
+         ========================================================================= */
+      function getPointerNormCoords(evt) {
+        const rect = el.canvas.getBoundingClientRect();
+        const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+        const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const radius = Math.min(rect.width, rect.height) * 0.46;
+        return {
+          nx: (x - cx) / radius,
+          ny: (y - cy) / radius,
+          px: x,
+          py: y,
+          cx,
+          cy,
+          radius
+        };
+      }
+
+      function onPointerDown(evt) {
+        if (!state.showCaliper) return;
+        const p = getPointerNormCoords(evt);
+        const ax = p.cx + state.caliperA.x * p.radius;
+        const ay = p.cy + state.caliperA.y * p.radius;
+        const bx = p.cx + state.caliperB.x * p.radius;
+        const by = p.cy + state.caliperB.y * p.radius;
+
+        const distA = Math.hypot(p.px - ax, p.py - ay);
+        const distB = Math.hypot(p.px - bx, p.py - by);
+
+        if (distA <= 22) {
+          state.draggingHandle = "A";
+          evt.preventDefault();
+        } else if (distB <= 22) {
+          state.draggingHandle = "B";
+          evt.preventDefault();
+        }
+      }
+
+      function onPointerMove(evt) {
+        if (!state.draggingHandle) return;
+        evt.preventDefault();
+        const p = getPointerNormCoords(evt);
+        const clampedX = Math.max(-0.95, Math.min(0.95, p.nx));
+        const clampedY = Math.max(-0.95, Math.min(0.95, p.ny));
+
+        if (state.draggingHandle === "A") {
+          state.caliperA.x = clampedX;
+          state.caliperA.y = clampedY;
+        } else if (state.draggingHandle === "B") {
+          state.caliperB.x = clampedX;
+          state.caliperB.y = clampedY;
+        }
+
+        // Convert caliper pixel span into Image Size (mm)
+        const distNorm = Math.hypot(
+          state.caliperB.x - state.caliperA.x,
+          state.caliperB.y - state.caliperA.y
+        );
+        const measuredMm = Math.max(0.5, (distNorm / 2) * FOV_IMAGE_MM);
+
+        // Update Image Size in user's selected unit
+        const measuredUm = measuredMm * 1000;
+        state.valI = measuredUm / UNIT_TO_UM[state.unitI];
+
+        // If user was solving for I, switch to solving for M (or A) so caliper drives calculation
+        if (state.solveFor === "I") {
+          setSolveMode("M");
+        } else {
+          recalculate();
+        }
+      }
+
+      function onPointerUp() {
+        state.draggingHandle = null;
+      }
+
+      /* =========================================================================
+         11. PRACTICE QUIZ GENERATOR & GRADING ENGINE
+         ========================================================================= */
+      const quizState = {
+        score: 0,
+        total: 0,
+        streak: 0,
+        answeredCurrent: false,
+        currentQ: null
+      };
+
+      function generateQuestion() {
+        quizState.answeredCurrent = false;
+        el.quizFeedback.className = "feedback-box";
+        el.quizFeedback.textContent = "";
+        el.quizWorkedSolution.classList.remove("visible");
+        el.quizInput.value = "";
+
+        const diff = el.quizDifficulty.value;
+        const targets = ["M", "I", "A"];
+        const target = targets[Math.floor(Math.random() * targets.length)];
+        const sp = SPECIMENS[Math.floor(Math.random() * SPECIMENS.length)];
+
+        let prompt = "";
+        let cues = [];
+        let expectedVal = 0;
+        let expectedUnit = "x";
+        let stepsHtml = "";
+
+        if (target === "M") {
+          el.quizQuestionHeader.textContent = `Question ${quizState.total + 1} — Calculate Magnification (M)`;
+          el.quizTargetBadge.textContent = "Find M";
+          el.quizTargetBadge.className = "badge badge-M";
+          el.quizUnitSelect.value = "x";
+
+          const mags = [50, 100, 200, 250, 400, 500, 800, 1000, 2000, 5000, 20000, 50000];
+          const M = mags[Math.floor(Math.random() * mags.length)];
+
+          if (diff === "foundation") {
+            // Same units (µm and µm, or mm and mm)
+            const aUm = sp.actualUm < 1 ? 10 : Math.round(sp.actualUm);
+            const iUm = aUm * M;
+            expectedVal = M;
+            expectedUnit = "x";
+
+            prompt = `A student observes a <strong>${sp.name}</strong> with an actual size of <strong>${aUm} &mu;m</strong>. In the microscope drawing, the image measures <strong>${iUm.toLocaleString("en-GB")} &mu;m</strong>. Calculate the magnification.`;
+            cues = [
+              { text: `Image Size (I) = ${iUm.toLocaleString("en-GB")} µm`, cls: "badge-I" },
+              { text: `Actual Size (A) = ${aUm} µm`, cls: "badge-A" },
+              { text: `Magnification (M) = ?`, cls: "badge-M" }
+            ];
+            stepsHtml = `
+              <div class="step-item"><div class="step-content"><strong>1. Formula:</strong> M = I &divide; A</div></div>
+              <div class="step-item"><div class="step-content"><strong>2. Units:</strong> Both I and A are already in &mu;m.</div></div>
+              <div class="step-item"><div class="step-content"><strong>3. Calculate:</strong> M = ${iUm.toLocaleString("en-GB")} &divide; ${aUm} = <strong>&times;${M.toLocaleString("en-GB")}</strong></div></div>
+            `;
+          } else {
+            // Higher / Mixed: Image in mm, Actual in µm or nm
+            const useNm = sp.actualUm < 1;
+            const actualDisplay = useNm ? Math.round(sp.actualUm * 1000) : sp.actualUm;
+            const actualUnit = useNm ? "nm" : "µm";
+            const actualUm = sp.actualUm;
+            const imageMm = Number(((actualUm * M) / 1000).toFixed(2));
+            // Recompute exact M for clean grading
+            expectedVal = Number(((imageMm * 1000) / actualUm).toFixed(2));
+            expectedUnit = "x";
+
+            prompt = `A micrograph of a <strong>${sp.name}</strong> has an image length of <strong>${imageMm} mm</strong>. The actual size of the specimen is <strong>${actualDisplay} ${actualUnit}</strong>. Calculate the magnification of the image.`;
+            cues = [
+              { text: `Image Size (I) = ${imageMm} mm`, cls: "badge-I" },
+              { text: `Actual Size (A) = ${actualDisplay} ${actualUnit}`, cls: "badge-A" },
+              { text: `Magnification (M) = ?`, cls: "badge-M" }
+            ];
+
+            const imageUm = imageMm * 1000;
+            const convActualStep = useNm
+              ? `Convert Actual Size to &mu;m: ${actualDisplay} nm &divide; 1,000 = ${actualUm} &mu;m`
+              : `Actual Size is already ${actualUm} &mu;m`;
+
+            stepsHtml = `
+              <div class="step-item"><div class="step-content"><strong>1. Convert Image Size (I) to &mu;m:</strong> ${imageMm} mm &times; 1,000 = <strong>${imageUm.toLocaleString("en-GB")} &mu;m</strong></div></div>
+              <div class="step-item"><div class="step-content"><strong>2. Match Actual Size (A):</strong> ${convActualStep}</div></div>
+              <div class="step-item"><div class="step-content"><strong>3. Divide (M = I &divide; A):</strong> ${imageUm.toLocaleString("en-GB")} &divide; ${actualUm} = <strong>&times;${formatHTMLNumber(expectedVal)}</strong></div></div>
+            `;
+          }
+        } else if (target === "A") {
+          el.quizQuestionHeader.textContent = `Question ${quizState.total + 1} — Calculate Actual Size (A)`;
+          el.quizTargetBadge.textContent = "Find A";
+          el.quizTargetBadge.className = "badge badge-A";
+
+          const mags = [100, 200, 400, 500, 1000, 2000, 10000, 50000];
+          const M = mags[Math.floor(Math.random() * mags.length)];
+          const imageMm = [12, 15, 18, 24, 30, 36, 45, 50, 60][Math.floor(Math.random() * 9)];
+
+          const actualUm = (imageMm * 1000) / M;
+          if (actualUm < 1 && diff !== "foundation") {
+            expectedVal = Number((actualUm * 1000).toFixed(2));
+            expectedUnit = "nm";
+          } else {
+            expectedVal = Number(actualUm.toFixed(3));
+            expectedUnit = "um";
+          }
+          el.quizUnitSelect.value = expectedUnit;
+
+          prompt = `A student measures the image of a <strong>${sp.name}</strong> in a textbook as <strong>${imageMm} mm</strong> wide. The magnification is stated as <strong>&times;${M.toLocaleString("en-GB")}</strong>. Calculate the actual size of the specimen in <strong>${UNIT_LABELS[expectedUnit]}</strong>.`;
+          cues = [
+            { text: `Image Size (I) = ${imageMm} mm`, cls: "badge-I" },
+            { text: `Magnification (M) = ×${M.toLocaleString("en-GB")}`, cls: "badge-M" },
+            { text: `Actual Size (A) = ? (${UNIT_LABELS[expectedUnit]})`, cls: "badge-A" }
+          ];
+
+          const imageUm = imageMm * 1000;
+          stepsHtml = `
+            <div class="step-item"><div class="step-content"><strong>1. Rearrange Formula:</strong> Start with M = I &divide; A &rarr; multiply by A (I = A &times; M) &rarr; divide by M to get <strong>A = I &divide; M</strong></div></div>
+            <div class="step-item"><div class="step-content"><strong>2. Convert Image Size to &mu;m:</strong> ${imageMm} mm &times; 1,000 = ${imageUm.toLocaleString("en-GB")} &mu;m</div></div>
+            <div class="step-item"><div class="step-content"><strong>3. Divide by Magnification:</strong> ${imageUm.toLocaleString("en-GB")} &mu;m &divide; ${M.toLocaleString("en-GB")} = ${actualUm} &mu;m ${expectedUnit === "nm" ? `(&times; 1,000 = <strong>${expectedVal} nm</strong>)` : ""}</div></div>
+          `;
+        } else {
+          // target === "I"
+          el.quizQuestionHeader.textContent = `Question ${quizState.total + 1} — Calculate Image Size (I)`;
+          el.quizTargetBadge.textContent = "Find I";
+          el.quizTargetBadge.className = "badge badge-I";
+
+          const actualUm = sp.actualUm < 1 ? 0.1 : sp.actualUm;
+          const M = sp.actualUm < 1 ? 100000 : [100, 200, 400, 500, 1000][Math.floor(Math.random() * 5)];
+          const imageMm = Number(((actualUm * M) / 1000).toFixed(2));
+
+          expectedVal = imageMm;
+          expectedUnit = "mm";
+          el.quizUnitSelect.value = "mm";
+
+          const displayActual = sp.actualUm < 1 ? "100 nm" : `${actualUm} µm`;
+          prompt = `A <strong>${sp.name}</strong> has an actual diameter of <strong>${displayActual}</strong>. If it is viewed at a magnification of <strong>&times;${M.toLocaleString("en-GB")}</strong>, what will its image size be in <strong>mm</strong>?`;
+          cues = [
+            { text: `Actual Size (A) = ${displayActual}`, cls: "badge-A" },
+            { text: `Magnification (M) = ×${M.toLocaleString("en-GB")}`, cls: "badge-M" },
+            { text: `Image Size (I) = ? (mm)`, cls: "badge-I" }
+          ];
+
+          const productUm = actualUm * M;
+          stepsHtml = `
+            <div class="step-item"><div class="step-content"><strong>1. Rearrange Formula:</strong> Start with M = I &divide; A &rarr; multiply both sides by A to get <strong>I = A &times; M</strong></div></div>
+            <div class="step-item"><div class="step-content"><strong>2. Multiply:</strong> ${actualUm} &mu;m &times; ${M.toLocaleString("en-GB")} = ${productUm.toLocaleString("en-GB")} &mu;m</div></div>
+            <div class="step-item"><div class="step-content"><strong>3. Convert &mu;m to mm:</strong> ${productUm.toLocaleString("en-GB")} &divide; 1,000 = <strong>${imageMm} mm</strong></div></div>
+          `;
+        }
+
+        quizState.currentQ = {
+          target,
+          expectedVal,
+          expectedUnit,
+          stepsHtml
+        };
+
+        el.quizPromptText.innerHTML = prompt;
+        el.quizVisualCue.innerHTML = cues
+          .map((c) => `<span class="cue-chip ${c.cls}">${c.text}</span>`)
+          .join("");
+        el.quizSolutionSteps.innerHTML = stepsHtml;
+      }
+
+      function checkQuizAnswer() {
+        const q = quizState.currentQ;
+        if (!q) return;
+
+        const userNum = parseFloat(el.quizInput.value);
+        const userUnit = el.quizUnitSelect.value;
+
+        if (isNaN(userNum)) {
+          el.quizFeedback.className = "feedback-box incorrect";
+          el.quizFeedback.textContent = "Please enter a numerical answer first.";
+          return;
+        }
+
+        // Convert user's unit if needed so even equivalent units (e.g. 2000 µm vs 2 mm) can be checked smartly
+        let normalizedUser = userNum;
+        let normalizedExpected = q.expectedVal;
+
+        if (q.target !== "M") {
+          if (userUnit === "x") {
+            el.quizFeedback.className = "feedback-box incorrect";
+            el.quizFeedback.textContent = `Remember: ${q.target === "I" ? "Image Size" : "Actual Size"} needs a length unit (mm, µm, or nm), not ×!`;
+            return;
+          }
+          normalizedUser = userNum * UNIT_TO_UM[userUnit];
+          normalizedExpected = q.expectedVal * UNIT_TO_UM[q.expectedUnit];
+        } else if (userUnit !== "x") {
+          el.quizFeedback.className = "feedback-box incorrect";
+          el.quizFeedback.textContent = "Magnification is a ratio and has NO length units! Select '× (magnification)' from the dropdown.";
+          return;
+        }
+
+        // Allow 2% tolerance for rounding
+        const relError = Math.abs(normalizedUser - normalizedExpected) / Math.max(1e-9, normalizedExpected);
+        const isCorrect = relError <= 0.02;
+
+        if (!quizState.answeredCurrent) {
+          quizState.total += 1;
+          if (isCorrect) {
+            quizState.score += 1;
+            quizState.streak += 1;
+          } else {
+            quizState.streak = 0;
+          }
+          quizState.answeredCurrent = true;
+          el.quizScore.textContent = quizState.score;
+          el.quizTotal.textContent = quizState.total;
+          el.quizStreak.textContent = quizState.streak;
+        }
+
+        if (isCorrect) {
+          el.quizFeedback.className = "feedback-box correct";
+          const unitStr = q.expectedUnit === "x" ? "×" : ` ${UNIT_LABELS[q.expectedUnit]}`;
+          el.quizFeedback.innerHTML = `&#10004; Spot on! The correct answer is <strong>${q.expectedVal}${unitStr}</strong>.`;
+          el.quizWorkedSolution.classList.add("visible");
+        } else {
+          el.quizFeedback.className = "feedback-box incorrect";
+          el.quizFeedback.innerHTML = `&#10008; Not quite. Check your formula rearrangement or unit conversion (&times;1,000 / &divide;1,000), or click <strong>"Show Worked Steps"</strong> below.`;
+        }
+      }
+
+      /* =========================================================================
+         12. EVENT LISTENERS & INITIALIZATION
+         ========================================================================= */
+      function bindEvents() {
+        // Tab Switching
+        el.tabExplore.addEventListener("click", () => {
+          el.tabExplore.classList.add("active");
+          el.tabQuiz.classList.remove("active");
+          el.exploreView.classList.remove("hidden");
+          el.quizView.classList.add("hidden");
+          resizeCanvas();
+        });
+
+        el.tabQuiz.addEventListener("click", () => {
+          el.tabQuiz.classList.add("active");
+          el.tabExplore.classList.remove("active");
+          el.quizView.classList.remove("hidden");
+          el.exploreView.classList.add("hidden");
+          if (!quizState.currentQ) generateQuestion();
+        });
+
+        // Algebraic Equation Selector Buttons
+        [
+          { btn: el.btnSolveI, mode: "I" },
+          { btn: el.btnSolveA, mode: "A" },
+          { btn: el.btnSolveM, mode: "M" }
+        ].forEach(({ btn, mode }) => {
+          btn.addEventListener("click", () => setSolveMode(mode));
+        });
+
+        // Variable Inputs
+        el.inputI.addEventListener("input", () => {
+          const v = parseFloat(el.inputI.value);
+          if (!isNaN(v) && v > 0) {
+            state.valI = v;
+            recalculate();
+          }
+        });
+
+        el.unitI.addEventListener("change", () => {
+          const oldUnit = state.unitI;
+          const newUnit = el.unitI.value;
+          if (state.solveFor !== "I") {
+            // Preserve physical length when switching display unit
+            const um = state.valI * UNIT_TO_UM[oldUnit];
+            state.valI = um / UNIT_TO_UM[newUnit];
+          }
+          state.unitI = newUnit;
+          recalculate();
+        });
+
+        el.inputA.addEventListener("input", () => {
+          const v = parseFloat(el.inputA.value);
+          if (!isNaN(v) && v > 0) {
+            state.valA = v;
+            recalculate();
+          }
+        });
+
+        el.unitA.addEventListener("change", () => {
+          const oldUnit = state.unitA;
+          const newUnit = el.unitA.value;
+          if (state.solveFor !== "A") {
+            const um = state.valA * UNIT_TO_UM[oldUnit];
+            state.valA = um / UNIT_TO_UM[newUnit];
+          }
+          state.unitA = newUnit;
+          recalculate();
+        });
+
+        el.inputM.addEventListener("input", () => {
+          const v = parseFloat(el.inputM.value);
+          if (!isNaN(v) && v > 0) {
+            state.valM = v;
+            recalculate();
+          }
+        });
+
+        // Magnification Slider & Preset Buttons
+        el.magSlider.addEventListener("input", () => {
+          state.valM = sliderToMag(parseInt(el.magSlider.value, 10));
+          // If currently solving for M, switch to solving for I so zooming scales the image!
+          if (state.solveFor === "M") {
+            setSolveMode("I");
+          } else {
+            recalculate();
+          }
+        });
+
+        document.querySelectorAll(".preset-mag-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.valM = parseFloat(btn.dataset.mag);
+            if (state.solveFor === "M") {
+              setSolveMode("I");
+            } else {
+              recalculate();
+            }
+          });
+        });
+
+        // Viewport Toggles & Snap Caliper
+        el.toggleCaliper.addEventListener("change", () => {
+          state.showCaliper = el.toggleCaliper.checked;
+          drawMicroscope();
+        });
+
+        el.toggleGrid.addEventListener("change", () => {
+          state.showGrid = el.toggleGrid.checked;
+          drawMicroscope();
+        });
+
+        el.btnSnapCaliper.addEventListener("click", () => {
+          // Reset caliper horizontally centered on specimen
+          state.caliperA.y = 0;
+          state.caliperB.y = 0;
+          const iUm = state.valA * UNIT_TO_UM[state.unitA] * state.valM;
+          state.valI = iUm / UNIT_TO_UM[state.unitI];
+          recalculate();
+        });
+
+        el.toggleStdForm.addEventListener("change", () => {
+          state.useStdForm = el.toggleStdForm.checked;
+          updateSolverPanel();
+        });
+
+        // Canvas Pointer/Touch Events
+        el.canvas.addEventListener("mousedown", onPointerDown);
+        window.addEventListener("mousemove", onPointerMove);
+        window.addEventListener("mouseup", onPointerUp);
+
+        el.canvas.addEventListener("touchstart", onPointerDown, { passive: false });
+        window.addEventListener("touchmove", onPointerMove, { passive: false });
+        window.addEventListener("touchend", onPointerUp);
+
+        // Quiz Events
+        el.btnCheckAnswer.addEventListener("click", checkQuizAnswer);
+        el.quizInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") checkQuizAnswer();
+        });
+        el.btnShowSolution.addEventListener("click", () => {
+          el.quizWorkedSolution.classList.add("visible");
+        });
+        el.btnNextQuestion.addEventListener("click", generateQuestion);
+        el.quizDifficulty.addEventListener("change", generateQuestion);
+
+        // Window Resize
+        window.addEventListener("resize", resizeCanvas);
+      }
+
+      // Boot sequence
+      window.addEventListener("load", () => {
+        buildSpecimenButtons();
+        bindEvents();
+        selectSpecimen("cheek");
+        setSolveMode("M");
+        resizeCanvas();
+      });
+    })();
+  </script>
+</body>
+</html>
