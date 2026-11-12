@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Balanced &amp; Unbalanced Forces — Car Physics Simulation</title>
+  <style>
+    :root {
+      --bg-app: #0b1120;
+      --bg-panel: #111827;
+      --bg-card: #1e293b;
+      --bg-subtle: #0f172a;
+      --border-color: #334155;
+      --border-light: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      /* Force & Telemetry Colors */
+      --fwd-color: #10b981;
+      --fwd-bg: rgba(16, 185, 129, 0.14);
+      --fwd-border: rgba(16, 185, 129, 0.45);
+
+      --bwd-color: #f43f5e;
+      --bwd-bg: rgba(244, 63, 94, 0.14);
+      --bwd-border: rgba(244, 63, 94, 0.45);
+
+      --net-color: #38bdf8;
+      --net-bg: rgba(56, 189, 248, 0.14);
+      --net-border: rgba(56, 189, 248, 0.45);
+
+      --drag-color: #06b6d4;
+      --drag-bg: rgba(6, 182, 212, 0.14);
+      --drag-border: rgba(6, 182, 212, 0.45);
+
+      --bal-color: #fbbf24;
+      --bal-bg: rgba(251, 191, 36, 0.14);
+      --bal-border: rgba(251, 191, 36, 0.45);
+
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.55);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.45;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.85rem 1.4rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #10b981);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      flex-shrink: 0;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .brand p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Quick Scenario Presets Strip */
+    .preset-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .preset-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-right: 0.25rem;
+    }
+
+    .preset-btn {
+      background: var(--bg-card);
+      color: #e2e8f0;
+      border: 1px solid var(--border-color);
+      padding: 0.36rem 0.65rem;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .preset-btn:hover {
+      background: #334155;
+      border-color: #64748b;
+      color: #ffffff;
+    }
+
+    .preset-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--net-color);
+      color: #38bdf8;
+    }
+
+    .preset-btn.drag-preset {
+      border-color: rgba(6, 182, 212, 0.45);
+      color: #67e8f9;
+    }
+
+    /* Main Workspace */
+    main {
+      flex: 1;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Canvas Stage Card */
+    .stage-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 390px;
+      background: #090d16;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .canvas-wrapper {
+        height: 310px;
+      }
+    }
+
+    canvas#simCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Status Explanation Banner inside Stage */
+    .status-banner {
+      padding: 0.75rem 1.15rem;
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .status-message {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .state-badge {
+      padding: 0.22rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .state-badge.balanced {
+      background: var(--bal-bg);
+      color: var(--bal-color);
+      border: 1px solid var(--bal-border);
+    }
+
+    .state-badge.unbalanced {
+      background: var(--net-bg);
+      color: var(--net-color);
+      border: 1px solid var(--net-border);
+    }
+
+    .sim-phase-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.22rem 0.65rem;
+      border-radius: 6px;
+      background: rgba(148, 163, 184, 0.14);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .sim-phase-pill.running {
+      background: rgba(16, 185, 129, 0.16);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .sim-phase-pill.preview {
+      background: rgba(56, 189, 248, 0.16);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    /* Controls & Telemetry Grid */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.3fr 1fr;
+      gap: 1rem;
+      align-items: stretch;
+    }
+
+    @media (max-width: 1120px) {
+      .bottom-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .telemetry-panel {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.9rem;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 0.55rem;
+    }
+
+    .panel-title {
+      font-size: 0.86rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .step-tag {
+      background: #334155;
+      color: #f8fafc;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 5px;
+      font-weight: 800;
+    }
+
+    /* Initial Motion Selector Cards */
+    .motion-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.55rem;
+    }
+
+    .motion-btn {
+      background: var(--bg-subtle);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.65rem 0.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.3rem;
+      transition: all 0.15s ease;
+    }
+
+    .motion-btn:hover:not(:disabled) {
+      border-color: #64748b;
+      color: #f8fafc;
+      background: #1e293b;
+    }
+
+    .motion-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--net-color);
+      color: #ffffff;
+      box-shadow: 0 0 0 1px var(--net-color);
+    }
+
+    .motion-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .motion-btn .m-icon {
+      font-size: 1.15rem;
+      line-height: 1;
+    }
+
+    .motion-btn .m-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .motion-btn .m-sub {
+      font-size: 0.7rem;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: #38bdf8;
+    }
+
+    /* Playback Buttons */
+    .playback-bar {
+      display: flex;
+      gap: 0.55rem;
+      margin-top: 0.25rem;
+    }
+
+    .btn-play {
+      flex: 1.5;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.72rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+      transition: transform 0.1s, filter 0.15s;
+    }
+
+    .btn-play:hover:not(:disabled) {
+      filter: brightness(1.08);
+    }
+
+    .btn-play:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-play:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-control {
+      flex: 1;
+      background: var(--bg-card);
+      color: #f1f5f9;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.72rem 0.75rem;
+      font-size: 0.86rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+
+    .btn-control:hover:not(:disabled) {
+      background: #334155;
+      border-color: #64748b;
+    }
+
+    .btn-control:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Force Controls */
+    .force-block {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.72rem 0.85rem;
+    }
+
+    .force-block.fwd {
+      border-left: 4px solid var(--fwd-color);
+    }
+
+    .force-block.bwd {
+      border-left: 4px solid var(--bwd-color);
+    }
+
+    .force-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.45rem;
+    }
+
+    .force-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .force-val-pill {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.88rem;
+      font-weight: 800;
+      padding: 0.15rem 0.55rem;
+      border-radius: 6px;
+    }
+
+    .fwd .force-val-pill {
+      background: var(--fwd-bg);
+      color: #34d399;
+      border: 1px solid var(--fwd-border);
+    }
+
+    .bwd .force-val-pill {
+      background: var(--bwd-bg);
+      color: #fb7185;
+      border: 1px solid var(--bwd-border);
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .fwd input[type="range"] {
+      accent-color: var(--fwd-color);
+    }
+
+    .bwd input[type="range"] {
+      accent-color: var(--bwd-color);
+    }
+
+    .quick-n-btns {
+      display: flex;
+      gap: 0.3rem;
+      margin-top: 0.45rem;
+    }
+
+    .quick-n-btn {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.22rem 0.3rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .quick-n-btn:hover {
+      color: #ffffff;
+      border-color: #64748b;
+      background: #334155;
+    }
+
+    /* Telemetry Readouts */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+
+    .tele-box {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.65rem 0.75rem;
+    }
+
+    .tele-box.full {
+      grid-column: 1 / -1;
+    }
+
+    .tele-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .tele-value {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .tele-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
+    .tele-value.balanced-txt {
+      color: var(--bal-color);
+    }
+
+    .tele-value.fwd-txt {
+      color: #34d399;
+    }
+
+    .tele-value.bwd-txt {
+      color: #fb7185;
+    }
+
+    .tele-value.drag-txt {
+      color: #22d3ee;
+    }
+
+    /* Air Resistance Toggle Card */
+    .drag-toggle-card {
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-radius: var(--radius-md);
+      padding: 0.6rem 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+
+    .drag-toggle-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .drag-toggle-title {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #67e8f9;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .drag-toggle-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* Switch styling */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-switch {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #334155;
+      transition: 0.2s;
+      border-radius: 999px;
+      border: 1px solid #475569;
+    }
+
+    .slider-switch:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #f8fafc;
+      transition: 0.2s;
+      border-radius: 50%;
+    }
+
+    .switch input:checked + .slider-switch {
+      background-color: #0891b2;
+      border-color: #22d3ee;
+    }
+
+    .switch input:checked + .slider-switch:before {
+      transform: translateX(20px);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      padding-top: 0.2rem;
+    }
+
+    .toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header & Scenario Presets -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/>
+          <path d="m12 5 7 7-7 7"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Balanced &amp; Unbalanced Forces Lab</h1>
+        <p>Newton's First &amp; Second Laws &bull; Terminal Velocity &amp; Vehicle Dynamics (Mass = 1,200 kg)</p>
+      </div>
+    </div>
+
+    <div class="preset-strip" role="group" aria-label="Classroom Scenario Presets">
+      <span class="preset-label">Presets:</span>
+      <button class="preset-btn active" data-preset="bal-stationary">Balanced (Stationary)</button>
+      <button class="preset-btn" data-preset="bal-forward">Balanced Cruise (+15 m/s)</button>
+      <button class="preset-btn" data-preset="bal-backward">Balanced Reverse (-15 m/s)</button>
+      <button class="preset-btn" data-preset="unbal-accel">Accelerate from Rest</button>
+      <button class="preset-btn" data-preset="unbal-brake">Emergency Braking</button>
+      <button class="preset-btn drag-preset" data-preset="terminal-vel">Terminal Velocity Run</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Interactive Highway Canvas Stage -->
+    <section class="stage-card">
+      <div class="canvas-wrapper">
+        <canvas id="simCanvas"></canvas>
+      </div>
+
+      <div class="status-banner">
+        <div class="status-message">
+          <span id="balanceBadge" class="state-badge balanced">Balanced Forces</span>
+          <span id="statusExplanation">Set initial motion and forces, then press <strong>Play</strong> to observe the effect.</span>
+        </div>
+        <span id="simPhasePill" class="sim-phase-pill">READY — CONFIGURE &amp; PRESS PLAY</span>
+      </div>
+    </section>
+
+    <!-- Bottom Controls & Telemetry -->
+    <section class="bottom-grid">
+
+      <!-- 1. Initial Motion State & Playback -->
+      <div class="panel">
+        <div>
+          <div class="panel-header">
+            <span class="panel-title"><span class="step-tag">Step 1</span> Initial Car Motion</span>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Before Play</span>
+          </div>
+
+          <div class="motion-options" style="margin-top: 0.75rem;" role="group" aria-label="Select Initial Motion State">
+            <button type="button" class="motion-btn" id="initBackwardBtn" data-init="-15">
+              <span class="m-icon">&larr;</span>
+              <span class="m-title">Moving Backwards</span>
+              <span class="m-sub">-15 m/s</span>
+            </button>
+            <button type="button" class="motion-btn active" id="initStationaryBtn" data-init="0">
+              <span class="m-icon">&#9632;</span>
+              <span class="m-title">Stationary</span>
+              <span class="m-sub">0 m/s</span>
+            </button>
+            <button type="button" class="motion-btn" id="initForwardBtn" data-init="15">
+              <span class="m-icon">&rarr;</span>
+              <span class="m-title">Moving Forward</span>
+              <span class="m-sub">+15 m/s</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel-header" style="margin-bottom: 0.65rem;">
+            <span class="panel-title"><span class="step-tag">Step 3</span> Run Simulation</span>
+            <span id="timerReadout" style="font-family: monospace; font-size: 0.78rem; color: var(--text-muted);">t = 0.0 s</span>
+          </div>
+          <div class="playback-bar">
+            <button type="button" id="btnPlay" class="btn-play">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Play
+            </button>
+            <button type="button" id="btnPause" class="btn-control" disabled>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              Pause
+            </button>
+            <button type="button" id="btnReset" class="btn-control">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Forward & Backward Forces -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title"><span class="step-tag">Step 2</span> Applied Forces</span>
+          <button type="button" id="btnMatchForces" style="background: rgba(251, 191, 36, 0.14); border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px; cursor: pointer;">
+            Balance Forces (=)
+          </button>
+        </div>
+
+        <!-- Forward Force -->
+        <div class="force-block fwd">
+          <div class="force-top">
+            <span class="force-name" style="color: #34d399;">
+              Forward Driving Force (Thrust) &rarr;
+            </span>
+            <span class="force-val-pill" id="fwdValLabel">2,000 N</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="fwdSlider" min="0" max="5000" step="100" value="2000" aria-label="Forward driving force in Newtons" />
+          </div>
+          <div class="quick-n-btns">
+            <button type="button" class="quick-n-btn" data-target="fwd" data-val="0">0 N</button>
+            <button type="button" class="quick-n-btn" data-target="fwd" data-val="1000">1,000 N</button>
+            <button type="button" class="quick-n-btn" data-target="fwd" data-val="2000">2,000 N</button>
+            <button type="button" class="quick-n-btn" data-target="fwd" data-val="3200">3,200 N</button>
+            <button type="button" class="quick-n-btn" data-target="fwd" data-val="5000">5,000 N</button>
+          </div>
+        </div>
+
+        <!-- Backward Force -->
+        <div class="force-block bwd">
+          <div class="force-top">
+            <span class="force-name" style="color: #fb7185;">
+              &larr; Backward Braking / Road Friction
+            </span>
+            <span class="force-val-pill" id="bwdValLabel">2,000 N</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="bwdSlider" min="0" max="5000" step="100" value="2000" aria-label="Backward braking or friction force in Newtons" />
+          </div>
+          <div class="quick-n-btns">
+            <button type="button" class="quick-n-btn" data-target="bwd" data-val="0">0 N</button>
+            <button type="button" class="quick-n-btn" data-target="bwd" data-val="1000">1,000 N</button>
+            <button type="button" class="quick-n-btn" data-target="bwd" data-val="2000">2,000 N</button>
+            <button type="button" class="quick-n-btn" data-target="bwd" data-val="3200">3,200 N</button>
+            <button type="button" class="quick-n-btn" data-target="bwd" data-val="5000">5,000 N</button>
+          </div>
+        </div>
+
+        <!-- Air Resistance (Drag) Toggle -->
+        <div class="drag-toggle-card">
+          <div class="drag-toggle-info">
+            <span class="drag-toggle-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
+              Enable Air Resistance (Drag)
+            </span>
+            <span class="drag-toggle-sub">F<sub>drag</sub> = c &middot; v&sup2; (opposes motion; creates terminal velocity)</span>
+          </div>
+          <label class="switch" aria-label="Enable Air Resistance (Drag)">
+            <input type="checkbox" id="toggleAirResistance" />
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 3. Live Physics Telemetry -->
+      <div class="panel telemetry-panel">
+        <div class="panel-header">
+          <span class="panel-title">Live Physics Telemetry</span>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">m = 1,200 kg</span>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="tele-box full">
+            <div class="tele-label">Resultant (Net) Force &nbsp;[ F<sub>net</sub> = F<sub>fwd</sub> &minus; F<sub>bwd</sub> &minus; F<sub>drag</sub> ]</div>
+            <div class="tele-value balanced-txt" id="netForceReadout">0 N (Balanced)</div>
+            <div class="tele-sub" id="netForceSub">Forward and backward forces cancel out completely.</div>
+          </div>
+
+          <div class="tele-box">
+            <div class="tele-label">Velocity (v)</div>
+            <div class="tele-value" id="velocityReadout">0.0 m/s</div>
+            <div class="tele-sub" id="velocitySub">0 mph &bull; Stationary</div>
+          </div>
+
+          <div class="tele-box">
+            <div class="tele-label">Acceleration (a = F/m)</div>
+            <div class="tele-value" id="accelReadout">0.00 m/s&sup2;</div>
+            <div class="tele-sub" id="accelSub">No change in velocity</div>
+          </div>
+
+          <div class="tele-box">
+            <div class="tele-label">Air Resistance (F<sub>drag</sub>)</div>
+            <div class="tele-value drag-txt" id="dragReadout">Off (0 N)</div>
+            <div class="tele-sub" id="dragSub">Toggle on to model drag</div>
+          </div>
+
+          <div class="tele-box">
+            <div class="tele-label">Displacement (&Delta;x)</div>
+            <div class="tele-value" id="distanceReadout">0 m</div>
+            <div class="tele-sub" id="terminalSub">State: Ready</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <label>
+            <input type="checkbox" id="toggleVectors" checked />
+            Show Force Arrows
+          </label>
+          <label>
+            <input type="checkbox" id="toggleNetArrow" checked />
+            Show Net Force
+          </label>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* =========================================================================
+         1. SIMULATION STATE & CONSTANTS
+         ========================================================================= */
+      const CAR_MASS = 1200; // kg
+      const MAX_SPEED = 65;  // m/s speedometer scale (~145 mph)
+      // Calibrated aerodynamic drag coefficient c (N / (m/s)^2):
+      // At F_fwd = 3,200 N and F_bwd = 0 N, terminal velocity v_t = sqrt(3200 / 2.0) = 40.0 m/s (~89 mph)
+      // At F_fwd = 2,000 N and F_bwd = 0 N, terminal velocity v_t = sqrt(2000 / 2.0) = 31.6 m/s (~71 mph)
+      const DRAG_COEFF = 2.0;
+
+      const state = {
+        mode: "setup",          // "setup" (live cruise preview) | "running" | "paused"
+        initialVelocity: 0,     // -15, 0, or +15 m/s
+        velocity: 0,            // current m/s
+        forwardForce: 2000,     // Newtons (0 - 5000)
+        backwardForce: 2000,    // Newtons (0 - 5000)
+        airResistanceOn: false, // Air resistance toggle
+        elapsedTime: 0,         // seconds
+        worldDistance: 0,       // meters traveled (drives parallax & road scroll)
+        wheelAngle: 0,          // radians
+        pitchAngle: 0,          // radians (body suspension tilt)
+        showVectors: true,
+        showNetArrow: true,
+        particles: [],          // exhaust, brake smoke, wind streaks
+        lastTimestamp: null
+      };
+
+      /* =========================================================================
+         2. DOM REFERENCES
+         ========================================================================= */
+      const el = {
+        canvas: document.getElementById("simCanvas"),
+        balanceBadge: document.getElementById("balanceBadge"),
+        statusExplanation: document.getElementById("statusExplanation"),
+        simPhasePill: document.getElementById("simPhasePill"),
+
+        initBackwardBtn: document.getElementById("initBackwardBtn"),
+        initStationaryBtn: document.getElementById("initStationaryBtn"),
+        initForwardBtn: document.getElementById("initForwardBtn"),
+
+        btnPlay: document.getElementById("btnPlay"),
+        btnPause: document.getElementById("btnPause"),
+        btnReset: document.getElementById("btnReset"),
+        timerReadout: document.getElementById("timerReadout"),
+
+        fwdSlider: document.getElementById("fwdSlider"),
+        bwdSlider: document.getElementById("bwdSlider"),
+        fwdValLabel: document.getElementById("fwdValLabel"),
+        bwdValLabel: document.getElementById("bwdValLabel"),
+        btnMatchForces: document.getElementById("btnMatchForces"),
+        toggleAirResistance: document.getElementById("toggleAirResistance"),
+
+        netForceReadout: document.getElementById("netForceReadout"),
+        netForceSub: document.getElementById("netForceSub"),
+        velocityReadout: document.getElementById("velocityReadout"),
+        velocitySub: document.getElementById("velocitySub"),
+        accelReadout: document.getElementById("accelReadout"),
+        accelSub: document.getElementById("accelSub"),
+        dragReadout: document.getElementById("dragReadout"),
+        dragSub: document.getElementById("dragSub"),
+        distanceReadout: document.getElementById("distanceReadout"),
+        terminalSub: document.getElementById("terminalSub"),
+
+        toggleVectors: document.getElementById("toggleVectors"),
+        toggleNetArrow: document.getElementById("toggleNetArrow")
+      };
+
+      const ctx = el.canvas.getContext("2d");
+
+      /* =========================================================================
+         3. PHYSICS & EDUCATIONAL EXPLANATION ENGINE
+         ========================================================================= */
+      /**
+       * Signed aerodynamic drag force (N).
+       * Always opposes the direction of current velocity:
+       *  - When moving forward (v > 0), drag acts backward (negative).
+       *  - When moving backwards (v < 0), drag acts forward (positive).
+       */
+      function getSignedDragForce() {
+        if (!state.airResistanceOn || Math.abs(state.velocity) < 0.01) return 0;
+        const mag = DRAG_COEFF * state.velocity * state.velocity;
+        return state.velocity > 0 ? -mag : mag;
+      }
+
+      /**
+       * Effective Net Force during active physics ("running" or "paused").
+       * Note: In "setup" (preview) mode, forces are not enacted yet so the car
+       * cruises at a steady initial velocity until Play is clicked.
+       */
+      function getNetForce() {
+        const appliedNet = state.forwardForce - state.backwardForce;
+        const dragSigned = getSignedDragForce();
+        return appliedNet + dragSigned;
+      }
+
+      function getEffectiveAcceleration() {
+        if (state.mode === "setup") return 0;
+        return getNetForce() / CAR_MASS;
+      }
+
+      function isAtTerminalVelocity() {
+        if (!state.airResistanceOn || state.mode !== "running") return false;
+        const speed = Math.abs(state.velocity);
+        const netF = Math.abs(getNetForce());
+        // Moving steadily with non-zero driving force balanced by drag + friction
+        return speed > 2.0 && netF < 18 && (state.forwardForce > 0 || state.backwardForce > 0);
+      }
+
+      function getMotionStatusInfo() {
+        const v = state.velocity;
+        const accel = getEffectiveAcceleration();
+        const atTerminal = isAtTerminalVelocity();
+
+        if (atTerminal) {
+          return { label: "TERMINAL VELOCITY", color: "#22d3ee", bg: "rgba(6, 182, 212, 0.2)" };
+        }
+        if (Math.abs(v) < 0.12 && Math.abs(accel) < 0.05) {
+          return { label: "STOPPED", color: "#94a3b8", bg: "rgba(148, 163, 184, 0.18)" };
+        }
+        if (state.mode === "setup") {
+          return { label: "CRUISING (PREVIEW)", color: "#38bdf8", bg: "rgba(56, 189, 248, 0.2)" };
+        }
+        if (Math.abs(accel) < 0.04) {
+          return { label: "CRUISING", color: "#fbbf24", bg: "rgba(251, 191, 36, 0.2)" };
+        }
+        // Check if speed magnitude is increasing (accelerating) or decreasing (decelerating)
+        const speedingUp = (v >= 0 && accel > 0) || (v <= 0 && accel < 0);
+        if (speedingUp) {
+          return { label: "ACCELERATING", color: "#34d399", bg: "rgba(16, 185, 129, 0.2)" };
+        } else {
+          return { label: "DECELERATING", color: "#fb7185", bg: "rgba(244, 63, 94, 0.2)" };
+        }
+      }
+
+      function updateTelemetryAndBanner() {
+        const netF = getNetForce();
+        const dragSigned = getSignedDragForce();
+        const dragMag = Math.abs(dragSigned);
+        const accel = getEffectiveAcceleration();
+        const v = state.velocity;
+        const isBalanced = Math.abs(netF) < 5;
+        const atTerminal = isAtTerminalVelocity();
+
+        // Force labels
+        el.fwdValLabel.textContent = `${state.forwardForce.toLocaleString("en-GB")} N`;
+        el.bwdValLabel.textContent = `${state.backwardForce.toLocaleString("en-GB")} N`;
+        el.timerReadout.textContent = `t = ${state.elapsedTime.toFixed(1)} s`;
+
+        // Drag readout
+        if (!state.airResistanceOn) {
+          el.dragReadout.textContent = "Off (0 N)";
+          el.dragSub.textContent = "Toggle on to model drag";
+        } else {
+          const dragDir = dragSigned < -1 ? "← Backward" : dragSigned > 1 ? "Forward →" : "None (v = 0)";
+          el.dragReadout.textContent = `${Math.round(dragMag).toLocaleString("en-GB")} N`;
+          el.dragSub.textContent = `${dragDir} (F = c·v²)`;
+        }
+
+        // Distance & Terminal status
+        el.distanceReadout.textContent = `${state.worldDistance.toFixed(0)} m`;
+        if (atTerminal) {
+          el.terminalSub.textContent = "Terminal Velocity Reached!";
+          el.terminalSub.style.color = "#22d3ee";
+        } else if (state.airResistanceOn && state.forwardForce > state.backwardForce) {
+          const vTermEst = Math.sqrt((state.forwardForce - state.backwardForce) / DRAG_COEFF);
+          el.terminalSub.textContent = `Est. Terminal v: ${vTermEst.toFixed(1)} m/s`;
+          el.terminalSub.style.color = "#94a3b8";
+        } else {
+          el.terminalSub.textContent = state.mode === "setup" ? "Mode: Preview" : "Mode: Active";
+          el.terminalSub.style.color = "#94a3b8";
+        }
+
+        // Balance badge & Net Force readout
+        if (isBalanced) {
+          el.balanceBadge.className = "state-badge balanced";
+          el.balanceBadge.textContent = atTerminal ? "Terminal Velocity (Balanced)" : "Balanced Forces";
+          el.netForceReadout.className = "tele-value balanced-txt";
+          el.netForceReadout.textContent = "0 N (Balanced)";
+          el.netForceSub.textContent = atTerminal
+            ? "Air resistance + friction now equal the forward driving force!"
+            : "Forward and backward forces cancel out completely.";
+        } else {
+          el.balanceBadge.className = "state-badge unbalanced";
+          el.balanceBadge.textContent = "Unbalanced Forces";
+          if (netF > 0) {
+            el.netForceReadout.className = "tele-value fwd-txt";
+            el.netForceReadout.textContent = `+${Math.round(netF).toLocaleString("en-GB")} N Forward`;
+            el.netForceSub.textContent = "Resultant force acts to the right (forward).";
+          } else {
+            el.netForceReadout.className = "tele-value bwd-txt";
+            el.netForceReadout.textContent = `${Math.round(Math.abs(netF)).toLocaleString("en-GB")} N Backward`;
+            el.netForceSub.textContent = "Resultant force acts to the left (backward).";
+          }
+        }
+
+        // Velocity readout
+        const mph = Math.round(Math.abs(v) * 2.23694);
+        let dirText = "Stationary";
+        if (v > 0.08) dirText = "Moving Forward →";
+        else if (v < -0.08) dirText = "← Moving Backwards";
+
+        el.velocityReadout.textContent = `${v > 0.08 ? "+" : ""}${v.toFixed(1)} m/s`;
+        el.velocitySub.textContent = `${mph} mph • ${dirText}`;
+
+        // Acceleration readout
+        el.accelReadout.textContent = `${accel > 0.005 ? "+" : ""}${accel.toFixed(2)} m/s²`;
+        if (state.mode === "setup") {
+          el.accelSub.textContent = "Previewing initial motion (press Play)";
+        } else if (Math.abs(accel) < 0.01) {
+          el.accelSub.textContent = "Constant velocity (0 acceleration)";
+        } else if (accel > 0) {
+          el.accelSub.textContent = v < -0.08 ? "Slowing reverse motion" : "Speeding up forward";
+        } else {
+          el.accelSub.textContent = v > 0.08 ? "Decelerating / Braking" : "Speeding up backwards";
+        }
+
+        // Plain-English Educational Explanation Banner
+        let explanation = "";
+        if (state.mode === "setup") {
+          const initDesc =
+            state.initialVelocity === 0
+              ? "stationary (0 m/s)"
+              : state.initialVelocity > 0
+              ? `cruising forward at +${state.initialVelocity} m/s`
+              : `cruising backwards at ${state.initialVelocity} m/s`;
+
+          if (isBalanced) {
+            explanation = `Preview: Car is <strong>${initDesc}</strong>. Your configured forces are <strong>balanced (0 N net)</strong> — click <strong>Play</strong> to enact them.`;
+          } else {
+            const dir = netF > 0 ? "forward (+)" : "backward (−)";
+            explanation = `Preview: Car is <strong>${initDesc}</strong>. Click <strong>Play</strong> to enact the <strong>unbalanced ${dir} resultant force of ${Math.round(Math.abs(netF)).toLocaleString("en-GB")} N</strong>!`;
+          }
+        } else if (atTerminal) {
+          explanation = `<strong>Terminal Velocity Reached!</strong> Air resistance (${Math.round(dragMag).toLocaleString("en-GB")} N) now balances the forward thrust — the car cruises at a steady <strong>${Math.abs(v).toFixed(1)} m/s</strong>.`;
+        } else if (isBalanced) {
+          if (Math.abs(v) < 0.08) {
+            explanation = "<strong>Newton's 1st Law:</strong> Forces are balanced (0 N net force) — the stationary car remains at rest.";
+          } else if (v > 0) {
+            explanation = `<strong>Newton's 1st Law:</strong> Forces are balanced (0 N net force) — the car continues moving <strong>forward at a constant speed</strong> (${v.toFixed(1)} m/s)!`;
+          } else {
+            explanation = `<strong>Newton's 1st Law:</strong> Forces are balanced (0 N net force) — the car continues moving <strong>backwards at a constant speed</strong> (${Math.abs(v).toFixed(1)} m/s)!`;
+          }
+        } else if (netF > 0) {
+          if (v < -0.08) {
+            explanation = "<strong>Unbalanced Forward Force:</strong> The car was moving backwards, so the forward resultant force is <strong>slowing it down</strong> toward rest.";
+          } else if (state.airResistanceOn) {
+            explanation = "<strong>Unbalanced Forward Force with Drag:</strong> Car accelerates forward, increasing air resistance until drag balances thrust at terminal velocity.";
+          } else {
+            explanation = "<strong>Unbalanced Forward Force:</strong> Resultant force acts forward — the car <strong>accelerates to the right</strong>!";
+          }
+        } else {
+          if (v > 0.08) {
+            explanation = "<strong>Unbalanced Backward Force:</strong> Resultant force opposes forward motion — the car <strong>decelerates (slows down)</strong>!";
+          } else {
+            explanation = "<strong>Unbalanced Backward Force:</strong> Resultant force acts to the left — the car <strong>accelerates backwards</strong>!";
+          }
+        }
+        el.statusExplanation.innerHTML = explanation;
+
+        // Phase pill & button states
+        const initBtns = [el.initBackwardBtn, el.initStationaryBtn, el.initForwardBtn];
+        if (state.mode === "setup") {
+          el.simPhasePill.className = state.initialVelocity !== 0 ? "sim-phase-pill preview" : "sim-phase-pill";
+          el.simPhasePill.textContent =
+            state.initialVelocity !== 0
+              ? "LIVE PREVIEW — PRESS PLAY TO ENACT FORCES"
+              : "READY — CONFIGURE & PRESS PLAY";
+          el.btnPlay.disabled = false;
+          el.btnPlay.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Play`;
+          el.btnPause.disabled = true;
+          initBtns.forEach((b) => (b.disabled = false));
+        } else if (state.mode === "running") {
+          el.simPhasePill.className = "sim-phase-pill running";
+          el.simPhasePill.textContent = "SIMULATION RUNNING";
+          el.btnPlay.disabled = true;
+          el.btnPause.disabled = false;
+          initBtns.forEach((b) => (b.disabled = true));
+        } else if (state.mode === "paused") {
+          el.simPhasePill.className = "sim-phase-pill";
+          el.simPhasePill.textContent = "PAUSED";
+          el.btnPlay.disabled = false;
+          el.btnPlay.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Resume`;
+          el.btnPause.disabled = true;
+          initBtns.forEach((b) => (b.disabled = true));
+        }
+      }
+
+      /* =========================================================================
+         4. PARTICLE SYSTEM (EXHAUST FLAMES, BRAKE SMOKE, WIND STREAKS)
+         ========================================================================= */
+      function spawnParticles(dt, carX, carY) {
+        const v = state.velocity;
+
+        // 1. Exhaust / Thruster flame particles when forward driving force > 0
+        if (state.forwardForce > 0 && state.mode !== "paused") {
+          const intensity = state.forwardForce / 5000;
+          if (Math.random() < 0.4 + intensity * 0.6) {
+            state.particles.push({
+              type: "flame",
+              x: carX - 134,
+              y: carY + 12 + (Math.random() - 0.5) * 5,
+              vx: -90 - intensity * 180 - Math.max(0, v) * 4,
+              vy: (Math.random() - 0.5) * 18,
+              life: 0,
+              maxLife: 0.22 + intensity * 0.18,
+              size: 4 + intensity * 7
+            });
+          }
+        }
+
+        // 2. Tire Braking Smoke when strong backward force opposes forward velocity
+        if (state.mode === "running" && v > 1.5 && state.backwardForce > state.forwardForce && state.backwardForce >= 1500) {
+          const brakeIntensity = Math.min(1, (state.backwardForce - state.forwardForce) / 3500);
+          if (Math.random() < 0.35 + brakeIntensity * 0.55) {
+            const wheelOffset = Math.random() < 0.5 ? -84 : 84;
+            state.particles.push({
+              type: "smoke",
+              x: carX + wheelOffset + (Math.random() - 0.5) * 10,
+              y: carY + 34,
+              vx: -v * 10 - 20 - Math.random() * 30,
+              vy: -15 - Math.random() * 25,
+              life: 0,
+              maxLife: 0.55 + Math.random() * 0.3,
+              size: 6 + brakeIntensity * 8
+            });
+          }
+        }
+
+        // 3. Reverse Exhaust when moving backwards
+        if (state.backwardForce > 0 && v < -1 && state.mode !== "paused") {
+          const revIntensity = state.backwardForce / 5000;
+          if (Math.random() < 0.35 + revIntensity * 0.4) {
+            state.particles.push({
+              type: "smoke",
+              x: carX - 134,
+              y: carY + 12,
+              vx: -v * 8 + 30,
+              vy: -10 - Math.random() * 15,
+              life: 0,
+              maxLife: 0.45,
+              size: 5 + revIntensity * 5
+            });
+          }
+        }
+
+        // 4. Aerodynamic Wind Streaks at higher speeds (enhanced when Air Resistance is ON)
+        const windThreshold = state.airResistanceOn ? 6 : 12;
+        if (state.mode !== "paused" && Math.abs(v) > windThreshold) {
+          const speedRatio = Math.min(1, (Math.abs(v) - windThreshold) / 35);
+          const spawnChance = state.airResistanceOn ? speedRatio * 0.9 : speedRatio * 0.6;
+          if (Math.random() < spawnChance) {
+            const dir = v > 0 ? 1 : -1;
+            state.particles.push({
+              type: "wind",
+              x: dir > 0 ? el.canvas.clientWidth + 40 : -40,
+              y: carY - 58 + Math.random() * 94,
+              vx: -v * 26,
+              vy: 0,
+              life: 0,
+              maxLife: 0.9,
+              length: 35 + speedRatio * 80,
+              isDragStream: state.airResistanceOn
+            });
+          }
+        }
+
+        // Update existing particles
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.life += dt;
+          if (p.life >= p.maxLife) {
+            state.particles.splice(i, 1);
+            continue;
+          }
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          if (p.type === "smoke") {
+            p.size += 18 * dt;
+          }
+        }
+      }
+
+      /* =========================================================================
+         5. CANVAS RENDERING (ENVIRONMENT, PARALLAX, CAR, ARROWS, SPEEDOMETER)
+         ========================================================================= */
+      function resizeCanvas() {
+        const rect = el.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        el.canvas.width = Math.round(rect.width * dpr);
+        el.canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        renderScene();
+      }
+
+      function renderScene() {
+        const w = el.canvas.clientWidth;
+        const h = el.canvas.clientHeight;
+        if (w === 0 || h === 0) return;
+
+        const roadTop = h * 0.66;
+        const roadHeight = h - roadTop;
+        const carX = w * 0.52;
+        const carY = roadTop + roadHeight * 0.34;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // 1. Sky Gradient
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, roadTop);
+        skyGrad.addColorStop(0, "#09152b");
+        skyGrad.addColorStop(0.55, "#162d52");
+        skyGrad.addColorStop(1, "#2a4d7a");
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, roadTop);
+
+        // Subtle atmospheric horizon glow
+        const sunGrad = ctx.createRadialGradient(w * 0.82, roadTop * 0.42, 10, w * 0.82, roadTop * 0.42, 170);
+        sunGrad.addColorStop(0, "rgba(253, 224, 71, 0.25)");
+        sunGrad.addColorStop(0.5, "rgba(56, 189, 248, 0.08)");
+        sunGrad.addColorStop(1, "rgba(15, 23, 42, 0)");
+        ctx.fillStyle = sunGrad;
+        ctx.fillRect(0, 0, w, roadTop);
+
+        // 2. Parallax Distant Mountains (Layer 1 - slowest)
+        drawMountainLayer(w, roadTop, state.worldDistance * 1.2, "#13233f", 68, 220);
+        // Closer Foothills (Layer 2)
+        drawMountainLayer(w, roadTop, state.worldDistance * 3.2, "#0f1c33", 40, 150);
+
+        // 3. Roadside Safety Barrier & Distance Pylons
+        drawRoadsideStructures(w, roadTop, state.worldDistance * 16);
+
+        // 4. Asphalt Highway Surface
+        const roadGrad = ctx.createLinearGradient(0, roadTop, 0, h);
+        roadGrad.addColorStop(0, "#1e293b");
+        roadGrad.addColorStop(0.2, "#0f172a");
+        roadGrad.addColorStop(1, "#090d16");
+        ctx.fillStyle = roadGrad;
+        ctx.fillRect(0, roadTop, w, roadHeight);
+
+        // Top & bottom road shoulder lines
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(0, roadTop, w, 4);
+        ctx.fillStyle = "#f59e0b";
+        ctx.fillRect(0, roadTop + 8, w, 2.5);
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(0, h - 10, w, 3);
+
+        // Scrolling Dashed Lane Markings (1 meter = 22 pixels)
+        const pxPerMeter = 22;
+        const dashSpacing = 110;
+        const dashWidth = 54;
+        const scrollOffset = ((state.worldDistance * pxPerMeter) % dashSpacing + dashSpacing) % dashSpacing;
+
+        ctx.fillStyle = "rgba(248, 250, 252, 0.72)";
+        const laneY = roadTop + roadHeight * 0.56;
+        for (let x = -dashSpacing - scrollOffset; x < w + dashSpacing; x += dashSpacing) {
+          ctx.beginPath();
+          ctx.roundRect(x, laneY, dashWidth, 5, 2.5);
+          ctx.fill();
+        }
+
+        // 5. Render Wind Streaks behind/around car
+        drawParticles("wind");
+
+        // 6. Ground Contact Shadow under Car
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
+        ctx.beginPath();
+        ctx.ellipse(carX, carY + 38, 138, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 7. Render Smoke & Exhaust Flame Particles behind car
+        drawParticles("smoke");
+        drawParticles("flame");
+
+        // 8. Render Sleek Detailed Car with Dynamic Suspension Pitch & Spinning Wheels
+        drawDetailedCar(carX, carY);
+
+        // 9. Render Free-Body Force Arrows attached to Car (including Air Resistance)
+        if (state.showVectors) {
+          drawFreeBodyVectors(carX, carY);
+        }
+
+        // 10. Top-Left Analog & Digital Speedometer HUD
+        drawTopLeftSpeedometer();
+      }
+
+      function drawMountainLayer(w, horizonY, offsetPx, color, maxHeight, wavelength) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(0, horizonY);
+        const step = 24;
+        for (let x = 0; x <= w + step; x += step) {
+          const worldX = x + offsetPx;
+          const h1 = Math.sin(worldX / wavelength) * 0.55;
+          const h2 = Math.cos(worldX / (wavelength * 0.47)) * 0.3;
+          const h3 = Math.sin(worldX / (wavelength * 0.23)) * 0.15;
+          const peak = Math.max(0.1, (h1 + h2 + h3 + 1) * 0.5) * maxHeight;
+          ctx.lineTo(x, horizonY - peak);
+        }
+        ctx.lineTo(w, horizonY);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawRoadsideStructures(w, roadTop, offsetPx) {
+        // Guardrail beam
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(0, roadTop - 11, w, 5);
+
+        // Distance marker posts every 160 px
+        const spacing = 160;
+        const shift = ((offsetPx % spacing) + spacing) % spacing;
+
+        for (let x = -spacing - shift; x < w + spacing; x += spacing) {
+          // Post
+          ctx.fillStyle = "#475569";
+          ctx.fillRect(x - 2, roadTop - 22, 4, 22);
+          // Reflector strip
+          ctx.fillStyle = "#38bdf8";
+          ctx.fillRect(x - 2, roadTop - 20, 4, 5);
+        }
+      }
+
+      function drawParticles(filterType) {
+        for (const p of state.particles) {
+          if (p.type !== filterType) continue;
+          const t = p.life / p.maxLife;
+          const alpha = 1 - t;
+
+          if (p.type === "flame") {
+            const grad = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, p.size);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+            grad.addColorStop(0.35, `rgba(56, 189, 248, ${alpha * 0.9})`);
+            grad.addColorStop(0.75, `rgba(16, 185, 129, ${alpha * 0.6})`);
+            grad.addColorStop(1, "rgba(16, 185, 129, 0)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (p.type === "smoke") {
+            ctx.fillStyle = `rgba(203, 213, 225, ${alpha * 0.35})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (p.type === "wind") {
+            ctx.strokeStyle = p.isDragStream
+              ? `rgba(34, 211, 238, ${alpha * 0.55})`
+              : `rgba(148, 163, 184, ${alpha * 0.35})`;
+            ctx.lineWidth = p.isDragStream ? 2 : 1.5;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x + p.length, p.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawDetailedCar(cx, cy) {
+        // Braking occurs ONLY when moving forward (v > 0.3) and backward force opposes forward motion
+        const netBrakeForce =
+          state.mode === "running" && state.velocity > 0.3
+            ? Math.max(0, state.backwardForce - state.forwardForce)
+            : 0;
+        const brakeIntensity = Math.min(1, netBrakeForce / 4000);
+        const isBraking = brakeIntensity > 0.02;
+        const isReversing = state.velocity < -0.2;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // Apply subtle suspension pitch (nose lifts when netF > 0, dives when netF < 0)
+        ctx.save();
+        ctx.rotate(state.pitchAngle);
+
+        // Rear Spoiler / Aero Wing
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.moveTo(-124, -14);
+        ctx.lineTo(-134, -32);
+        ctx.lineTo(-116, -32);
+        ctx.lineTo(-110, -14);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillRect(-138, -34, 26, 4);
+
+        // Main Sleek Aerodynamic Chassis Body
+        const bodyGrad = ctx.createLinearGradient(0, -42, 0, 24);
+        bodyGrad.addColorStop(0, "#38bdf8");
+        bodyGrad.addColorStop(0.32, "#0284c7");
+        bodyGrad.addColorStop(0.75, "#0369a1");
+        bodyGrad.addColorStop(1, "#0f172a");
+
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        // Front splitter nose
+        ctx.moveTo(136, 18);
+        ctx.quadraticCurveTo(140, 4, 122, -4);
+        // Hood slope
+        ctx.lineTo(66, -14);
+        // Windshield & Roofline
+        ctx.quadraticCurveTo(32, -42, -16, -42);
+        ctx.lineTo(-64, -40);
+        // Fastback rear deck
+        ctx.lineTo(-122, -16);
+        ctx.lineTo(-130, 8);
+        // Rear diffuser & underbody
+        ctx.lineTo(-124, 22);
+        ctx.lineTo(132, 22);
+        ctx.closePath();
+        ctx.fill();
+
+        // Crisp Metallic Body Highlight Line
+        ctx.strokeStyle = "rgba(224, 242, 254, 0.65)";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-118, -12);
+        ctx.quadraticCurveTo(10, -16, 120, -2);
+        ctx.stroke();
+
+        // Carbon Side Skirt & Diffuser
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(-124, 17, 256, 6);
+
+        // Tinted Cabin Window Canopy
+        const glassGrad = ctx.createLinearGradient(0, -40, 0, -14);
+        glassGrad.addColorStop(0, "#0f172a");
+        glassGrad.addColorStop(1, "#1e293b");
+        ctx.fillStyle = glassGrad;
+        ctx.beginPath();
+        ctx.moveTo(56, -15);
+        ctx.quadraticCurveTo(28, -37, -14, -37);
+        ctx.lineTo(-58, -35);
+        ctx.lineTo(-96, -16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Window B-Pillar divider
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-12, -37);
+        ctx.lineTo(-16, -15);
+        ctx.stroke();
+
+        // Side Air Intake Vent
+        ctx.fillStyle = "#090d16";
+        ctx.beginPath();
+        ctx.moveTo(-26, -2);
+        ctx.lineTo(-56, -4);
+        ctx.lineTo(-48, 12);
+        ctx.lineTo(-22, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        // Headlight (LED Daytime Running Light + Beam)
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath();
+        ctx.moveTo(114, -2);
+        ctx.lineTo(133, 4);
+        ctx.lineTo(118, 7);
+        ctx.closePath();
+        ctx.fill();
+
+        // Headlight glow cone
+        const beamGrad = ctx.createLinearGradient(133, 5, 220, 12);
+        beamGrad.addColorStop(0, "rgba(224, 242, 254, 0.35)");
+        beamGrad.addColorStop(1, "rgba(224, 242, 254, 0)");
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(133, 3);
+        ctx.lineTo(225, -8);
+        ctx.lineTo(225, 24);
+        ctx.lineTo(133, 8);
+        // Taillight & Dynamic Brake Glow (scaled by braking severity)
+        ctx.fillStyle = isBraking
+          ? `rgba(255, 30, 66, ${0.45 + brakeIntensity * 0.55})`
+          : "#881337";
+        ctx.fillRect(-130, -10, 6, 12);
+        if (isBraking) {
+          const glowRadius = 18 + brakeIntensity * 22;
+          const brakeGlow = ctx.createRadialGradient(-130, -4, 2, -130, -4, glowRadius);
+          brakeGlow.addColorStop(0, `rgba(244, 63, 94, ${0.3 + brakeIntensity * 0.65})`);
+          brakeGlow.addColorStop(1, "rgba(244, 63, 94, 0)");
+          ctx.fillStyle = brakeGlow;
+          ctx.beginPath();
+          ctx.arc(-130, -4, glowRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // White Reverse Light when moving backwards
+        if (isReversing) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(-130, 3, 5, 5);
+        }
+
+        // Exhaust Tailpipe
+        ctx.fillStyle = "#64748b";
+        ctx.fillRect(-133, 10, 8, 6);
+
+        ctx.restore(); // End body suspension pitch
+
+        // Wheel Arches (cutouts)
+        [-84, 84].forEach((wx) => {
+          ctx.fillStyle = "#090d16";
+          ctx.beginPath();
+          ctx.arc(wx, 20, 27, Math.PI, 0);
+          ctx.fill();
+        });
+
+        // Spinning Alloy Wheels with Brake Calipers
+        drawWheel(-84, 20, 23, state.wheelAngle, brakeIntensity);
+        drawWheel(84, 20, 23, state.wheelAngle, brakeIntensity);
+
+        ctx.restore();
+      }
+
+      function drawWheel(wx, wy, radius, angle, brakeIntensity) {
+        ctx.save();
+        ctx.translate(wx, wy);
+
+        // Tire rubber
+        ctx.fillStyle = "#111827";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#334155";
+        ctx.stroke();
+
+        // Brake rotor disc (smoothly shifts from slate #475569 to glowing red based on braking severity)
+        const rDisc = Math.round(71 + (244 - 71) * brakeIntensity);
+        const gDisc = Math.round(85 + (63 - 85) * brakeIntensity);
+        const bDisc = Math.round(105 + (94 - 105) * brakeIntensity);
+        ctx.fillStyle = `rgb(${rDisc}, ${gDisc}, ${bDisc})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.66, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fixed Brake Caliper (top-left of rotor)
+        const rCal = Math.round(56 + (244 - 56) * brakeIntensity);
+        const gCal = Math.round(189 + (63 - 189) * brakeIntensity);
+        const bCal = Math.round(248 + (94 - 248) * brakeIntensity);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.68, Math.PI * 1.15, Math.PI * 1.55);
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = `rgb(${rCal}, ${gCal}, ${bCal})`;
+        ctx.stroke();
+
+        // Rotating 5-Spoke Alloy Rim
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.lineWidth = 2.6;
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * (radius * 0.68), Math.sin(a) * (radius * 0.68));
+          ctx.stroke();
+        }
+        // Center hub cap
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      function drawFreeBodyVectors(carX, carY) {
+        const maxArrowLen = 165;
+        const maxForce = 5000;
+
+        // 1. Forward Force Arrow (Right, Emerald Green)
+        if (state.forwardForce > 0) {
+          const len = 36 + (state.forwardForce / maxForce) * maxArrowLen;
+          drawVectorArrow(
+            carX + 142,
+            carY - 2,
+            carX + 142 + len,
+            carY - 2,
+            "#10b981",
+            `Forward: ${state.forwardForce.toLocaleString("en-GB")} N`,
+            "right"
+          );
+        }
+
+        // 2. Backward Braking / Friction Force Arrow (Left, Rose Red)
+        if (state.backwardForce > 0) {
+          const len = 36 + (state.backwardForce / maxForce) * maxArrowLen;
+          drawVectorArrow(
+            carX - 142,
+            carY + 8,
+            carX - 142 - len,
+            carY + 8,
+            "#f43f5e",
+            `Backward: ${state.backwardForce.toLocaleString("en-GB")} N`,
+            "left-bottom"
+          );
+        }
+        // 3. Air Resistance (Drag) Arrow (Cyan/Blue, raised clear above car roof)
+        if (state.airResistanceOn) {
+          const dragSigned = getSignedDragForce();
+          const dragMag = Math.round(Math.abs(dragSigned));
+          if (dragMag > 2) {
+            const len = 34 + (Math.min(maxForce, dragMag) / maxForce) * maxArrowLen;
+            const dragY = carY - 62;
+            if (dragSigned < 0) {
+              // Moving forward -> Air resistance pushes left
+              drawVectorArrow(
+                carX + 55,
+                dragY,
+                carX + 55 - len,
+                dragY,
+                "#06b6d4",
+                `Air Resistance: ${dragMag.toLocaleString("en-GB")} N`,
+                "drag-top"
+              );
+            } else {
+              // Moving backwards -> Air resistance pushes right
+              drawVectorArrow(
+                carX - 55,
+                dragY,
+                carX - 55 + len,
+                dragY,
+                "#06b6d4",
+                `Air Resistance: ${dragMag.toLocaleString("en-GB")} N`,
+                "drag-top"
+              );
+            }
+          }
+        }
+
+        // 4. Resultant / Net Force Arrow Elevated High Above Car & Air Resistance
+        if (state.showNetArrow) {
+          const netF = Math.round(getNetForce());
+          const badgeY = carY - 134;
+          const atTerminal = isAtTerminalVelocity();
+
+          if (Math.abs(netF) < 5) {
+            const text = atTerminal
+              ? "Net Force = 0 N (TERMINAL VELOCITY)"
+              : "Resultant Force = 0 N (BALANCED)";
+            ctx.font = "800 12px Inter, -apple-system, sans-serif";
+            const tw = ctx.measureText(text).width + 24;
+            ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+            ctx.beginPath();
+            ctx.roundRect(carX - tw / 2, badgeY - 14, tw, 28, 14);
+            ctx.fill();
+            ctx.strokeStyle = atTerminal ? "#22d3ee" : "#fbbf24";
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+
+            ctx.fillStyle = atTerminal ? "#22d3ee" : "#fbbf24";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(text, carX, badgeY);
+          } else {
+            const dir = netF > 0 ? 1 : -1;
+            const len = 44 + (Math.min(maxForce, Math.abs(netF)) / maxForce) * 165;
+            const startX = carX - (dir * len) / 2;
+            const endX = carX + (dir * len) / 2;
+            drawVectorArrow(
+              startX,
+              badgeY,
+              endX,
+              badgeY,
+              "#38bdf8",
+              `Net Force: ${Math.abs(netF).toLocaleString("en-GB")} N ${dir > 0 ? "→" : "←"}`,
+              "top"
+            );
+          }
+        }
+      }
+
+      function drawVectorArrow(x1, y1, x2, y2, color, label, labelPos) {
+        const headLen = 13;
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+
+        // Shaft
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2 - Math.cos(angle) * (headLen * 0.6), y2 - Math.sin(angle) * (headLen * 0.6));
+        ctx.stroke();
+
+        // Arrowhead
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(
+          x2 - headLen * Math.cos(angle - Math.PI / 6),
+          y2 - headLen * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.lineTo(
+          x2 - headLen * Math.cos(angle + Math.PI / 6),
+          y2 - headLen * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.closePath();
+        ctx.fill();
+
+        // Label Pill
+        ctx.font = "800 11.5px Inter, -apple-system, sans-serif";
+        const padX = 10;
+        const textW = ctx.measureText(label).width + padX * 2;
+        const midX = (x1 + x2) / 2;
+        const pillY =
+          labelPos === "left-bottom"
+            ? y1 + 22
+            : labelPos === "drag-top"
+            ? y1 - 21
+            : y1 - 22;
+
+        ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+        ctx.beginPath();
+        ctx.roundRect(midX - textW / 2, pillY - 11, textW, 22, 8);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, midX, pillY);
+
+        ctx.restore();
+      }
+
+      /**
+       * Top-Left Digital & Analog Speedometer HUD
+       */
+      function drawTopLeftSpeedometer() {
+        const v = state.velocity;
+        const speed = Math.abs(v);
+        const mph = Math.round(speed * 2.23694);
+        const status = getMotionStatusInfo();
+
+        const boxX = 14;
+        const boxY = 14;
+        const boxW = 248;
+        const boxH = 112;
+
+        ctx.save();
+
+        // Glassmorphic HUD card background
+        ctx.fillStyle = "rgba(11, 17, 32, 0.88)";
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxW, boxH, 14);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.32)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Analog Semicircular Gauge on Left Side of HUD
+        const gaugeCX = boxX + 60;
+        const gaugeCY = boxY + 66;
+        const gaugeR = 42;
+        const startAng = Math.PI * 0.8;
+        const endAng = Math.PI * 2.2;
+        const totalSweep = endAng - startAng;
+
+        // Track arc
+        ctx.beginPath();
+        ctx.arc(gaugeCX, gaugeCY, gaugeR, startAng, endAng);
+        ctx.strokeStyle = "#1e293b";
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        // Active speed arc
+        const speedFrac = Math.min(1, speed / MAX_SPEED);
+        if (speedFrac > 0.005) {
+          ctx.beginPath();
+          ctx.arc(gaugeCX, gaugeCY, gaugeR, startAng, startAng + totalSweep * speedFrac);
+          ctx.strokeStyle = status.color;
+          ctx.lineWidth = 8;
+          ctx.lineCap = "round";
+          ctx.stroke();
+        }
+
+        // Dial Tick Marks (0 to 60 m/s in steps of 10)
+        for (let s = 0; s <= 60; s += 10) {
+          const frac = s / MAX_SPEED;
+          const ang = startAng + totalSweep * frac;
+          const innerR = gaugeR - 11;
+          const outerR = gaugeR - 5;
+          ctx.beginPath();
+          ctx.moveTo(gaugeCX + Math.cos(ang) * innerR, gaugeCY + Math.sin(ang) * innerR);
+          ctx.lineTo(gaugeCX + Math.cos(ang) * outerR, gaugeCY + Math.sin(ang) * outerR);
+          ctx.strokeStyle = "#94a3b8";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        // Analog Needle
+        const needleAng = startAng + totalSweep * speedFrac;
+        ctx.beginPath();
+        ctx.moveTo(gaugeCX, gaugeCY);
+        ctx.lineTo(
+          gaugeCX + Math.cos(needleAng) * (gaugeR - 7),
+          gaugeCY + Math.sin(needleAng) * (gaugeR - 7)
+        );
+        ctx.strokeStyle = "#f8fafc";
+        ctx.lineWidth = 2.4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        // Needle Center Cap
+        ctx.fillStyle = status.color;
+        ctx.beginPath();
+        ctx.arc(gaugeCX, gaugeCY, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Direction indicator inside bottom of dial
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "800 9.5px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const dirLabel = v > 0.08 ? "FWD →" : v < -0.08 ? "← REV" : "0";
+        ctx.fillText(dirLabel, gaugeCX, gaugeCY + 24);
+
+        // Digital Readouts on Right Side of HUD
+        const rightX = boxX + 114;
+
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "700 9.5px Inter, sans-serif";
+        ctx.fillText("SPEEDOMETER", rightX, boxY + 22);
+
+        // Primary m/s digital readout
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "800 22px ui-monospace, SFMono-Regular, monospace";
+        ctx.fillText(`${speed.toFixed(1)}`, rightX, boxY + 47);
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "700 11px Inter, sans-serif";
+        ctx.fillText("m/s", rightX + 64, boxY + 47);
+
+        // Secondary mph readout
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "700 12px ui-monospace, SFMono-Regular, monospace";
+        ctx.fillText(`${mph} mph`, rightX, boxY + 66);
+
+        // Motion Status Badge
+        ctx.font = "800 9.5px Inter, sans-serif";
+        const badgeText = status.label;
+        const badgeW = Math.min(122, ctx.measureText(badgeText).width + 14);
+        ctx.fillStyle = status.bg;
+        ctx.beginPath();
+        ctx.roundRect(rightX, boxY + 76, badgeW, 20, 6);
+        ctx.fill();
+        ctx.strokeStyle = status.color;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = status.color;
+        ctx.textBaseline = "middle";
+        ctx.fillText(badgeText, rightX + 7, boxY + 86);
+
+        ctx.restore();
+      }
+
+      /* =========================================================================
+         6. MAIN ANIMATION LOOP
+         ========================================================================= */
+      function animationLoop(timestamp) {
+        if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+        const dt = Math.min(0.05, (timestamp - state.lastTimestamp) / 1000);
+        state.lastTimestamp = timestamp;
+
+        const w = el.canvas.clientWidth;
+        const h = el.canvas.clientHeight;
+        const roadTop = h * 0.66;
+        const carX = w * 0.52;
+        const carY = roadTop + (h - roadTop) * 0.34;
+
+        if (state.mode === "running") {
+          const accel = getEffectiveAcceleration();
+          state.velocity += accel * dt;
+
+          // Clamp extreme velocities so visuals remain readable
+          if (state.velocity > MAX_SPEED) state.velocity = MAX_SPEED;
+          if (state.velocity < -MAX_SPEED) state.velocity = -MAX_SPEED;
+
+          state.elapsedTime += dt;
+          state.worldDistance += state.velocity * dt;
+
+          // Wheel rotation: v = omega * r (visual wheel radius ~ 0.35 m)
+          state.wheelAngle += (state.velocity / 0.35) * dt;
+
+          updateTelemetryAndBanner();
+        } else if (state.mode === "setup" && Math.abs(state.velocity) > 0.01) {
+          // Live Cruise Preview Mode before clicking Play!
+          state.worldDistance += state.velocity * dt;
+          state.wheelAngle += (state.velocity / 0.35) * dt;
+          updateTelemetryAndBanner();
+        }
+
+        // Smooth suspension pitch proportional to active acceleration
+        const activeAccel = state.mode === "running" ? getEffectiveAcceleration() : 0;
+        const targetPitch = Math.max(-0.045, Math.min(0.045, -activeAccel * 0.008));
+        state.pitchAngle += (targetPitch - state.pitchAngle) * Math.min(1, dt * 10);
+
+        // Update particles
+        spawnParticles(dt, carX, carY);
+
+        // Draw frame
+        renderScene();
+        requestAnimationFrame(animationLoop);
+      }
+
+      /* =========================================================================
+         7. CONTROLS & SCENARIO PRESETS
+         ========================================================================= */
+      function resetSimulation() {
+        state.mode = "setup";
+        state.velocity = state.initialVelocity;
+        state.elapsedTime = 0;
+        state.worldDistance = 0;
+        state.particles = [];
+        updateTelemetryAndBanner();
+        renderScene();
+      }
+
+      function setInitialVelocity(v) {
+        if (state.mode !== "setup") return;
+        state.initialVelocity = v;
+        state.velocity = v;
+        state.worldDistance = 0;
+        state.particles = [];
+
+        [el.initBackwardBtn, el.initStationaryBtn, el.initForwardBtn].forEach((btn) => {
+          btn.classList.toggle("active", parseFloat(btn.dataset.init) === v);
+        });
+
+        updateTelemetryAndBanner();
+        renderScene();
+      }
+
+      function applyPreset(presetKey) {
+        document.querySelectorAll(".preset-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.preset === presetKey);
+        });
+
+        // Reset to setup mode so the user sees initial motion immediately and can click Play
+        state.mode = "setup";
+        state.elapsedTime = 0;
+        state.worldDistance = 0;
+        state.particles = [];
+
+        if (presetKey === "bal-stationary") {
+          state.initialVelocity = 0;
+          state.forwardForce = 0;
+          state.backwardForce = 0;
+          state.airResistanceOn = false;
+        } else if (presetKey === "bal-forward") {
+          state.initialVelocity = 15;
+          state.forwardForce = 2000;
+          state.backwardForce = 2000;
+          state.airResistanceOn = false;
+        } else if (presetKey === "bal-backward") {
+          state.initialVelocity = -15;
+          state.forwardForce = 1500;
+          state.backwardForce = 1500;
+          state.airResistanceOn = false;
+        } else if (presetKey === "unbal-accel") {
+          state.initialVelocity = 0;
+          state.forwardForce = 4000;
+          state.backwardForce = 1000;
+          state.airResistanceOn = false;
+        } else if (presetKey === "unbal-brake") {
+          state.initialVelocity = 15;
+          state.forwardForce = 0;
+          state.backwardForce = 3600;
+          state.airResistanceOn = false;
+        } else if (presetKey === "terminal-vel") {
+          state.initialVelocity = 0;
+          state.forwardForce = 3200;
+          state.backwardForce = 0;
+          state.airResistanceOn = true;
+        }
+
+        state.velocity = state.initialVelocity;
+        el.fwdSlider.value = state.forwardForce;
+        el.bwdSlider.value = state.backwardForce;
+        el.toggleAirResistance.checked = state.airResistanceOn;
+
+        [el.initBackwardBtn, el.initStationaryBtn, el.initForwardBtn].forEach((btn) => {
+          btn.classList.toggle("active", parseFloat(btn.dataset.init) === state.initialVelocity);
+        });
+
+        updateTelemetryAndBanner();
+        renderScene();
+      }
+
+      function bindEvents() {
+        // Initial velocity buttons
+        [el.initBackwardBtn, el.initStationaryBtn, el.initForwardBtn].forEach((btn) => {
+          btn.addEventListener("click", () => {
+            setInitialVelocity(parseFloat(btn.dataset.init));
+          });
+        });
+
+        // Playback buttons
+        el.btnPlay.addEventListener("click", () => {
+          if (state.mode === "setup") {
+            state.velocity = state.initialVelocity;
+          }
+          state.mode = "running";
+          updateTelemetryAndBanner();
+        });
+
+        el.btnPause.addEventListener("click", () => {
+          if (state.mode === "running") {
+            state.mode = "paused";
+            updateTelemetryAndBanner();
+          }
+        });
+
+        el.btnReset.addEventListener("click", resetSimulation);
+
+        // Force sliders
+        el.fwdSlider.addEventListener("input", () => {
+          state.forwardForce = parseInt(el.fwdSlider.value, 10);
+          updateTelemetryAndBanner();
+          renderScene();
+        });
+
+        el.bwdSlider.addEventListener("input", () => {
+          state.backwardForce = parseInt(el.bwdSlider.value, 10);
+          updateTelemetryAndBanner();
+          renderScene();
+        });
+
+        // Air Resistance Toggle
+        el.toggleAirResistance.addEventListener("change", () => {
+          state.airResistanceOn = el.toggleAirResistance.checked;
+          updateTelemetryAndBanner();
+          renderScene();
+        });
+
+        // Quick Force Buttons
+        document.querySelectorAll(".quick-n-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const val = parseInt(btn.dataset.val, 10);
+            if (btn.dataset.target === "fwd") {
+              state.forwardForce = val;
+              el.fwdSlider.value = val;
+            } else {
+              state.backwardForce = val;
+              el.bwdSlider.value = val;
+            }
+            updateTelemetryAndBanner();
+            renderScene();
+          });
+        });
+
+        // Balance Forces helper button
+        el.btnMatchForces.addEventListener("click", () => {
+          state.backwardForce = Math.max(0, Math.round(state.forwardForce + getSignedDragForce()));
+          el.bwdSlider.value = Math.min(5000, state.backwardForce);
+          updateTelemetryAndBanner();
+          renderScene();
+        });
+
+        // Classroom Presets
+        document.querySelectorAll(".preset-btn").forEach((btn) => {
+          btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
+        });
+
+        // Vector Toggles
+        el.toggleVectors.addEventListener("change", () => {
+          state.showVectors = el.toggleVectors.checked;
+          renderScene();
+        });
+
+        el.toggleNetArrow.addEventListener("change", () => {
+          state.showNetArrow = el.toggleNetArrow.checked;
+          renderScene();
+        });
+
+        window.addEventListener("resize", resizeCanvas);
+      }
+
+      window.addEventListener("load", () => {
+        bindEvents();
+        updateTelemetryAndBanner();
+        resizeCanvas();
+        requestAnimationFrame(animationLoop);
+      });
+    })();
+  </script>
+</body>
+</html>
