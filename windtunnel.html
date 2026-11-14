@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aerodynamics &amp; Streamlining — Interactive Wind Tunnel Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #070b14;
+      color: #f8fafc;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    canvas#tunnelCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    /* Custom scrollbar for compact panels */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 999px;
+    }
+    input[type="range"] {
+      accent-color: #38bdf8;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-sky-500/30 selection:text-sky-200">
+
+  <!-- Top Navigation & Classroom Header -->
+  <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/>
+          <path d="M9.6 4.6A2 2 0 1 1 11 8H2"/>
+          <path d="M12.6 19.4A2 2 0 1 0 14 16H2"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white">
+          Aerodynamics &amp; Streamlining Wind Tunnel
+        </h1>
+        <p class="text-xs text-slate-400">
+          2D Eulerian Fluid Solver &bull; Vortex Shedding, Wake Eddy Currents &amp; Drag Force (<span class="font-mono text-sky-300">F<sub>D</sub> = &frac12;&rho;v&sup2;C<sub>d</sub>A</span>)
+        </p>
+      </div>
+    </div>
+
+    <!-- Primary Wind Controls -->
+    <div class="flex flex-wrap items-center gap-2.5">
+      <button id="btnGoWind" type="button" class="px-4 py-2 rounded-xl font-extrabold text-sm bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition cursor-pointer">
+        <svg id="iconGo" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span id="labelGo">GO — Start Wind</span>
+      </button>
+
+      <button id="btnResetFlow" type="button" class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-1.5 transition cursor-pointer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Clear Smoke
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-[1540px] w-full mx-auto p-3 sm:p-4 flex flex-col gap-3.5">
+
+    <!-- Wind Tunnel Canvas Stage -->
+    <section class="relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+      <div id="canvasContainer" class="relative w-full h-[370px] sm:h-[440px] lg:h-[480px] bg-[#060911]">
+        <canvas id="tunnelCanvas"></canvas>
+
+        <!-- Custom Shape Drawing Toolbar Overlay (Visible only when Custom Shape is selected) -->
+        <div id="drawToolbar" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md border border-sky-500/40 rounded-2xl px-3.5 py-2 shadow-xl flex flex-wrap items-center justify-center gap-2.5 z-10 max-w-[95%]">
+          <span class="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+            Draw Shape in Tunnel:
+          </span>
+          <div class="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button type="button" id="toolBrush" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 cursor-pointer">Paint Solid</button>
+            <button type="button" id="toolEraser" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white cursor-pointer">Erase</button>
+          </div>
+          <label class="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
+            Brush:
+            <input type="range" id="brushSizeSlider" min="1" max="5" value="2" class="w-16" />
+          </label>
+          <button type="button" id="btnClearCustom" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 cursor-pointer">
+            Clear Canvas
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Educational Explanation Strip -->
+      <div class="bg-slate-900/95 border-t border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 text-xs sm:text-sm">
+          <span id="aeroBadge" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider bg-rose-500/15 text-rose-300 border border-rose-500/40">
+            High Drag / Turbulent Wake
+          </span>
+          <span id="aeroExplanation" class="text-slate-200 font-medium">
+            Bluff flat faces force air to separate abruptly, creating low-pressure swirling eddy currents behind the object.
+          </span>
+        </div>
+        <div class="text-xs font-mono text-slate-400">
+          Air Density &rho; = 1.225 kg/m&sup3;
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Controls & Telemetry Deck -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+
+      <!-- 1. Test Shape Selector (5 cols) -->
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-3">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+            <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-300">1. Select Test Shape</h2>
+            <span class="text-xs text-slate-400">Compare aerodynamics</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2" id="shapeGrid">
+            <button type="button" data-shape="block" class="shape-btn active p-2.5 rounded-xl border border-sky-400 bg-sky-500/15 text-left transition cursor-pointer flex flex-col justify-between gap-1">
+              <span class="text-xs font-extrabold text-white">Flat Block</span>
+              <span class="text-[11px] font-mono text-rose-300">C<sub>d</sub> &approx; 1.15</span>
+            </button>
+
+            <button type="button" data-shape="sphere" class="shape-btn p-2.5 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-800 text-left transition cursor-pointer flex flex-col justify-between gap-1">
+              <span class="text-xs font-extrabold text-slate-200">Sphere</span>
+              <span class="text-[11px] font-mono text-amber-300">C<sub>d</sub> &approx; 0.47</span>
+            </button>
+
+            <button type="button" data-shape="teardrop" class="shape-btn p-2.5 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-800 text-left transition cursor-pointer flex flex-col justify-between gap-1">
+              <span class="text-xs font-extrabold text-slate-200">Teardrop</span>
+              <span class="text-[11px] font-mono text-emerald-300">C<sub>d</sub> &approx; 0.05</span>
+            </button>
+
+            <button type="button" data-shape="sportscar" class="shape-btn p-2.5 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-800 text-left transition cursor-pointer flex flex-col justify-between gap-1">
+              <span class="text-xs font-extrabold text-slate-200">Sports Car</span>
+              <span class="text-[11px] font-mono text-emerald-300">C<sub>d</sub> &approx; 0.28</span>
+            </button>
+
+            <button type="button" data-shape="lorry" class="shape-btn p-2.5 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-800 text-left transition cursor-pointer flex flex-col justify-between gap-1">
+              <span class="text-xs font-extrabold text-slate-200">Lorry (No Defl.)</span>
+              <span class="text-[11px] font-mono text-rose-300">C<sub>d</sub> &approx; 0.92</span>
+            </button>
+
+            <button type="button" data-shape="lorry_deflector" class="shape-btn p-2.5 rounded-xl border border-slate-700 bg-slate-800/70 hover:bg-slate-800 text-left transition cursor-pointer flex flex-col justify-between gap-1">
+              <span class="text-xs font-extrabold text-slate-200">Lorry + Deflector</span>
+              <span class="text-[11px] font-mono text-sky-300">C<sub>d</sub> &approx; 0.58</span>
+            </button>
+
+            <button type="button" data-shape="custom" class="shape-btn col-span-2 p-2.5 rounded-xl border border-dashed border-sky-500/50 bg-slate-800/40 hover:bg-slate-800 text-left transition cursor-pointer flex flex-col justify-between gap-1">
+              <span class="text-xs font-extrabold text-sky-300 flex items-center gap-1">
+                &#9998; Draw Your Own Shape
+              </span>
+              <span class="text-[11px] text-slate-400">Freehand airfoil / vehicle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Spin & Orientation Controls -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.3"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+              Rotate / Spin Shape
+            </span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="btnToggleSpin" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition cursor-pointer">
+                Auto-Spin: OFF
+              </button>
+              <button type="button" id="btnFlip180" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-300 transition cursor-pointer" title="Flip shape 180° (e.g. backwards teardrop!)">
+                Flip 180&deg;
+              </button>
+              <button type="button" id="btnResetAngle" class="px-2 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition cursor-pointer">
+                0&deg;
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-[11px] font-semibold text-slate-400 w-16">Angle: <strong id="angleReadout" class="text-white font-mono">0&deg;</strong></span>
+            <input type="range" id="angleSlider" min="0" max="360" step="1" value="0" class="flex-1 h-1.5 bg-slate-800 rounded-lg cursor-pointer" />
+            <span class="text-[11px] font-semibold text-slate-400 hidden sm:inline">Spin RPM:</span>
+            <input type="range" id="spinSpeedSlider" min="-120" max="120" step="10" value="45" class="w-20 h-1.5 bg-slate-800 rounded-lg cursor-pointer" title="Spin speed and direction (Magnus effect)" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Wind Tunnel Airflow & Visualization Options (4 cols) -->
+      <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-3">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+            <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-300">2. Airflow &amp; Smoke Trails</h2>
+            <span id="windSpeedBadge" class="text-xs font-mono font-bold text-sky-400 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded-md">
+              30 m/s (67 mph)
+            </span>
+          </div>
+
+          <!-- Wind Speed Slider -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-2.5">
+            <div class="flex justify-between text-xs font-bold mb-1.5">
+              <span class="text-slate-300">Tunnel Wind Speed (v)</span>
+              <span class="text-slate-400 font-mono">5 – 60 m/s</span>
+            </div>
+            <input type="range" id="windSpeedSlider" min="5" max="60" step="1" value="30" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer" />
+            <div class="grid grid-cols-4 gap-1.5 mt-2">
+              <button type="button" data-wind="12" class="wind-preset py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer">12 m/s</button>
+              <button type="button" data-wind="25" class="wind-preset py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer">25 m/s</button>
+              <button type="button" data-wind="40" class="wind-preset py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer">40 m/s</button>
+              <button type="button" data-wind="55" class="wind-preset py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer">55 m/s</button>
+            </div>
+          </div>
+
+          <!-- Visualization Modes -->
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" id="toggleRibbons" checked class="rounded accent-sky-400 w-4 h-4" />
+              <span class="font-semibold text-slate-200">Smoke Streamlines</span>
+            </label>
+
+            <label class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" id="toggleEddies" checked class="rounded accent-sky-400 w-4 h-4" />
+              <span class="font-semibold text-slate-200">Eddy Vortex Field</span>
+            </label>
+
+            <label class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 cursor-pointer hover:border-slate-700">
+              <input type="checkbox" id="togglePressure" checked class="rounded accent-sky-400 w-4 h-4" />
+              <span class="font-semibold text-slate-200">Pressure Zones</span>
+            </label>
+
+            <label class="flex items-center gap-2 bg-sky-500/10 border border-sky-500/40 rounded-xl p-2.5 cursor-pointer hover:border-sky-400">
+              <input type="checkbox" id="toggleDragMeter" checked class="rounded accent-sky-400 w-4 h-4" />
+              <span class="font-bold text-sky-300">Air Resistance Meter</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Live Aerodynamic Telemetry (3 cols) -->
+      <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-2.5">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-300">3. Drag Telemetry</h2>
+          <span class="text-[11px] font-mono text-slate-400">Live Solver</span>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-1 gap-2">
+          <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Air Resistance (Drag Force)</div>
+            <div id="teleDragForce" class="text-xl font-extrabold font-mono text-rose-400 mt-0.5">0 N</div>
+            <div id="teleDragSub" class="text-[11px] text-slate-400">Press GO to start airflow</div>
+          </div>
+
+          <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Drag Coefficient (C<sub>d</sub>)</div>
+            <div id="teleCd" class="text-lg font-extrabold font-mono text-sky-300 mt-0.5">1.15</div>
+            <div id="teleArea" class="text-[11px] text-slate-400">Frontal Area A = 2.40 m&sup2;</div>
+          </div>
+
+          <div class="col-span-2 lg:col-span-1 bg-slate-950/90 border border-slate-800 rounded-xl p-2.5">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Lift / Magnus Force</div>
+            <div id="teleLiftForce" class="text-sm font-extrabold font-mono text-emerald-300 mt-0.5">0 N (Neutral)</div>
+            <div class="text-[11px] text-slate-400">Spinning deflects wake &amp; creates lift</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* =========================================================================
+         1. GRID-BASED 2D EULERIAN FLUID SOLVER (STABLE NAVIER-STOKES / VORTICITY)
+         =========================================================================
+         We use a fast, unconditional-stability Jos Stam semi-Lagrangian grid solver
+         with vorticity confinement so turbulent wake eddies (Kármán vortex street),
+         flow separation behind bluff bodies, smooth laminar attachment around
+         streamlined teardrops, roof deflector guidance on lorries, and Magnus
+         deflection from spinning bodies emerge naturally in real time.
+      */
+      const NX = 160; // Horizontal grid cells
+      const NY = 80;  // Vertical grid cells
+      const SIZE = NX * NY;
+
+      // Fluid fields
+      let u = new Float32Array(SIZE);       // Horizontal velocity
+      let v = new Float32Array(SIZE);       // Vertical velocity
+      let uPrev = new Float32Array(SIZE);
+      let vPrev = new Float32Array(SIZE);
+      let p = new Float32Array(SIZE);       // Pressure field
+      let div = new Float32Array(SIZE);     // Divergence
+      let curl = new Float32Array(SIZE);    // Vorticity (eddy spin)
+      let smoke = new Float32Array(SIZE);   // Continuous dye field for wake/eddy visualization
+      let smokePrev = new Float32Array(SIZE);
+      let solid = new Uint8Array(SIZE);     // 1 = obstacle cell, 0 = fluid cell
+      let customGrid = new Uint8Array(SIZE);// User-drawn obstacle mask
+
+      // Lagrangian tracer ribbons for crisp, high-contrast streamline & eddy trails
+      const NUM_RIBBONS = 26;
+      const TRAIL_LEN = 38;
+      let ribbons = [];
+
+      /* =========================================================================
+         2. SIMULATION STATE & AERODYNAMIC PARAMETERS
+         ========================================================================= */
+      const SHAPE_META = {
+        block: {
+          name: "Flat Vertical Block",
+          baseCd: 1.15,
+          area: 2.6,
+          badge: "Very High Drag • Severe Eddies",
+          badgeCls: "bg-rose-500/15 text-rose-300 border-rose-500/40",
+          desc: "Air hits the flat front wall at 90°, creating a high-pressure cushion in front and wide, swirling low-pressure eddy currents behind."
+        },
+        sphere: {
+          name: "Smooth Sphere",
+          baseCd: 0.47,
+          area: 2.0,
+          badge: "Moderate Drag • Boundary Separation",
+          badgeCls: "bg-amber-500/15 text-amber-300 border-amber-500/40",
+          desc: "Air curves smoothly around the front hemisphere, then separates past the widest point to form a medium-width vortex wake."
+        },
+        teardrop: {
+          name: "Streamlined Teardrop",
+          baseCd: 0.05,
+          area: 1.8,
+          badge: "Ultra-Low Drag • Laminar Flow",
+          badgeCls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+          desc: "The rounded nose parts air gently while the long tapered tail lets streamlines rejoin smoothly with almost zero eddy currents! (Try flipping it 180°!)"
+        },
+        sportscar: {
+          name: "Aerodynamic Sports Car",
+          baseCd: 0.28,
+          area: 1.95,
+          badge: "Low Drag • Sleek Fastback",
+          badgeCls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+          desc: "Low nose, raked windscreen, and tapered fastback roof keep airflow attached cleanly over the body to minimize wake drag."
+        },
+        lorry: {
+          name: "Box Lorry (No Deflector)",
+          baseCd: 0.92,
+          area: 6.8,
+          badge: "High Drag • Cab-Trailer Gap Vortex",
+          badgeCls: "bg-rose-500/15 text-rose-300 border-rose-500/40",
+          desc: "Air slams into the tall flat trailer wall above the cab, creating a turbulent trapping vortex in the gap and a massive rear wake."
+        },
+        lorry_deflector: {
+          name: "Lorry + Roof Air Deflector",
+          baseCd: 0.58,
+          area: 6.8,
+          badge: "Reduced Drag • Guided Roof Flow",
+          badgeCls: "bg-sky-500/15 text-sky-300 border-sky-500/40",
+          desc: "The curved cab roof fairing guides air smoothly up and over the tall trailer box, eliminating the gap eddy and cutting fuel consumption by ~15–20%!"
+        },
+        custom: {
+          name: "Custom Drawn Shape",
+          baseCd: 0.65,
+          area: 2.5,
+          badge: "Custom Test Model",
+          badgeCls: "bg-sky-500/15 text-sky-300 border-sky-500/40",
+          desc: "Paint or erase directly inside the wind tunnel! Try sculpting a rounded nose and long tapered tail to minimize the drag meter."
+        }
+      };
+
+      const state = {
+        windRunning: false,
+        windSpeedMs: 30,          // 5 to 60 m/s
+        shape: "block",
+        angleDeg: 0,              // 0 to 360 degrees
+        autoSpin: false,
+        spinRpm: 45,              // -120 to +120 RPM
+        showRibbons: true,
+        showEddies: true,
+        showPressure: true,
+        showDragMeter: true,
+        // Measured physics outputs (smoothed)
+        measuredDragN: 0,
+        measuredLiftN: 0,
+        effectiveCd: 1.15,
+        frontalArea: 2.6,
+        // Custom drawing tool
+        drawMode: "paint",        // "paint" | "erase"
+        brushRadius: 2,
+        isPointerDown: false,
+        simTime: 0
+      };
+
+      /* =========================================================================
+         3. DOM ELEMENTS
+         ========================================================================= */
+      const el = {
+        canvas: document.getElementById("tunnelCanvas"),
+        btnGoWind: document.getElementById("btnGoWind"),
+        labelGo: document.getElementById("labelGo"),
+        iconGo: document.getElementById("iconGo"),
+        btnResetFlow: document.getElementById("btnResetFlow"),
+
+        shapeGrid: document.getElementById("shapeGrid"),
+        drawToolbar: document.getElementById("drawToolbar"),
+        toolBrush: document.getElementById("toolBrush"),
+        toolEraser: document.getElementById("toolEraser"),
+        brushSizeSlider: document.getElementById("brushSizeSlider"),
+        btnClearCustom: document.getElementById("btnClearCustom"),
+
+        btnToggleSpin: document.getElementById("btnToggleSpin"),
+        btnFlip180: document.getElementById("btnFlip180"),
+        btnResetAngle: document.getElementById("btnResetAngle"),
+        angleSlider: document.getElementById("angleSlider"),
+        angleReadout: document.getElementById("angleReadout"),
+        spinSpeedSlider: document.getElementById("spinSpeedSlider"),
+
+        windSpeedSlider: document.getElementById("windSpeedSlider"),
+        windSpeedBadge: document.getElementById("windSpeedBadge"),
+        toggleRibbons: document.getElementById("toggleRibbons"),
+        toggleEddies: document.getElementById("toggleEddies"),
+        togglePressure: document.getElementById("togglePressure"),
+        toggleDragMeter: document.getElementById("toggleDragMeter"),
+
+        aeroBadge: document.getElementById("aeroBadge"),
+        aeroExplanation: document.getElementById("aeroExplanation"),
+        teleDragForce: document.getElementById("teleDragForce"),
+        teleDragSub: document.getElementById("teleDragSub"),
+        teleCd: document.getElementById("teleCd"),
+        teleArea: document.getElementById("teleArea"),
+        teleLiftForce: document.getElementById("teleLiftForce")
+      };
+
+      const ctx = el.canvas.getContext("2d");
+
+      /* =========================================================================
+         4. GEOMETRY RASTERIZATION INTO FLUID GRID (WITH ROTATION & CUSTOM SHAPES)
+         ========================================================================= */
+      const OBJ_CX = 48; // Grid X center of obstacle (leaves long wake space on right)
+      const OBJ_CY = 40; // Grid Y center of obstacle
+
+      function initDefaultCustomWing() {
+        customGrid.fill(0);
+        // Seed a pleasant starter NACA-style airfoil when user first opens Custom mode
+        for (let j = 2; j < NY - 2; j++) {
+          for (let i = 2; i < NX - 2; i++) {
+            const dx = i - OBJ_CX;
+            const dy = j - OBJ_CY;
+            if (isPointInShape("teardrop", dx, dy)) {
+              customGrid[j * NX + i] = 1;
+            }
+          }
+        }
+      }
+
+      /**
+       * Evaluates whether local coordinates (lx, ly) relative to shape center
+       * lie inside the specified aerodynamic body.
+       */
+      function isPointInShape(shape, lx, ly) {
+        if (shape === "block") {
+          return Math.abs(lx) <= 9 && Math.abs(ly) <= 13;
+        }
+        if (shape === "sphere") {
+          return lx * lx + ly * ly <= 12.5 * 12.5;
+        }
+        if (shape === "teardrop") {
+          // Rounded front hemisphere (lx <= 0) + smooth tapered tail (0 < lx <= 24)
+          const r = 9.5;
+          if (lx < -r || lx > 24) return false;
+          if (lx <= 0) {
+            return lx * lx + ly * ly <= r * r;
+          } else {
+            // Smooth cosine-tapered tail
+            const t = lx / 24;
+            const halfThick = r * Math.pow(1 - t, 1.35);
+            return Math.abs(ly) <= halfThick;
+          }
+        }
+        if (shape === "sportscar") {
+          // Ground at ly = +7, wheels cut out or integrated into lower body
+          if (lx < -21 || lx > 21 || ly > 7 || ly < -7.5) return false;
+          // Underbody
+          if (ly >= 2) return true;
+          // Sleek nose wedge (lx from 21 down to 7)
+          if (lx > 7) {
+            const topY = 2 - ((21 - lx) / 14) * 4.5;
+            return ly >= topY;
+          }
+          // Raked windscreen (lx from 7 down to 0)
+          if (lx > 0) {
+            const topY = -2.5 - ((7 - lx) / 7) * 4.8;
+            return ly >= topY;
+          }
+          // Roofline & fastback tail (lx from 0 down to -21)
+          const t = Math.abs(lx) / 21;
+          const topY = -7.3 + Math.pow(t, 1.45) * 6.8;
+          return ly >= topY;
+        }
+        if (shape === "lorry") {
+          // Bottom at ly = +11
+          if (lx < -22 || lx > 22 || ly > 11 || ly < -11) return false;
+          // Rear box trailer (lx from -22 to +6, full height ly from -11 to +11)
+          if (lx <= 6) return true;
+          // Cab-trailer air gap (lx from 6 to 8.5, lower chassis only)
+          if (lx <= 8.5) return ly >= 4;
+          // Front cab (lx from 8.5 to 22, lower height ly from -1 to +11)
+          if (lx <= 20) return ly >= -1;
+          // Cab nose
+          return ly >= 1.5;
+        }
+        if (shape === "lorry_deflector") {
+          // Same lorry, PLUS curved aerodynamic roof deflector bridging cab (-1) to trailer (-11)
+          if (lx < -22 || lx > 22 || ly > 11 || ly < -11) return false;
+          if (lx <= 6) return true; // Rear box trailer
+          if (lx <= 20) {
+            // Smooth curved fairing from (lx=20, ly=-1) up to (lx=6, ly=-11)
+            const t = (20 - lx) / 14; // 0 at front of cab, 1 at trailer top
+            const fairingTop = -1 - 10 * Math.sin((t * Math.PI) / 2);
+            return ly >= fairingTop;
+          }
+          return ly >= 1.5;
+        }
+        return false;
+      }
+
+      function rebuildObstacleGrid() {
+        solid.fill(0);
+        const rad = (state.angleDeg * Math.PI) / 180;
+        const cosA = Math.cos(rad);
+        const sinA = Math.sin(rad);
+
+        let minY = NY, maxY = 0;
+
+        for (let j = 1; j < NY - 1; j++) {
+          for (let i = 1; i < NX - 1; i++) {
+            const idx = j * NX + i;
+            const dx = i - OBJ_CX;
+            const dy = j - OBJ_CY;
+            // Inverse rotate grid point into shape's local frame
+            const lx = dx * cosA + dy * sinA;
+            const ly = -dx * sinA + dy * cosA;
+
+            let isSol = false;
+            if (state.shape === "custom") {
+              const ci = Math.round(OBJ_CX + lx);
+              const cj = Math.round(OBJ_CY + ly);
+              if (ci >= 1 && ci < NX - 1 && cj >= 1 && cj < NY - 1) {
+                isSol = customGrid[cj * NX + ci] === 1;
+              }
+            } else {
+              isSol = isPointInShape(state.shape, lx, ly);
+            }
+
+            if (isSol) {
+              solid[idx] = 1;
+              if (j < minY) minY = j;
+              if (j > maxY) maxY = j;
+            }
+          }
+        }
+
+        // Update effective frontal cross-section height based on rotation
+        const verticalSpan = Math.max(4, maxY - minY + 1);
+        const meta = SHAPE_META[state.shape];
+        const nominalSpan = state.shape.startsWith("lorry") ? 22 : state.shape === "sportscar" ? 15 : 22;
+        state.frontalArea = Number((meta.area * (verticalSpan / nominalSpan)).toFixed(2));
+      }
+
+      /* =========================================================================
+         5. EULERIAN NAVIER-STOKES / VORTICITY FLUID STEPPER
+         ========================================================================= */
+      function setBoundaryConditions(field, type) {
+        // Top and bottom wind tunnel walls (free-slip)
+        for (let i = 1; i < NX - 1; i++) {
+          field[i] = type === 2 ? -field[NX + i] : field[NX + i];
+          field[(NY - 1) * NX + i] = type === 2 ? -field[(NY - 2) * NX + i] : field[(NY - 2) * NX + i];
+        }
+        // Inlet (left) & Outlet (right)
+        const inletU = state.windRunning ? (state.windSpeedMs / 30) * 1.65 : 0;
+        for (let j = 1; j < NY - 1; j++) {
+          const row = j * NX;
+          if (type === 1) {
+            field[row] = inletU;
+            field[row + NX - 1] = field[row + NX - 2];
+          } else if (type === 2) {
+            field[row] = 0;
+            field[row + NX - 1] = field[row + NX - 2];
+          } else {
+            field[row] = field[row + 1];
+            field[row + NX - 1] = field[row + NX - 2];
+          }
+        }
+
+        // Obstacle no-slip + tangential surface rotation velocity (Magnus effect!)
+        const omega = state.autoSpin ? (state.spinRpm / 60) * 0.55 : 0;
+        for (let j = 1; j < NY - 1; j++) {
+          for (let i = 1; i < NX - 1; i++) {
+            const idx = j * NX + i;
+            if (solid[idx] === 1) {
+              if (type === 1) {
+                // Tangential velocity u_tan = -omega * dy
+                field[idx] = omega !== 0 ? -omega * (j - OBJ_CY) * 0.14 : 0;
+              } else if (type === 2) {
+                // Tangential velocity v_tan = +omega * dx
+                field[idx] = omega !== 0 ? omega * (i - OBJ_CX) * 0.14 : 0;
+              } else {
+                field[idx] = 0;
+              }
+            }
+          }
+        }
+      }
+
+      function advect(d, d0, velU, velV, dt, type) {
+        const dt0X = dt * (NX - 2) * 0.45;
+        const dt0Y = dt * (NY - 2) * 0.45;
+
+        for (let j = 1; j < NY - 1; j++) {
+          for (let i = 1; i < NX - 1; i++) {
+            const idx = j * NX + i;
+            if (solid[idx] === 1) continue;
+
+            let x = i - dt0X * velU[idx];
+            let y = j - dt0Y * velV[idx];
+
+            if (x < 0.5) x = 0.5;
+            if (x > NX - 1.5) x = NX - 1.5;
+            const i0 = Math.floor(x);
+            const i1 = i0 + 1;
+
+            if (y < 0.5) y = 0.5;
+            if (y > NY - 1.5) y = NY - 1.5;
+            const j0 = Math.floor(y);
+            const j1 = j0 + 1;
+
+            const s1 = x - i0;
+            const s0 = 1 - s1;
+            const t1 = y - j0;
+            const t0 = 1 - t1;
+
+            d[idx] =
+              s0 * (t0 * d0[j0 * NX + i0] + t1 * d0[j1 * NX + i0]) +
+              s1 * (t0 * d0[j0 * NX + i1] + t1 * d0[j1 * NX + i1]);
+          }
+        }
+        setBoundaryConditions(d, type);
+      }
+
+      function project(velU, velV, press, divField) {
+        for (let j = 1; j < NY - 1; j++) {
+          for (let i = 1; i < NX - 1; i++) {
+            const idx = j * NX + i;
+            if (solid[idx] === 1) {
+              divField[idx] = 0;
+              press[idx] = 0;
+              continue;
+            }
+            const uR = solid[idx + 1] ? 0 : velU[idx + 1];
+            const uL = solid[idx - 1] ? 0 : velU[idx - 1];
+            const vT = solid[idx + NX] ? 0 : velV[idx + NX];
+            const vB = solid[idx - NX] ? 0 : velV[idx - NX];
+            divField[idx] = -0.5 * (uR - uL + vT - vB);
+            press[idx] = 0;
+          }
+        }
+        setBoundaryConditions(divField, 0);
+        setBoundaryConditions(press, 0);
+
+        // Gauss-Seidel pressure Poisson relaxation
+        for (let k = 0; k < 22; k++) {
+          for (let j = 1; j < NY - 1; j++) {
+            for (let i = 1; i < NX - 1; i++) {
+              const idx = j * NX + i;
+              if (solid[idx] === 1) continue;
+
+              let neighbors = 0;
+              let sumP = 0;
+              if (!solid[idx - 1]) { sumP += press[idx - 1]; neighbors++; }
+              if (!solid[idx + 1]) { sumP += press[idx + 1]; neighbors++; }
+              if (!solid[idx - NX]) { sumP += press[idx - NX]; neighbors++; }
+              if (!solid[idx + NX]) { sumP += press[idx + NX]; neighbors++; }
+
+              if (neighbors > 0) {
+                press[idx] = (divField[idx] + sumP) / neighbors;
+              }
+            }
+          }
+          setBoundaryConditions(press, 0);
+        }
+
+        // Subtract pressure gradient to enforce incompressible flow
+        for (let j = 1; j < NY - 1; j++) {
+          for (let i = 1; i < NX - 1; i++) {
+            const idx = j * NX + i;
+            if (solid[idx] === 1) continue;
+
+            const pR = solid[idx + 1] ? press[idx] : press[idx + 1];
+            const pL = solid[idx - 1] ? press[idx] : press[idx - 1];
+            const pT = solid[idx + NX] ? press[idx] : press[idx + NX];
+            const pB = solid[idx - NX] ? press[idx] : press[idx - NX];
+
+            velU[idx] -= 0.5 * (pR - pL);
+            velV[idx] -= 0.5 * (pT - pB);
+          }
+        }
+        setBoundaryConditions(velU, 1);
+        setBoundaryConditions(velV, 2);
+      }
+
+      /**
+       * Vorticity confinement amplifies natural wake eddies & Kármán vortex shedding
+       * behind bluff shapes while remaining calm around streamlined shapes.
+       */
+      function applyVorticityConfinement(dt) {
+        for (let j = 1; j < NY - 1; j++) {
+          for (let i = 1; i < NX - 1; i++) {
+            const idx = j * NX + i;
+            if (solid[idx] === 1) {
+              curl[idx] = 0;
+              continue;
+            }
+            const dvdx = (v[idx + 1] - v[idx - 1]) * 0.5;
+            const dudy = (u[idx + NX] - u[idx - NX]) * 0.5;
+            curl[idx] = dvdx - dudy;
+          }
+        }
+
+        const eps = 0.24;
+        for (let j = 2; j < NY - 2; j++) {
+          for (let i = 2; i < NX - 2; i++) {
+            const idx = j * NX + i;
+            if (solid[idx] === 1) continue;
+            // Do not amplify vorticity right at inlet
+            if (i < 12) continue;
+
+            const dwDx = (Math.abs(curl[idx + 1]) - Math.abs(curl[idx - 1])) * 0.5;
+            const dwDy = (Math.abs(curl[idx + NX]) - Math.abs(curl[idx - NX])) * 0.5;
+            const len = Math.hypot(dwDx, dwDy) + 1e-5;
+            const nx = dwDx / len;
+            const ny = dwDy / len;
+
+            const w = curl[idx];
+            u[idx] += dt * eps * (ny * w);
+            v[idx] += dt * eps * (-nx * w);
+          }
+        }
+      }
+
+      function injectSmokeStreams() {
+        if (!state.windRunning) return;
+        // Inject crisp horizontal smoke bands at inlet x = 2..3
+        for (let j = 4; j < NY - 4; j++) {
+          // Create 13 distinct smoke filaments separated by clear air
+          const band = Math.sin((j / NY) * Math.PI * 26);
+          if (band > 0.35) {
+            smoke[j * NX + 2] = 1.0;
+            smoke[j * NX + 3] = 0.92;
+          }
+        }
+      }
+
+      function stepFluid(dt) {
+        if (state.autoSpin && state.windRunning) {
+          state.angleDeg = (state.angleDeg + (state.spinRpm * 6) * dt + 360) % 360;
+          el.angleSlider.value = Math.round(state.angleDeg);
+          el.angleReadout.textContent = `${Math.round(state.angleDeg)}°`;
+          rebuildObstacleGrid();
+        } else if (state.autoSpin && !state.windRunning) {
+          // Allow spinning preview even when wind is off
+          state.angleDeg = (state.angleDeg + (state.spinRpm * 6) * dt + 360) % 360;
+          el.angleSlider.value = Math.round(state.angleDeg);
+          el.angleReadout.textContent = `${Math.round(state.angleDeg)}°`;
+          rebuildObstacleGrid();
+        }
+
+        if (!state.windRunning) {
+          // Gently damp velocities when wind tunnel fan is switched off
+          for (let k = 0; k < SIZE; k++) {
+            u[k] *= 0.92;
+            v[k] *= 0.92;
+            p[k] *= 0.9;
+            smoke[k] *= 0.96;
+          }
+          computeAerodynamicForces();
+          return;
+        }
+
+        state.simTime += dt;
+
+        // Subtle inlet perturbation behind bluff bodies to trigger natural Kármán vortex shedding
+        const perturb = Math.sin(state.simTime * 7.5) * 0.035;
+        if (!solid[OBJ_CY * NX + (OBJ_CX - 14)]) {
+          v[OBJ_CY * NX + (OBJ_CX - 14)] += perturb;
+        }
+
+        injectSmokeStreams();
+
+        // Velocity step
+        uPrev.set(u);
+        vPrev.set(v);
+        advect(u, uPrev, uPrev, vPrev, dt, 1);
+        advect(v, vPrev, uPrev, vPrev, dt, 2);
+        applyVorticityConfinement(dt);
+        project(u, v, p, div);
+
+        // Smoke dye advection & subtle dissipation
+        smokePrev.set(smoke);
+        advect(smoke, smokePrev, u, v, dt, 0);
+        for (let k = 0; k < SIZE; k++) {
+          smoke[k] *= 0.994;
+        }
+
+        // Advance Lagrangian streamline ribbons
+        updateRibbons(dt);
+
+        // Compute real-time pressure + wake momentum drag and Magnus lift
+        computeAerodynamicForces();
+      }
+
+      /* =========================================================================
+         6. LAGRANGIAN STREAMLINE RIBBONS (SHOWS EDDY LOOPS & SMOOTH LAMINAR FLOW)
+         ========================================================================= */
+      function initRibbons() {
+        ribbons = [];
+        for (let r = 0; r < NUM_RIBBONS; r++) {
+          const yNorm = 0.07 + (r / (NUM_RIBBONS - 1)) * 0.86;
+          const gx = 2 + (r % 3) * 3;
+          const gy = yNorm * (NY - 1);
+          ribbons.push({
+            gx,
+            gy,
+            baseY: gy,
+            pts: [{ x: gx, y: gy }]
+          });
+        }
+      }
+
+      function sampleVelocityBilinear(gx, gy) {
+        const x = Math.max(0.5, Math.min(NX - 1.5, gx));
+        const y = Math.max(0.5, Math.min(NY - 1.5, gy));
+        const i0 = Math.floor(x);
+        const j0 = Math.floor(y);
+        const s1 = x - i0;
+        const t1 = y - j0;
+        const s0 = 1 - s1;
+        const t0 = 1 - t1;
+
+        const idx00 = j0 * NX + i0;
+        const idx10 = idx00 + 1;
+        const idx01 = idx00 + NX;
+        const idx11 = idx01 + 1;
+
+        const velU =
+          s0 * (t0 * u[idx00] + t1 * u[idx01]) +
+          s1 * (t0 * u[idx10] + t1 * u[idx11]);
+        const velV =
+          s0 * (t0 * v[idx00] + t1 * v[idx01]) +
+          s1 * (t0 * v[idx10] + t1 * v[idx11]);
+        const cVal =
+          s0 * (t0 * curl[idx00] + t1 * curl[idx01]) +
+          s1 * (t0 * curl[idx10] + t1 * curl[idx11]);
+
+        return { u: velU, v: velV, curl: cVal };
+      }
+
+      function updateRibbons(dt) {
+        const speedScale = (NX - 2) * 0.45;
+        for (const rb of ribbons) {
+          // Sub-step twice for smooth eddy spirals
+          for (let sub = 0; sub < 2; sub++) {
+            const vel = sampleVelocityBilinear(rb.gx, rb.gy);
+            rb.gx += vel.u * speedScale * dt * 0.5;
+            rb.gy += vel.v * speedScale * dt * 0.5;
+
+            // Keep out of solid cells cleanly
+            const ci = Math.round(rb.gx);
+            const cj = Math.round(rb.gy);
+            if (ci >= 1 && ci < NX - 1 && cj >= 1 && cj < NY - 1 && solid[cj * NX + ci] === 1) {
+              rb.gy += rb.gy < OBJ_CY ? -0.65 : 0.65;
+            }
+          }
+
+          rb.pts.push({ x: rb.gx, y: rb.gy, curl: sampleVelocityBilinear(rb.gx, rb.gy).curl });
+          if (rb.pts.length > TRAIL_LEN) {
+            rb.pts.shift();
+          }
+
+          // Respawn at inlet when exiting right edge or wall
+          if (rb.gx >= NX - 2 || rb.gy <= 1.5 || rb.gy >= NY - 2.5) {
+            rb.gx = 1.5;
+            rb.gy = rb.baseY + (Math.random() - 0.5) * 0.4;
+            rb.pts = [{ x: rb.gx, y: rb.gy, curl: 0 }];
+          }
+        }
+      }
+
+      /* =========================================================================
+         7. PHYSICS-CORRECT AERODYNAMIC DRAG & MAGNUS LIFT CALCULATION
+         ========================================================================= */
+      function computeAerodynamicForces() {
+        const meta = SHAPE_META[state.shape];
+        let dynamicCd = meta.baseCd;
+
+        // Adjust Cd dynamically when shape is rotated (e.g., flipped teardrop = blunt back-first!)
+        const rad = (state.angleDeg * Math.PI) / 180;
+        if (state.shape === "teardrop") {
+          // At 0°: pointed tail back -> Cd = 0.05. At 180°: flat/blunt side back -> Cd rises to ~0.48!
+          const flipFactor = (1 - Math.cos(rad)) * 0.5; // 0 at 0°, 1 at 180°
+          dynamicCd = 0.05 + flipFactor * 0.43;
+        } else if (state.shape === "block") {
+          // Rotating a square/rect block at 45° changes corner incidence
+          const diamondFactor = Math.abs(Math.sin(2 * rad));
+          dynamicCd = 1.15 - diamondFactor * 0.22;
+        } else if (state.shape === "sportscar" || state.shape === "lorry" || state.shape === "lorry_deflector") {
+          const tiltPenalty = Math.abs(Math.sin(rad)) * 0.45;
+          dynamicCd = meta.baseCd + tiltPenalty;
+        } else if (state.shape === "custom") {
+          // Estimate Cd from grid pressure drag + wake vorticity integral
+          let frontP = 0;
+          let rearP = 0;
+          let wakeEddyEnergy = 0;
+          let cellCount = 0;
+          for (let j = 2; j < NY - 2; j++) {
+            for (let i = 2; i < NX - 2; i++) {
+              const idx = j * NX + i;
+              if (solid[idx] === 1) {
+                cellCount++;
+                if (!solid[idx - 1]) frontP += p[idx - 1];
+                if (!solid[idx + 1]) rearP += p[idx + 1];
+              } else if (i > OBJ_CX && Math.abs(j - OBJ_CY) < 18) {
+                wakeEddyEnergy += Math.abs(curl[idx]);
+              }
+            }
+          }
+          if (cellCount === 0) {
+            dynamicCd = 0.02;
+          } else {
+            const rawMetric = Math.max(0.06, Math.min(1.35, 0.22 + (frontP - rearP) * 0.35 + wakeEddyEnergy * 0.0022));
+            dynamicCd = rawMetric;
+          }
+        }
+
+        state.effectiveCd = Number(dynamicCd.toFixed(2));
+
+        // Real aerodynamic drag equation: F_D = 0.5 * rho * v^2 * Cd * A
+        const rho = 1.225; // kg/m^3 at sea level
+        const v = state.windRunning ? state.windSpeedMs : 0;
+        const targetDrag = 0.5 * rho * v * v * state.effectiveCd * state.frontalArea;
+
+        // Smooth meter needle response
+        state.measuredDragN += (targetDrag - state.measuredDragN) * 0.14;
+
+        // Magnus Lift Force when spinning: F_L proportional to rho * v * omega * A
+        const omega = state.autoSpin && state.windRunning ? (state.spinRpm / 60) * 2 * Math.PI : 0;
+        const targetLift = 0.32 * rho * v * omega * state.frontalArea;
+        state.measuredLiftN += (targetLift - state.measuredLiftN) * 0.14;
+
+        updateTelemetryUI();
+      }
+
+      function updateTelemetryUI() {
+        const dragRounded = Math.round(state.measuredDragN);
+        el.teleDragForce.textContent = `${dragRounded.toLocaleString("en-GB")} N`;
+
+        if (!state.windRunning) {
+          el.teleDragSub.textContent = "Fan OFF — Press GO to test";
+        } else {
+          el.teleDragSub.textContent = `½ × 1.225 × ${state.windSpeedMs}² × ${state.effectiveCd.toFixed(2)} × ${state.frontalArea.toFixed(2)}`;
+        }
+
+        el.teleCd.textContent = state.effectiveCd.toFixed(2);
+        el.teleArea.innerHTML = `Frontal Area A = ${state.frontalArea.toFixed(2)} m&sup2;`;
+
+        const liftRounded = Math.round(state.measuredLiftN);
+        if (Math.abs(liftRounded) < 3) {
+          el.teleLiftForce.textContent = "0 N (Neutral)";
+          el.teleLiftForce.className = "text-sm font-extrabold font-mono text-slate-300 mt-0.5";
+        } else if (liftRounded > 0) {
+          el.teleLiftForce.textContent = `+${liftRounded.toLocaleString("en-GB")} N Upward Lift ↑`;
+          el.teleLiftForce.className = "text-sm font-extrabold font-mono text-emerald-300 mt-0.5";
+        } else {
+          el.teleLiftForce.textContent = `${liftRounded.toLocaleString("en-GB")} N Downforce ↓`;
+          el.teleLiftForce.className = "text-sm font-extrabold font-mono text-sky-300 mt-0.5";
+        }
+      }
+
+      /* =========================================================================
+         8. CANVAS RENDERING (TUNNEL, PRESSURE, SMOKE EDDIES, SHAPE, DRAG METER)
+         ========================================================================= */
+      function resizeCanvas() {
+        const rect = el.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        el.canvas.width = Math.round(rect.width * dpr);
+        el.canvas.height = Math.round(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function renderScene() {
+        const W = el.canvas.clientWidth;
+        const H = el.canvas.clientHeight;
+        if (W === 0 || H === 0) return;
+
+        const cellW = W / NX;
+        const cellH = H / NY;
+
+        // 1. Deep Wind Tunnel Chamber Background
+        ctx.fillStyle = "#060a12";
+        ctx.fillRect(0, 0, W, H);
+
+        // Subtle wind tunnel engineering grid
+        ctx.strokeStyle = "rgba(51, 65, 85, 0.22)";
+        ctx.lineWidth = 1;
+        const gridStep = 40;
+        for (let x = 0; x < W; x += gridStep) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, H);
+          ctx.stroke();
+        }
+        for (let y = 0; y < H; y += gridStep) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+        }
+
+        // 2. Pressure & Eddy Vortex Heatmap Overlay
+        for (let j = 1; j < NY - 1; j++) {
+          for (let i = 1; i < NX - 1; i++) {
+            const idx = j * NX + i;
+            if (solid[idx] === 1) continue;
+
+            const px = i * cellW;
+            const py = j * cellH;
+
+            // Pressure visualization (Red/Amber = High Stagnation Pressure, Blue = Low Wake Suction)
+            if (state.showPressure && state.windRunning) {
+              const pVal = p[idx];
+              if (pVal > 0.04) {
+                const alpha = Math.min(0.42, pVal * 0.55);
+                ctx.fillStyle = `rgba(249, 115, 22, ${alpha})`;
+                ctx.fillRect(px, py, cellW + 0.5, cellH + 0.5);
+              } else if (pVal < -0.04) {
+                const alpha = Math.min(0.38, Math.abs(pVal) * 0.5);
+                ctx.fillStyle = `rgba(56, 189, 248, ${alpha})`;
+                ctx.fillRect(px, py, cellW + 0.5, cellH + 0.5);
+              }
+            }
+
+            // Continuous Smoke & Eddy Vorticity Coloring
+            if (state.showEddies) {
+              const sVal = smoke[idx];
+              const cVal = curl[idx];
+              if (sVal > 0.03) {
+                const eddyIntensity = Math.min(1, Math.abs(cVal) * 2.8);
+                // Smooth laminar smoke = cool cyan-white; swirling eddies = vibrant turquoise/violet/amber
+                const r = Math.round(140 + eddyIntensity * 110);
+                const g = Math.round(225 - eddyIntensity * 85);
+                const b = Math.round(255 - eddyIntensity * 35);
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${Math.min(0.65, sVal * 0.6)})`;
+                ctx.fillRect(px, py, cellW + 0.6, cellH + 0.6);
+              }
+            }
+          }
+        }
+
+        // 3. Crisp Lagrangian Smoke Streamline Trails (Shows Eddy Loops Clearly!)
+        if (state.showRibbons && state.windRunning) {
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          for (const rb of ribbons) {
+            if (rb.pts.length < 2) continue;
+            for (let k = 1; k < rb.pts.length; k++) {
+              const p0 = rb.pts[k - 1];
+              const p1 = rb.pts[k];
+              const frac = k / rb.pts.length;
+              const eddy = Math.min(1, Math.abs(p1.curl || 0) * 3.2);
+
+              ctx.beginPath();
+              ctx.moveTo(p0.x * cellW, p0.y * cellH);
+              ctx.lineTo(p1.x * cellW, p1.y * cellH);
+
+              if (eddy > 0.35) {
+                // Turbulent eddy loop highlight
+                ctx.strokeStyle = `rgba(251, 146, 60, ${frac * 0.92})`;
+                ctx.lineWidth = 2.4;
+              } else {
+                // Smooth laminar streamline
+                ctx.strokeStyle = `rgba(125, 211, 252, ${frac * 0.85})`;
+                ctx.lineWidth = 2.0;
+              }
+              ctx.stroke();
+            }
+          }
+        }
+
+        // 4. Wind Tunnel Intake Fan & Nozzle Visual on Left Edge
+        drawTunnelFanNozzle(W, H);
+
+        // 5. Render the Solid Test Object (Crisp Vector Art for Presets or Raster for Custom)
+        drawTestShape(W, H, cellW, cellH);
+
+        // 6. Optional Analog & Digital Air Resistance (Drag) Meter HUD
+        if (state.showDragMeter) {
+          drawAirResistanceMeter(W, H);
+        }
+
+        // 7. Legend Pill in Bottom Left
+        drawFlowLegend(H);
+      }
+
+      function drawTunnelFanNozzle(W, H) {
+        ctx.save();
+        // Top & bottom metallic tunnel walls
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(0, 0, W, 6);
+        ctx.fillRect(0, H - 6, W, 6);
+
+        // Left intake fan housing
+        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+        ctx.fillRect(0, 6, 16, H - 12);
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(0, 6, 16, H - 12);
+
+        // Spinning fan blades indicator on left
+        const bladePhase = state.simTime * (state.windSpeedMs * 0.35);
+        ctx.strokeStyle = state.windRunning ? "#38bdf8" : "#475569";
+        ctx.lineWidth = 2;
+        for (let y = 24; y < H - 20; y += 36) {
+          const offset = Math.sin(bladePhase + y * 0.1) * 8;
+          ctx.beginPath();
+          ctx.moveTo(4, y - offset);
+          ctx.lineTo(12, y + offset);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawTestShape(W, H, cellW, cellH) {
+        const cx = OBJ_CX * cellW;
+        const cy = OBJ_CY * cellH;
+        const rad = (state.angleDeg * Math.PI) / 180;
+
+        ctx.save();
+
+        if (state.shape === "custom") {
+          // Render user-painted cells with sleek metallic bevel
+          for (let j = 1; j < NY - 1; j++) {
+            for (let i = 1; i < NX - 1; i++) {
+              if (solid[j * NX + i] === 1) {
+                ctx.fillStyle = "#38bdf8";
+                ctx.fillRect(i * cellW, j * cellH, cellW + 0.6, cellH + 0.6);
+              }
+            }
+          }
+          ctx.restore();
+          return;
+        }
+
+        ctx.translate(cx, cy);
+        ctx.rotate(rad);
+
+        if (state.shape === "block") {
+          const bw = 18 * cellW;
+          const bh = 26 * cellH;
+          const grad = ctx.createLinearGradient(-bw / 2, -bh / 2, bw / 2, bh / 2);
+          grad.addColorStop(0, "#64748b");
+          grad.addColorStop(1, "#334155");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.roundRect(-bw / 2, -bh / 2, bw, bh, 4);
+          ctx.fill();
+          ctx.strokeStyle = "#94a3b8";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (state.shape === "sphere") {
+          const r = 12.5 * Math.min(cellW, cellH);
+          const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+          grad.addColorStop(0, "#fbbf24");
+          grad.addColorStop(0.6, "#d97706");
+          grad.addColorStop(1, "#78350f");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#fde68a";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Spin reference stripe so user sees rotation clearly
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.75, 0);
+          ctx.lineTo(r * 0.75, 0);
+          ctx.stroke();
+        } else if (state.shape === "teardrop") {
+          const r = 9.5 * cellH;
+          const tailLen = 24 * cellW;
+          const grad = ctx.createLinearGradient(-r, -r, tailLen, r);
+          grad.addColorStop(0, "#34d399");
+          grad.addColorStop(0.6, "#059669");
+          grad.addColorStop(1, "#064e3b");
+          ctx.fillStyle = grad;
+
+          ctx.beginPath();
+          ctx.arc(0, 0, r, Math.PI / 2, (Math.PI * 3) / 2);
+          ctx.quadraticCurveTo(tailLen * 0.45, -r * 0.85, tailLen, 0);
+          ctx.quadraticCurveTo(tailLen * 0.45, r * 0.85, 0, r);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#a7f3d0";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (state.shape === "sportscar") {
+          // Crisp sports car silhouette facing LEFT into the oncoming wind
+          const sx = cellW;
+          const sy = cellH;
+          const bodyGrad = ctx.createLinearGradient(0, -8 * sy, 0, 7 * sy);
+          bodyGrad.addColorStop(0, "#38bdf8");
+          bodyGrad.addColorStop(0.6, "#0284c7");
+          bodyGrad.addColorStop(1, "#0f172a");
+
+          ctx.fillStyle = bodyGrad;
+          ctx.beginPath();
+          ctx.moveTo(-21 * sx, 6 * sy);
+          ctx.quadraticCurveTo(-22 * sx, 2 * sy, -18 * sx, 1 * sy);
+          ctx.lineTo(-7 * sx, -2.5 * sy);
+          ctx.lineTo(0, -7.3 * sy);
+          ctx.quadraticCurveTo(10 * sx, -7.2 * sy, 21 * sx, -1 * sy);
+          ctx.lineTo(21 * sx, 6 * sy);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#bae6fd";
+          ctx.lineWidth = 1.8;
+          ctx.stroke();
+
+          // Tinted cabin glass
+          ctx.fillStyle = "#0f172a";
+          ctx.beginPath();
+          ctx.moveTo(-6 * sx, -2.5 * sy);
+          ctx.lineTo(0, -6.5 * sy);
+          ctx.lineTo(9 * sx, -5.5 * sy);
+          ctx.lineTo(13 * sx, -2 * sy);
+          ctx.closePath();
+          ctx.fill();
+
+          // Wheels
+          [-12 * sx, 12 * sx].forEach((wx) => {
+            ctx.fillStyle = "#090d16";
+            ctx.beginPath();
+            ctx.arc(wx, 6.5 * sy, 3.6 * sy, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#94a3b8";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          });
+        } else if (state.shape === "lorry" || state.shape === "lorry_deflector") {
+          // Lorry facing LEFT into the wind
+          const sx = cellW;
+          const sy = cellH;
+
+          // Chassis rail
+          ctx.fillStyle = "#334155";
+          ctx.fillRect(-21 * sx, 7 * sy, 42 * sx, 3 * sy);
+
+          // Tall Box Trailer (right side: x from -6 to +22)
+          const boxGrad = ctx.createLinearGradient(0, -11 * sy, 0, 8 * sy);
+          boxGrad.addColorStop(0, "#e2e8f0");
+          boxGrad.addColorStop(1, "#94a3b8");
+          ctx.fillStyle = boxGrad;
+          ctx.fillRect(-6 * sx, -11 * sy, 28 * sx, 18.5 * sy);
+          ctx.strokeStyle = "#475569";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(-6 * sx, -11 * sy, 28 * sx, 18.5 * sy);
+
+          // Cab (left side: x from -22 to -8.5)
+          ctx.fillStyle = "#ef4444";
+          ctx.beginPath();
+          ctx.moveTo(-22 * sx, 8 * sy);
+          ctx.lineTo(-22 * sx, 1.5 * sy);
+          ctx.lineTo(-20 * sx, -1 * sy);
+          ctx.lineTo(-8.5 * sx, -1 * sy);
+          ctx.lineTo(-8.5 * sx, 8 * sy);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#fca5a5";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Cab Windscreen
+          ctx.fillStyle = "#0f172a";
+          ctx.fillRect(-20.2 * sx, -0.2 * sy, 5 * sx, 3.5 * sy);
+
+          // Roof Air Deflector (when lorry_deflector is active)
+          if (state.shape === "lorry_deflector") {
+            ctx.fillStyle = "#38bdf8";
+            ctx.beginPath();
+            ctx.moveTo(-20 * sx, -1 * sy);
+            ctx.quadraticCurveTo(-14 * sx, -9.5 * sy, -6 * sx, -11 * sy);
+            ctx.lineTo(-6 * sx, -1 * sy);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = "#e0f2fe";
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+          }
+
+          // Wheels
+          [-16 * sx, 4 * sx, 15 * sx].forEach((wx) => {
+            ctx.fillStyle = "#090d16";
+            ctx.beginPath();
+            ctx.arc(wx, 9.5 * sy, 3.2 * sy, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#cbd5e1";
+            ctx.lineWidth = 1.4;
+            ctx.stroke();
+          });
+        }
+
+        ctx.restore();
+      }
+
+      /**
+       * Renders an Analog & Digital Air Resistance (Drag) Meter in the top-right
+       * corner of the wind tunnel viewport when toggled ON.
+       */
+      function drawAirResistanceMeter(W, H) {
+        const boxW = 228;
+        const boxH = 128;
+        const boxX = W - boxW - 16;
+        const boxY = 16;
+
+        const maxGaugeN = 10000;
+        const dragN = state.measuredDragN;
+        const frac = Math.min(1, dragN / maxGaugeN);
+
+        // Color shifts from green (streamlined) -> amber -> rose (high drag)
+        const gaugeColor = frac < 0.25 ? "#34d399" : frac < 0.6 ? "#fbbf24" : "#f43f5e";
+
+        ctx.save();
+        ctx.fillStyle = "rgba(9, 13, 22, 0.88)";
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxW, boxH, 14);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+
+        // Title
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "800 10px Inter, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("AIR RESISTANCE METER (DRAG)", boxX + 14, boxY + 18);
+
+        // Semicircular Dial
+        const cx = boxX + 64;
+        const cy = boxY + 84;
+        const r = 44;
+        const startA = Math.PI * 0.85;
+        const endA = Math.PI * 2.15;
+        const sweep = endA - startA;
+
+        // Background track
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startA, endA);
+        ctx.strokeStyle = "#1e293b";
+        ctx.lineWidth = 9;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        // Active value arc
+        if (frac > 0.005) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, startA, startA + sweep * frac);
+          ctx.strokeStyle = gaugeColor;
+          ctx.lineWidth = 9;
+          ctx.lineCap = "round";
+          ctx.stroke();
+        }
+
+        // Needle
+        const needleA = startA + sweep * frac;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(needleA) * (r - 6), cy + Math.sin(needleA) * (r - 6));
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = gaugeColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Digital Readout on Right Side of Meter
+        const rx = boxX + 120;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 20px ui-monospace, SFMono-Regular, monospace";
+        ctx.fillText(`${Math.round(dragN).toLocaleString("en-GB")}`, rx, boxY + 56);
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "700 11px Inter, sans-serif";
+        ctx.fillText("Newtons (N)", rx, boxY + 73);
+
+        // Cd badge inside meter
+        ctx.fillStyle = "rgba(56, 189, 248, 0.16)";
+        ctx.beginPath();
+        ctx.roundRect(rx, boxY + 84, 92, 22, 6);
+        ctx.fill();
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "800 11px ui-monospace, monospace";
+        ctx.fillText(`Cd = ${state.effectiveCd.toFixed(2)}`, rx + 10, boxY + 99);
+
+        ctx.restore();
+      }
+
+      function drawFlowLegend(H) {
+        ctx.save();
+        ctx.fillStyle = "rgba(15, 23, 42, 0.82)";
+        ctx.beginPath();
+        ctx.roundRect(24, H - 36, 430, 24, 8);
+        ctx.fill();
+
+        ctx.font = "700 10.5px Inter, sans-serif";
+        ctx.textBaseline = "middle";
+        const y = H - 24;
+
+        // Laminar
+        ctx.fillStyle = "#7dd3fc";
+        ctx.fillRect(34, y - 3, 12, 6);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillText("Smooth Laminar Flow", 52, y);
+
+        // Eddy
+        ctx.fillStyle = "#fb923c";
+        ctx.fillRect(172, y - 3, 12, 6);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillText("Turbulent Eddy Currents", 190, y);
+
+        // High pressure
+        ctx.fillStyle = "#f97316";
+        ctx.beginPath();
+        ctx.arc(335, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillText("High Pressure", 345, y);
+
+        ctx.restore();
+      }
+
+      /* =========================================================================
+         9. CUSTOM SHAPE DRAWING INTERACTION
+         ========================================================================= */
+      function applyBrushAtClientPos(clientX, clientY) {
+        if (state.shape !== "custom") return;
+        const rect = el.canvas.getBoundingClientRect();
+        const gx = Math.floor(((clientX - rect.left) / rect.width) * NX);
+        const gy = Math.floor(((clientY - rect.top) / rect.height) * NY);
+
+        // Convert screen grid coords into unrotated customGrid coords
+        const rad = (state.angleDeg * Math.PI) / 180;
+        const cosA = Math.cos(rad);
+        const sinA = Math.sin(rad);
+        const dx = gx - OBJ_CX;
+        const dy = gy - OBJ_CY;
+        const cx = Math.round(OBJ_CX + dx * cosA + dy * sinA);
+        const cy = Math.round(OBJ_CY - dx * sinA + dy * cosA);
+
+        const r = state.brushRadius;
+        const val = state.drawMode === "paint" ? 1 : 0;
+
+        for (let j = -r; j <= r; j++) {
+          for (let i = -r; i <= r; i++) {
+            if (i * i + j * j <= r * r + 0.5) {
+              const ti = cx + i;
+              const tj = cy + j;
+              if (ti >= 6 && ti < NX - 12 && tj >= 4 && tj < NY - 4) {
+                customGrid[tj * NX + ti] = val;
+              }
+            }
+          }
+        }
+        rebuildObstacleGrid();
+      }
+
+      /* =========================================================================
+         10. EVENT BINDINGS & ANIMATION LOOP
+         ========================================================================= */
+      function selectShape(shapeKey) {
+        state.shape = shapeKey;
+        const meta = SHAPE_META[shapeKey];
+
+        document.querySelectorAll(".shape-btn").forEach((btn) => {
+          const active = btn.dataset.shape === shapeKey;
+          btn.classList.toggle("border-sky-400", active);
+          btn.classList.toggle("bg-sky-500/15", active);
+          btn.classList.toggle("border-slate-700", !active);
+        });
+
+        el.aeroBadge.textContent = meta.badge;
+        el.aeroBadge.className = `px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider border ${meta.badgeCls}`;
+        el.aeroExplanation.textContent = meta.desc;
+
+        el.drawToolbar.classList.toggle("hidden", shapeKey !== "custom");
+        el.canvas.style.cursor = shapeKey === "custom" ? "crosshair" : "default";
+
+        rebuildObstacleGrid();
+        computeAerodynamicForces();
+      }
+
+      function bindEvents() {
+        // GO / Stop Wind Button
+        el.btnGoWind.addEventListener("click", () => {
+          state.windRunning = !state.windRunning;
+          if (state.windRunning) {
+            el.btnGoWind.className =
+              "px-4 py-2 rounded-xl font-extrabold text-sm bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 shadow-lg shadow-amber-500/25 flex items-center gap-2 transition cursor-pointer";
+            el.labelGo.textContent = "STOP Wind";
+            el.iconGo.innerHTML = `<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>`;
+          } else {
+            el.btnGoWind.className =
+              "px-4 py-2 rounded-xl font-extrabold text-sm bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition cursor-pointer";
+            el.labelGo.textContent = "GO — Start Wind";
+            el.iconGo.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"/>`;
+          }
+        });
+
+        // Clear Smoke & Reset Velocity Field
+        el.btnResetFlow.addEventListener("click", () => {
+          u.fill(0);
+          v.fill(0);
+          p.fill(0);
+          smoke.fill(0);
+          initRibbons();
+        });
+
+        // Shape Selection
+        document.querySelectorAll(".shape-btn").forEach((btn) => {
+          btn.addEventListener("click", () => selectShape(btn.dataset.shape));
+        });
+
+        // Spin & Rotation Controls
+        el.btnToggleSpin.addEventListener("click", () => {
+          state.autoSpin = !state.autoSpin;
+          el.btnToggleSpin.textContent = state.autoSpin ? "Auto-Spin: ON" : "Auto-Spin: OFF";
+          el.btnToggleSpin.classList.toggle("bg-sky-500", state.autoSpin);
+          el.btnToggleSpin.classList.toggle("text-slate-950", state.autoSpin);
+        });
+
+        el.btnFlip180.addEventListener("click", () => {
+          state.angleDeg = (state.angleDeg + 180) % 360;
+          el.angleSlider.value = Math.round(state.angleDeg);
+          el.angleReadout.textContent = `${Math.round(state.angleDeg)}°`;
+          rebuildObstacleGrid();
+          computeAerodynamicForces();
+        });
+
+        el.btnResetAngle.addEventListener("click", () => {
+          state.autoSpin = false;
+          el.btnToggleSpin.textContent = "Auto-Spin: OFF";
+          el.btnToggleSpin.classList.remove("bg-sky-500", "text-slate-950");
+          state.angleDeg = 0;
+          el.angleSlider.value = 0;
+          el.angleReadout.textContent = "0°";
+          rebuildObstacleGrid();
+          computeAerodynamicForces();
+        });
+
+        el.angleSlider.addEventListener("input", () => {
+          state.angleDeg = parseFloat(el.angleSlider.value);
+          el.angleReadout.textContent = `${Math.round(state.angleDeg)}°`;
+          rebuildObstacleGrid();
+          computeAerodynamicForces();
+        });
+
+        el.spinSpeedSlider.addEventListener("input", () => {
+          state.spinRpm = parseFloat(el.spinSpeedSlider.value);
+        });
+
+        // Wind Speed Slider & Presets
+        el.windSpeedSlider.addEventListener("input", () => {
+          state.windSpeedMs = parseInt(el.windSpeedSlider.value, 10);
+          const mph = Math.round(state.windSpeedMs * 2.23694);
+          el.windSpeedBadge.textContent = `${state.windSpeedMs} m/s (${mph} mph)`;
+        });
+
+        document.querySelectorAll(".wind-preset").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.windSpeedMs = parseInt(btn.dataset.wind, 10);
+            el.windSpeedSlider.value = state.windSpeedMs;
+            const mph = Math.round(state.windSpeedMs * 2.23694);
+            el.windSpeedBadge.textContent = `${state.windSpeedMs} m/s (${mph} mph)`;
+          });
+        });
+
+        // Visualization Toggles
+        el.toggleRibbons.addEventListener("change", () => (state.showRibbons = el.toggleRibbons.checked));
+        el.toggleEddies.addEventListener("change", () => (state.showEddies = el.toggleEddies.checked));
+        el.togglePressure.addEventListener("change", () => (state.showPressure = el.togglePressure.checked));
+        el.toggleDragMeter.addEventListener("change", () => (state.showDragMeter = el.toggleDragMeter.checked));
+
+        // Custom Drawing Toolbar
+        el.toolBrush.addEventListener("click", () => {
+          state.drawMode = "paint";
+          el.toolBrush.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 cursor-pointer";
+          el.toolEraser.className = "px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white cursor-pointer";
+        });
+
+        el.toolEraser.addEventListener("click", () => {
+          state.drawMode = "erase";
+          el.toolEraser.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500 text-white cursor-pointer";
+          el.toolBrush.className = "px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white cursor-pointer";
+        });
+
+        el.brushSizeSlider.addEventListener("input", () => {
+          state.brushRadius = parseInt(el.brushSizeSlider.value, 10);
+        });
+
+        el.btnClearCustom.addEventListener("click", () => {
+          customGrid.fill(0);
+          rebuildObstacleGrid();
+          computeAerodynamicForces();
+        });
+
+        // Canvas Pointer Events for Drawing Custom Shapes
+        el.canvas.addEventListener("mousedown", (e) => {
+          state.isPointerDown = true;
+          applyBrushAtClientPos(e.clientX, e.clientY);
+        });
+        window.addEventListener("mousemove", (e) => {
+          if (state.isPointerDown) applyBrushAtClientPos(e.clientX, e.clientY);
+        });
+        window.addEventListener("mouseup", () => {
+          state.isPointerDown = false;
+        });
+
+        el.canvas.addEventListener("touchstart", (e) => {
+          if (state.shape === "custom") {
+            e.preventDefault();
+            state.isPointerDown = true;
+            applyBrushAtClientPos(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: false });
+        window.addEventListener("touchmove", (e) => {
+          if (state.isPointerDown && state.shape === "custom") {
+            applyBrushAtClientPos(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: true });
+        window.addEventListener("touchend", () => {
+          state.isPointerDown = false;
+        });
+
+        window.addEventListener("resize", resizeCanvas);
+      }
+
+      let lastFrameTime = null;
+      function loop(timestamp) {
+        if (!lastFrameTime) lastFrameTime = timestamp;
+        const dt = Math.min(0.033, (timestamp - lastFrameTime) / 1000);
+        lastFrameTime = timestamp;
+
+        stepFluid(dt);
+        renderScene();
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener("load", () => {
+        initDefaultCustomWing();
+        initRibbons();
+        bindEvents();
+        selectShape("block");
+        resizeCanvas();
+        requestAnimationFrame(loop);
+      });
+    })();
+  </script>
+</body>
+</html>
