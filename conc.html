@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concentration of Solutions — GCSE Chemistry Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      user-select: none;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .day-panel {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #bae6fd 0%, #0284c7 100%);
+      border: 1px solid #94a3b8;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -7px;
+      background-color: #ffffff;
+      border: 3px solid #0284c7;
+      height: 20px;
+      width: 20px;
+      border-radius: 9999px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+      transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col p-2.5 sm:p-3.5 gap-2.5 xl:h-screen xl:overflow-hidden">
+
+  <!-- TOP HEADER & UNIT TOGGLE (g/dm3 vs g/cm3) -->
+  <header class="day-panel rounded-2xl px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 3h12M8 3v5l-3.5 9.5A2 2 0 006.4 20h11.2a2 2 0 001.9-2.5L16 8V3" />
+          <path stroke-linecap="round" d="M6.5 14h11" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900">Concentration of Solutions</h1>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-sky-100 text-sky-800 border border-sky-300">
+            GCSE Chemistry
+          </span>
+        </div>
+        <p class="text-xs text-slate-600 hidden sm:block font-medium">1 Solute Particle = <strong class="text-slate-900">0.1 g</strong> &bull; Concentration = Mass of Solute ÷ Volume of Solvent</p>
+      </div>
+    </div>
+
+    <!-- RIGHT CONTROLS: UNIT SWITCHER & RESET -->
+    <div class="flex items-center gap-2.5 flex-wrap">
+      <!-- Unit Toggle Switch (g/dm³ vs g/cm³) -->
+      <div class="flex items-center bg-slate-100 p-1 rounded-xl border-2 border-slate-300">
+        <span class="text-xs font-extrabold text-slate-600 px-2 hidden sm:inline">Units:</span>
+        <button id="btnUnitDm3" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black bg-sky-600 text-white shadow-sm cursor-pointer transition">
+          g/dm³
+        </button>
+        <button id="btnUnitCm3" type="button" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black text-slate-700 hover:text-slate-900 cursor-pointer transition">
+          g/cm³
+        </button>
+      </div>
+
+      <!-- Pour Portion Button -->
+      <button id="btnPourPortion" type="button" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-black shadow-md flex items-center gap-1.5 cursor-pointer transition">
+        <span>🫗</span>
+        <span id="pourBtnText">Pour Portion Out (25%)</span>
+      </button>
+
+      <!-- Reset Button -->
+      <button id="btnResetSim" type="button" class="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs sm:text-sm font-extrabold cursor-pointer transition">
+        ↺ Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- INTERACTIVE CONTROLS BAR: SOLUTE PARTICLES & WATER VOLUME SLIDER -->
+  <section class="day-panel rounded-2xl px-4 py-2.5 shrink-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+
+    <!-- SOLUTE ADD / REMOVE CONTROLS (5 cols) -->
+    <div class="lg:col-span-5 bg-amber-50/70 border border-amber-200 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <div class="text-[11px] font-black uppercase tracking-wider text-amber-900">Solute Particles (0.1 g each)</div>
+        <div class="text-xs sm:text-sm font-bold text-slate-800">
+          <span id="soluteParticleCount" class="font-mono-tech font-black text-amber-800 text-base">20</span> particles
+          (<span id="soluteMassInline" class="font-mono-tech font-black text-slate-900">2.0 g</span>)
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button id="btnRemove5" type="button" class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-black cursor-pointer transition" title="Remove 5 particles (−0.5 g)">
+          −5
+        </button>
+        <button id="btnRemove1" type="button" class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 text-xs font-black cursor-pointer transition" title="Remove 1 particle (−0.1 g)">
+          −1
+        </button>
+        <button id="btnAdd1" type="button" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-xs cursor-pointer transition" title="Add 1 particle (+0.1 g)">
+          +1 (0.1g)
+        </button>
+        <button id="btnAdd5" type="button" class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-xs cursor-pointer transition" title="Add 5 particles (+0.5 g)">
+          +5 (0.5g)
+        </button>
+      </div>
+    </div>
+
+    <!-- WATER VOLUME SLIDER: 10 cm³ to 2 L (2000 cm³) (7 cols) -->
+    <div class="lg:col-span-7 bg-sky-50/70 border border-sky-200 rounded-xl px-3.5 py-2 flex flex-col gap-1">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs sm:text-sm font-black text-sky-950">
+          Volume of Water:
+          <span id="volumeReadoutHeader" class="font-mono-tech text-sky-700 text-sm sm:text-base ml-1">500 cm³ (0.50 dm³)</span>
+        </span>
+
+        <!-- Quick Classroom Volume Presets -->
+        <div class="flex items-center gap-1 flex-wrap">
+          <button type="button" data-vol="10" class="vol-preset px-2 py-0.5 rounded bg-white hover:bg-sky-100 border border-sky-300 text-[11px] font-mono-tech font-bold text-slate-800 cursor-pointer">10cm³</button>
+          <button type="button" data-vol="100" class="vol-preset px-2 py-0.5 rounded bg-white hover:bg-sky-100 border border-sky-300 text-[11px] font-mono-tech font-bold text-slate-800 cursor-pointer">100cm³</button>
+          <button type="button" data-vol="250" class="vol-preset px-2 py-0.5 rounded bg-white hover:bg-sky-100 border border-sky-300 text-[11px] font-mono-tech font-bold text-slate-800 cursor-pointer">250cm³</button>
+          <button type="button" data-vol="500" class="vol-preset px-2 py-0.5 rounded bg-white hover:bg-sky-100 border border-sky-300 text-[11px] font-mono-tech font-bold text-slate-800 cursor-pointer">500cm³</button>
+          <button type="button" data-vol="1000" class="vol-preset px-2 py-0.5 rounded bg-white hover:bg-sky-100 border border-sky-300 text-[11px] font-mono-tech font-bold text-slate-800 cursor-pointer">1 L</button>
+          <button type="button" data-vol="2000" class="vol-preset px-2 py-0.5 rounded bg-white hover:bg-sky-100 border border-sky-300 text-[11px] font-mono-tech font-bold text-slate-800 cursor-pointer">2 L</button>
+        </div>
+      </div>
+
+      <input id="volumeSlider" type="range" min="10" max="2000" step="10" value="500" class="w-full my-1" aria-label="Volume of water from 10 cm3 to 2 litres">
+
+      <div class="flex justify-between text-[10px] font-mono-tech font-bold text-slate-500">
+        <span>10 cm³ (0.01 dm³)</span>
+        <span>500 cm³ (0.5 dm³)</span>
+        <span>1000 cm³ (1 dm³ / 1 L)</span>
+        <span>1500 cm³</span>
+        <span>2000 cm³ (2 dm³ / 2 L)</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- MAIN WORKSPACE: LEFT/CENTER BEAKER STAGE + RIGHT DATA & POURED PORTION PANEL -->
+  <main class="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch">
+
+    <!-- BEAKER CANVAS STAGE (7 cols) -->
+    <div id="canvasWrapper" class="xl:col-span-7 day-panel rounded-2xl relative overflow-hidden min-h-[340px] xl:min-h-0 bg-gradient-to-b from-slate-50 to-slate-100/90">
+      <!-- Top Overlay Legend -->
+      <div class="absolute top-3 left-3 z-10 flex items-center gap-3 bg-white/90 backdrop-blur-xs border border-slate-300 rounded-xl px-3 py-1.5 shadow-2xs pointer-events-none">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+          <span class="w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-amber-800 inline-block"></span>
+          <span>Solute Particle = 0.1 g</span>
+        </div>
+        <div class="flex items-center gap-1.5 text-xs font-bold text-sky-900">
+          <span class="w-3.5 h-3.5 rounded bg-sky-400/70 border border-sky-600 inline-block"></span>
+          <span>Water Solvent</span>
+        </div>
+      </div>
+
+      <!-- Portion Size Selector Overlay when pouring -->
+      <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-white/95 border border-slate-300 rounded-xl px-2.5 py-1 shadow-2xs">
+        <span class="text-[11px] font-extrabold text-slate-600">Pour size:</span>
+        <select id="pourFractionSelect" class="text-xs font-extrabold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 cursor-pointer outline-none">
+          <option value="0.2">20% (1/5)</option>
+          <option value="0.25" selected>25% (1/4)</option>
+          <option value="0.5">50% (1/2)</option>
+        </select>
+      </div>
+
+      <canvas id="beakerCanvas" class="w-full h-full block"></canvas>
+    </div>
+
+    <!-- RIGHT SIDE: LIVE READOUTS, GCSE WORKING & POURED PORTION COMPARISON (5 cols) -->
+    <div class="xl:col-span-5 flex flex-col gap-2.5 min-h-0 overflow-y-auto pr-0.5">
+
+      <!-- MAIN BEAKER READOUTS CARD -->
+      <div class="day-panel rounded-2xl p-3.5 border-2 border-sky-300 bg-white flex flex-col gap-2.5 shrink-0">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-sky-600"></span>
+            <h2 class="text-sm sm:text-base font-black text-slate-900 uppercase tracking-wide">Main Beaker (Stock Solution)</h2>
+          </div>
+          <span id="concQualitativeBadge" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-sky-100 text-sky-900 border border-sky-300">
+            Moderate Concentration
+          </span>
+        </div>
+
+        <!-- 3 Big Metric Boxes: Mass, Volume, Concentration -->
+        <div class="grid grid-cols-3 gap-2">
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+            <div class="text-[11px] font-extrabold uppercase text-amber-900">Solute Mass</div>
+            <div id="mainMassVal" class="font-mono-tech text-lg sm:text-xl font-black text-slate-900 mt-0.5">2.0 g</div>
+            <div id="mainParticlesSub" class="text-[11px] font-semibold text-amber-800">20 particles</div>
+          </div>
+
+          <div class="bg-sky-50 border border-sky-200 rounded-xl p-2.5">
+            <div class="text-[11px] font-extrabold uppercase text-sky-900">Volume</div>
+            <div id="mainVolVal" class="font-mono-tech text-lg sm:text-xl font-black text-slate-900 mt-0.5">0.50 dm³</div>
+            <div id="mainVolSub" class="text-[11px] font-semibold text-sky-800">500 cm³</div>
+          </div>
+
+          <div class="bg-emerald-50 border-2 border-emerald-400 rounded-xl p-2.5">
+            <div class="text-[11px] font-extrabold uppercase text-emerald-900">Concentration</div>
+            <div id="mainConcVal" class="font-mono-tech text-lg sm:text-xl font-black text-emerald-950 mt-0.5">4.00</div>
+            <div id="mainConcUnit" class="text-xs font-extrabold text-emerald-800">g/dm³</div>
+          </div>
+        </div>
+
+        <!-- Live GCSE Formula & Step-by-Step Calculation Box -->
+        <div class="bg-slate-900 text-slate-100 rounded-xl p-3 font-mono-tech text-xs sm:text-sm space-y-1">
+          <div class="text-[11px] font-sans font-extrabold uppercase tracking-wider text-sky-400">GCSE Calculation Working</div>
+          <div id="formulaLine1" class="text-slate-300">Concentration = Mass (g) ÷ Volume (dm³)</div>
+          <div id="formulaLine2" class="text-amber-300 font-bold">Conversion: 500 cm³ ÷ 1000 = 0.500 dm³</div>
+          <div id="formulaLine3" class="text-emerald-300 font-extrabold text-sm sm:text-base">
+            = 2.0 g ÷ 0.500 dm³ = 4.00 g/dm³
+          </div>
+        </div>
+      </div>
+
+      <!-- POURED PORTION COMPARISON CARD -->
+      <div id="portionCard" class="day-panel rounded-2xl p-3.5 border-2 border-indigo-200 bg-indigo-50/40 flex flex-col gap-2.5 flex-1">
+        <div class="flex items-center justify-between border-b border-indigo-200 pb-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-indigo-600"></span>
+            <h2 class="text-sm sm:text-base font-black text-indigo-950 uppercase tracking-wide">Poured Portion (Side Beaker)</h2>
+          </div>
+          <button id="btnClearPortion" type="button" class="text-xs font-extrabold text-indigo-700 hover:text-indigo-950 bg-white border border-indigo-200 px-2.5 py-0.5 rounded-lg cursor-pointer transition hidden">
+            Empty Side Beaker
+          </button>
+        </div>
+
+        <!-- Empty State Prompt -->
+        <div id="portionEmptyState" class="flex-1 flex flex-col items-center justify-center text-center p-3 bg-white/80 rounded-xl border border-dashed border-indigo-300">
+          <p class="text-xs sm:text-sm font-bold text-slate-700">
+            Click <span class="text-indigo-700 font-black">"Pour Portion Out"</span> above to pour a sample into the side beaker.
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            Watch what happens to <strong>mass</strong>, <strong>volume</strong>, and <strong>concentration</strong> when you pour out part of a solution!
+          </p>
+        </div>
+
+        <!-- Active Poured Portion Metrics -->
+        <div id="portionActiveData" class="hidden flex-col gap-2.5">
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-white border border-amber-200 rounded-xl p-2.5">
+              <div class="text-[11px] font-extrabold uppercase text-amber-900">Portion Mass</div>
+              <div id="portMassVal" class="font-mono-tech text-base sm:text-lg font-black text-slate-900 mt-0.5">0.5 g</div>
+              <div id="portParticlesSub" class="text-[11px] font-semibold text-amber-800">5 particles</div>
+            </div>
+
+            <div class="bg-white border border-sky-200 rounded-xl p-2.5">
+              <div class="text-[11px] font-extrabold uppercase text-sky-900">Portion Vol</div>
+              <div id="portVolVal" class="font-mono-tech text-base sm:text-lg font-black text-slate-900 mt-0.5">0.125 dm³</div>
+              <div id="portVolSub" class="text-[11px] font-semibold text-sky-800">125 cm³</div>
+            </div>
+
+            <div class="bg-emerald-50 border-2 border-emerald-400 rounded-xl p-2.5">
+              <div class="text-[11px] font-extrabold uppercase text-emerald-900">Concentration</div>
+              <div id="portConcVal" class="font-mono-tech text-base sm:text-lg font-black text-emerald-950 mt-0.5">4.00</div>
+              <div id="portConcUnit" class="text-xs font-extrabold text-emerald-800">g/dm³</div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-indigo-200 rounded-xl p-2.5 text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
+            <span class="font-black text-indigo-800">Key GCSE Rule:</span> Pouring out a portion reduces both the <strong>solute mass</strong> and <strong>volume</strong> by the same fraction, so the <strong>concentration remains unchanged</strong>!
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /**
+     * ============================================================================
+     * GCSE CHEMISTRY: CONCENTRATION OF SOLUTIONS SIMULATION
+     * ============================================================================
+     */
+
+    const PARTICLE_MASS_G = 0.1; // Each particle = 0.1 g
+
+    const state = {
+      mainParticles: 20,      // 20 * 0.1 g = 2.0 g
+      mainVolumeCm3: 500,     // 10 cm³ to 2000 cm³ (2 L)
+      unit: 'dm3',            // 'dm3' (g/dm³) | 'cm3' (g/cm³)
+      portionParticles: 0,
+      portionVolumeCm3: 0,
+      pourAnimProgress: 0,    // 0 -> 1 when pouring animation runs
+      isPouring: false,
+      time: 0
+    };
+
+    // Animated particle objects inside main and portion beakers
+    let mainDotPool = [];
+    let portionDotPool = [];
+
+    // ============================================================================
+    // DOM & CANVAS SETUP
+    // ============================================================================
+    const canvas = document.getElementById('beakerCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+
+    let canvasW = 700;
+    let canvasH = 440;
+
+    function resizeCanvas() {
+      const rect = canvasWrapper.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1.5, 2);
+      canvasW = Math.max(300, rect.width);
+      canvasH = Math.max(280, rect.height);
+
+      canvas.width = Math.floor(canvasW * dpr);
+      canvas.height = Math.floor(canvasH * dpr);
+      canvas.style.width = `${canvasW}px`;
+      canvas.style.height = `${canvasH}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // ============================================================================
+    // PARTICLE POOL SYNCHRONISATION
+    // ============================================================================
+    function syncDotPool(pool, targetCount) {
+      while (pool.length < targetCount) {
+        pool.push({
+          rx: 0.12 + Math.random() * 0.76, // Normalized X inside beaker (0..1)
+          ry: 0.12 + Math.random() * 0.78, // Normalized Y inside liquid (0..1)
+          vx: (Math.random() - 0.5) * 0.45,
+          vy: (Math.random() - 0.5) * 0.45,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+      if (pool.length > targetCount) {
+        pool.length = targetCount;
+      }
+    }
+
+    // ============================================================================
+    // CONCENTRATION & FORMATTING HELPERS
+    // ============================================================================
+    function formatConcentration(massG, volCm3) {
+      if (volCm3 <= 0) return '0.00';
+      if (state.unit === 'dm3') {
+        const volDm3 = volCm3 / 1000;
+        const conc = massG / volDm3;
+        return conc >= 100 ? conc.toFixed(1) : conc.toFixed(2);
+      } else {
+        const conc = massG / volCm3;
+        return conc.toFixed(4);
+      }
+    }
+
+    function formatVolumeLabel(volCm3) {
+      if (volCm3 >= 1000) {
+        const litres = (volCm3 / 1000).toFixed(2).replace(/\.00$/, '.0');
+        return `${volCm3} cm³ (${litres} dm³ / ${litres} L)`;
+      }
+      return `${volCm3} cm³ (${(volCm3 / 1000).toFixed(2)} dm³)`;
+    }
+
+    function updateReadouts() {
+      const mainMass = state.mainParticles * PARTICLE_MASS_G;
+      const mainVolCm3 = state.mainVolumeCm3;
+      const mainVolDm3 = mainVolCm3 / 1000;
+      const unitStr = state.unit === 'dm3' ? 'g/dm³' : 'g/cm³';
+      const mainConcFormatted = formatConcentration(mainMass, mainVolCm3);
+      const concDm3Numeric = mainMass / mainVolDm3;
+
+      // Top Control Bar Readouts
+      document.getElementById('soluteParticleCount').textContent = state.mainParticles;
+      document.getElementById('soluteMassInline').textContent = `${mainMass.toFixed(1)} g`;
+      document.getElementById('volumeReadoutHeader').textContent = formatVolumeLabel(mainVolCm3);
+
+      // Highlight active volume preset button
+      document.querySelectorAll('.vol-preset').forEach(btn => {
+        const v = parseInt(btn.getAttribute('data-vol'), 10);
+        if (v === mainVolCm3) {
+          btn.className = 'vol-preset px-2 py-0.5 rounded bg-sky-600 border border-sky-700 text-[11px] font-mono-tech font-bold text-white cursor-pointer';
+        } else {
+          btn.className = 'vol-preset px-2 py-0.5 rounded bg-white hover:bg-sky-100 border border-sky-300 text-[11px] font-mono-tech font-bold text-slate-800 cursor-pointer';
+        }
+      });
+
+      // Main Beaker Cards
+      document.getElementById('mainMassVal').textContent = `${mainMass.toFixed(1)} g`;
+      document.getElementById('mainParticlesSub').textContent = `${state.mainParticles} particle${state.mainParticles === 1 ? '' : 's'}`;
+
+      if (state.unit === 'dm3') {
+        document.getElementById('mainVolVal').textContent = `${mainVolDm3.toFixed(2)} dm³`;
+        document.getElementById('mainVolSub').textContent = `${mainVolCm3} cm³`;
+      } else {
+        document.getElementById('mainVolVal').textContent = `${mainVolCm3} cm³`;
+        document.getElementById('mainVolSub').textContent = `${mainVolDm3.toFixed(2)} dm³`;
+      }
+
+      document.getElementById('mainConcVal').textContent = mainConcFormatted;
+      document.getElementById('mainConcUnit').textContent = unitStr;
+
+      // Qualitative Concentration Badge
+      const badge = document.getElementById('concQualitativeBadge');
+      if (concDm3Numeric === 0) {
+        badge.textContent = 'Pure Water (0 g/dm³)';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-slate-100 text-slate-700 border border-slate-300';
+      } else if (concDm3Numeric < 2.5) {
+        badge.textContent = 'Dilute Solution';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-sky-100 text-sky-900 border border-sky-300';
+      } else if (concDm3Numeric <= 12) {
+        badge.textContent = 'Moderate Concentration';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300';
+      } else {
+        badge.textContent = 'Concentrated Solution';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-100 text-rose-900 border border-rose-300';
+      }
+
+      // Live GCSE Calculation Working Box
+      const f1 = document.getElementById('formulaLine1');
+      const f2 = document.getElementById('formulaLine2');
+      const f3 = document.getElementById('formulaLine3');
+
+      if (state.unit === 'dm3') {
+        f1.textContent = 'Concentration = Mass of solute (g) ÷ Volume (dm³)';
+        f2.textContent = `Volume in dm³: ${mainVolCm3} cm³ ÷ 1000 = ${mainVolDm3.toFixed(3).replace(/0+$/, '').replace(/\.$/, '.0')} dm³`;
+        f2.classList.remove('hidden');
+        f3.textContent = `= ${mainMass.toFixed(1)} g ÷ ${mainVolDm3.toFixed(2)} dm³ = ${mainConcFormatted} g/dm³`;
+      } else {
+        f1.textContent = 'Concentration = Mass of solute (g) ÷ Volume (cm³)';
+        f2.classList.add('hidden');
+        f3.textContent = `= ${mainMass.toFixed(1)} g ÷ ${mainVolCm3} cm³ = ${mainConcFormatted} g/cm³`;
+      }
+
+      // Poured Portion Panel
+      const emptyEl = document.getElementById('portionEmptyState');
+      const activeEl = document.getElementById('portionActiveData');
+      const clearBtn = document.getElementById('btnClearPortion');
+
+      if (state.portionVolumeCm3 > 0) {
+        emptyEl.classList.add('hidden');
+        activeEl.classList.remove('hidden');
+        activeEl.classList.add('flex');
+        clearBtn.classList.remove('hidden');
+
+        const portMass = state.portionParticles * PARTICLE_MASS_G;
+        const portVolDm3 = state.portionVolumeCm3 / 1000;
+        const portConc = formatConcentration(portMass, state.portionVolumeCm3);
+
+        document.getElementById('portMassVal').textContent = `${portMass.toFixed(1)} g`;
+        document.getElementById('portParticlesSub').textContent = `${state.portionParticles} particle${state.portionParticles === 1 ? '' : 's'}`;
+
+        if (state.unit === 'dm3') {
+          document.getElementById('portVolVal').textContent = `${portVolDm3.toFixed(3).replace(/0+$/, '').replace(/\.$/, '.0')} dm³`;
+          document.getElementById('portVolSub').textContent = `${state.portionVolumeCm3} cm³`;
+        } else {
+          document.getElementById('portVolVal').textContent = `${state.portionVolumeCm3} cm³`;
+          document.getElementById('portVolSub').textContent = `${portVolDm3.toFixed(3).replace(/0+$/, '').replace(/\.$/, '.0')} dm³`;
+        }
+
+        document.getElementById('portConcVal').textContent = portConc;
+        document.getElementById('portConcUnit').textContent = unitStr;
+      } else {
+        emptyEl.classList.remove('hidden');
+        activeEl.classList.add('hidden');
+        activeEl.classList.remove('flex');
+        clearBtn.classList.add('hidden');
+      }
+
+      syncDotPool(mainDotPool, state.mainParticles);
+      syncDotPool(portionDotPool, state.portionParticles);
+    }
+
+    // ============================================================================
+    // POUR PORTION ACTION
+    // ============================================================================
+    function pourPortionOut() {
+      if (state.isPouring || state.mainVolumeCm3 <= 10) return;
+
+      const fraction = parseFloat(document.getElementById('pourFractionSelect').value);
+      const pouredVol = Math.max(10, Math.round((state.mainVolumeCm3 * fraction) / 10) * 10);
+      if (state.mainVolumeCm3 - pouredVol < 10) return;
+
+      const actualRatio = pouredVol / state.mainVolumeCm3;
+      const pouredParticles = Math.round(state.mainParticles * actualRatio);
+
+      state.isPouring = true;
+      state.pourAnimProgress = 0;
+
+      // Transfer volume & proportional solute particles after brief tilt peak
+      setTimeout(() => {
+        state.mainVolumeCm3 -= pouredVol;
+        state.mainParticles = Math.max(0, state.mainParticles - pouredParticles);
+        state.portionVolumeCm3 += pouredVol;
+        state.portionParticles += pouredParticles;
+
+        document.getElementById('volumeSlider').value = state.mainVolumeCm3;
+        updateReadouts();
+      }, 320);
+    }
+
+    // ============================================================================
+    // CANVAS SLOSHY BEAKER & PARTICLE RENDERER
+    // ============================================================================
+    function drawGraduatedBeaker(opts) {
+      const {
+        cx,
+        bottomY,
+        width,
+        height,
+        maxCapacityCm3,
+        currentVolCm3,
+        particlesCount,
+        dotPool,
+        label,
+        subLabel,
+        tiltAngle = 0,
+        dt = 0.016
+      } = opts;
+
+      const fillRatio = Math.max(0, Math.min(0.94, currentVolCm3 / maxCapacityCm3));
+      const liquidH = height * fillRatio;
+
+      // Concentration-dependent blue shading (deeper richer blue as concentration increases)
+      const concDm3 = currentVolCm3 > 0 ? (particlesCount * PARTICLE_MASS_G) / (currentVolCm3 / 1000) : 0;
+      const intensity = Math.min(1, concDm3 / 25);
+
+      const rTop = Math.round(125 - intensity * 85);
+      const gTop = Math.round(211 - intensity * 95);
+      const bTop = Math.round(252 - intensity * 32);
+
+      const rBot = Math.round(56 - intensity * 40);
+      const gBot = Math.round(189 - intensity * 85);
+      const bBot = Math.round(248 - intensity * 38);
+
+      ctx.save();
+      // Rotate around top-right lip if tilting during pour
+      const lipX = cx + width / 2;
+      const topY = bottomY - height;
+      ctx.translate(lipX, topY);
+      ctx.rotate(tiltAngle);
+      ctx.translate(-lipX, -topY);
+
+      const leftX = cx - width / 2;
+      const rightX = cx + width / 2;
+
+      // 1. Sloshing Liquid Body
+      if (currentVolCm3 > 0 && liquidH > 2) {
+        const baseSurfaceY = bottomY - liquidH;
+        const sloshAmp = state.isPouring ? 8.5 : 3.2;
+
+        const liqGrad = ctx.createLinearGradient(0, baseSurfaceY, 0, bottomY);
+        liqGrad.addColorStop(0, `rgba(${rTop}, ${gTop}, ${bTop}, 0.68)`);
+        liqGrad.addColorStop(1, `rgba(${rBot}, ${gBot}, ${bBot}, 0.86)`);
+
+        ctx.save();
+        // Clip strictly inside glass interior
+        ctx.beginPath();
+        ctx.roundRect(leftX + 3, topY + 2, width - 6, height - 5, [0, 0, 14, 14]);
+        ctx.clip();
+
+        ctx.fillStyle = liqGrad;
+        ctx.beginPath();
+        ctx.moveTo(leftX, bottomY);
+
+        const steps = 28;
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const wx = leftX + t * width;
+          const wave =
+            Math.sin(t * Math.PI * 2.2 + state.time * 3.4) * sloshAmp +
+            Math.cos(t * Math.PI * 1.3 - state.time * 2.3) * (sloshAmp * 0.5);
+          ctx.lineTo(wx, baseSurfaceY + wave);
+        }
+
+        ctx.lineTo(rightX, bottomY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Top Meniscus Highlight Wave
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.75)`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const wx = leftX + t * width;
+          const wave =
+            Math.sin(t * Math.PI * 2.2 + state.time * 3.4) * sloshAmp +
+            Math.cos(t * Math.PI * 1.3 - state.time * 2.3) * (sloshAmp * 0.5);
+          if (i === 0) ctx.moveTo(wx, baseSurfaceY + wave);
+          else ctx.lineTo(wx, baseSurfaceY + wave);
+        }
+        ctx.stroke();
+
+        // 2. Animated Dissolved Solute Particles (0.1 g each)
+        const particleRadius = width > 170 ? 5.2 : 4.4;
+        for (let i = 0; i < dotPool.length; i++) {
+          const d = dotPool[i];
+          d.rx += d.vx * dt;
+          d.ry += d.vy * dt;
+
+          if (d.rx < 0.08) { d.rx = 0.08; d.vx = Math.abs(d.vx); }
+          if (d.rx > 0.92) { d.rx = 0.92; d.vx = -Math.abs(d.vx); }
+          if (d.ry < 0.12) { d.ry = 0.12; d.vy = Math.abs(d.vy); }
+          if (d.ry > 0.92) { d.ry = 0.92; d.vy = -Math.abs(d.vy); }
+
+          const px = leftX + 10 + d.rx * (width - 20);
+          const py = baseSurfaceY + 8 + d.ry * Math.max(8, liquidH - 14);
+
+          ctx.fillStyle = '#f59e0b';
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(px, py, particleRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Gloss dot
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+          ctx.beginPath();
+          ctx.arc(px - particleRadius * 0.3, py - particleRadius * 0.3, particleRadius * 0.28, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      // 3. Glass Beaker Walls & Pouring Spout
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      // Left flared pouring lip
+      ctx.moveTo(leftX - 8, topY - 4);
+      ctx.lineTo(leftX, topY + 6);
+      ctx.lineTo(leftX, bottomY - 14);
+      ctx.quadraticCurveTo(leftX, bottomY, leftX + 14, bottomY);
+      ctx.lineTo(rightX - 14, bottomY);
+      ctx.quadraticCurveTo(rightX, bottomY, rightX, bottomY - 14);
+      ctx.lineTo(rightX, topY + 6);
+      // Right pouring spout
+      ctx.lineTo(rightX + 10, topY - 4);
+      ctx.stroke();
+
+      // Subtle glass reflection shine
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+      ctx.fillRect(leftX + 8, topY + 12, 7, height - 28);
+
+      // 4. Graduation Volume Markings
+      ctx.fillStyle = '#334155';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.5;
+      ctx.font = '700 10px JetBrains Mono, monospace';
+      ctx.textAlign = 'left';
+
+      const marks = maxCapacityCm3 === 2000
+        ? [500, 1000, 1500, 2000]
+        : [250, 500, 750, 1000];
+
+      marks.forEach(mVol => {
+        const ratio = mVol / maxCapacityCm3;
+        if (ratio > 0.94) return;
+        const my = bottomY - height * ratio;
+        ctx.beginPath();
+        ctx.moveTo(leftX + 2, my);
+        ctx.lineTo(leftX + 14, my);
+        ctx.stroke();
+
+        const lbl = mVol >= 1000 ? `${mVol / 1000} L` : `${mVol}`;
+        ctx.fillText(lbl, leftX + 18, my + 3.5);
+      });
+
+      ctx.restore();
+
+      // 5. Beaker Title & Concentration Label Below Base
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 14px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, cx, bottomY + 22);
+
+      ctx.fillStyle = '#0369a1';
+      ctx.font = '800 12.5px JetBrains Mono, monospace';
+      ctx.fillText(subLabel, cx, bottomY + 39);
+      ctx.restore();
+    }
+
+    function renderFrame(dt) {
+      state.time += dt;
+
+      if (state.isPouring) {
+        state.pourAnimProgress += dt * 1.45;
+        if (state.pourAnimProgress >= 1) {
+          state.pourAnimProgress = 0;
+          state.isPouring = false;
+        }
+      }
+
+      ctx.clearRect(0, 0, canvasW, canvasH);
+
+      // Lab bench surface line
+      const benchY = canvasH - 54;
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, benchY, canvasW, canvasH - benchY);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, benchY);
+      ctx.lineTo(canvasW, benchY);
+      ctx.stroke();
+
+      const hasPortion = state.portionVolumeCm3 > 0 || state.isPouring;
+      const mainW = Math.min(230, canvasW * (hasPortion ? 0.34 : 0.44));
+      const mainH = Math.min(290, canvasH * 0.64);
+      const mainCx = hasPortion ? canvasW * 0.32 : canvasW * 0.5;
+
+      const tilt = state.isPouring ? Math.sin(state.pourAnimProgress * Math.PI) * 0.42 : 0;
+
+      const mainMass = state.mainParticles * PARTICLE_MASS_G;
+      const unitStr = state.unit === 'dm3' ? 'g/dm³' : 'g/cm³';
+      const mainConcStr = `${formatConcentration(mainMass, state.mainVolumeCm3)} ${unitStr}`;
+
+      // Draw Liquid Stream if currently pouring
+      if (state.isPouring && state.pourAnimProgress > 0.15 && state.pourAnimProgress < 0.85) {
+        const streamStartX = mainCx + mainW * 0.55;
+        const streamStartY = benchY - mainH * 0.88;
+        const sideCx = canvasW * 0.72;
+        const sideBottomY = benchY;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.78)';
+        ctx.lineWidth = 9;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(streamStartX, streamStartY);
+        ctx.quadraticCurveTo(sideCx - 15, streamStartY + 10, sideCx, sideBottomY - 25);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 1. Main Graduated Beaker (up to 2000 cm³ / 2 L)
+      drawGraduatedBeaker({
+        cx: mainCx,
+        bottomY: benchY,
+        width: mainW,
+        height: mainH,
+        maxCapacityCm3: 2000,
+        currentVolCm3: state.mainVolumeCm3,
+        particlesCount: state.mainParticles,
+        dotPool: mainDotPool,
+        label: 'Main Beaker (Stock)',
+        subLabel: `${mainMass.toFixed(1)}g in ${state.mainVolumeCm3}cm³ (${mainConcStr})`,
+        tiltAngle: tilt,
+        dt
+      });
+
+      // 2. Side Portion Beaker (if portion poured out)
+      if (hasPortion) {
+        const sideW = Math.min(165, canvasW * 0.25);
+        const sideH = Math.min(210, canvasH * 0.47);
+        const sideCx = canvasW * 0.73;
+
+        const portMass = state.portionParticles * PARTICLE_MASS_G;
+        const portConcStr = state.portionVolumeCm3 > 0
+          ? `${formatConcentration(portMass, state.portionVolumeCm3)} ${unitStr}`
+          : 'Pouring...';
+
+        drawGraduatedBeaker({
+          cx: sideCx,
+          bottomY: benchY,
+          width: sideW,
+          height: sideH,
+          maxCapacityCm3: 1000,
+          currentVolCm3: state.portionVolumeCm3,
+          particlesCount: state.portionParticles,
+          dotPool: portionDotPool,
+          label: 'Poured Portion',
+          subLabel: state.portionVolumeCm3 > 0
+            ? `${portMass.toFixed(1)}g in ${state.portionVolumeCm3}cm³ (${portConcStr})`
+            : 'Receiving sample...',
+          tiltAngle: 0,
+          dt
+        });
+      }
+    }
+
+    // ============================================================================
+    // ANIMATION LOOP & EVENT LISTENERS
+    // ============================================================================
+    let lastTime = 0;
+    function animate(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+      lastTime = timestamp;
+
+      renderFrame(dt);
+      requestAnimationFrame(animate);
+    }
+
+    // Solute +/- Buttons
+    document.getElementById('btnAdd1').addEventListener('click', () => {
+      state.mainParticles = Math.min(120, state.mainParticles + 1);
+      updateReadouts();
+    });
+    document.getElementById('btnAdd5').addEventListener('click', () => {
+      state.mainParticles = Math.min(120, state.mainParticles + 5);
+      updateReadouts();
+    });
+    document.getElementById('btnRemove1').addEventListener('click', () => {
+      state.mainParticles = Math.max(0, state.mainParticles - 1);
+      updateReadouts();
+    });
+    document.getElementById('btnRemove5').addEventListener('click', () => {
+      state.mainParticles = Math.max(0, state.mainParticles - 5);
+      updateReadouts();
+    });
+
+    // Volume Slider & Presets
+    document.getElementById('volumeSlider').addEventListener('input', (e) => {
+      state.mainVolumeCm3 = parseInt(e.target.value, 10);
+      updateReadouts();
+    });
+
+    document.querySelectorAll('.vol-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.mainVolumeCm3 = parseInt(btn.getAttribute('data-vol'), 10);
+        document.getElementById('volumeSlider').value = state.mainVolumeCm3;
+        updateReadouts();
+      });
+    });
+
+    // Unit Toggle (g/dm³ vs g/cm³)
+    document.getElementById('btnUnitDm3').addEventListener('click', () => {
+      state.unit = 'dm3';
+      document.getElementById('btnUnitDm3').className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black bg-sky-600 text-white shadow-sm cursor-pointer transition';
+      document.getElementById('btnUnitCm3').className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black text-slate-700 hover:text-slate-900 cursor-pointer transition';
+      updateReadouts();
+    });
+
+    document.getElementById('btnUnitCm3').addEventListener('click', () => {
+      state.unit = 'cm3';
+      document.getElementById('btnUnitCm3').className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black bg-sky-600 text-white shadow-sm cursor-pointer transition';
+      document.getElementById('btnUnitDm3').className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black text-slate-700 hover:text-slate-900 cursor-pointer transition';
+      updateReadouts();
+    });
+
+    // Pour Portion Controls
+    document.getElementById('pourFractionSelect').addEventListener('change', (e) => {
+      const pct = Math.round(parseFloat(e.target.value) * 100);
+      document.getElementById('pourBtnText').textContent = `Pour Portion Out (${pct}%)`;
+    });
+
+    document.getElementById('btnPourPortion').addEventListener('click', pourPortionOut);
+
+    document.getElementById('btnClearPortion').addEventListener('click', () => {
+      state.portionParticles = 0;
+      state.portionVolumeCm3 = 0;
+      updateReadouts();
+    });
+
+    // Reset Simulation
+    document.getElementById('btnResetSim').addEventListener('click', () => {
+      state.mainParticles = 20;
+      state.mainVolumeCm3 = 500;
+      state.portionParticles = 0;
+      state.portionVolumeCm3 = 0;
+      state.isPouring = false;
+      document.getElementById('volumeSlider').value = 500;
+      updateReadouts();
+    });
+
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      updateReadouts();
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
