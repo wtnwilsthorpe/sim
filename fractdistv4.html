@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fractional Distillation of Crude Oil — GCSE Chemistry Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #f8fafc;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    }
+    .glass-card-subtle {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .modal-backdrop {
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(8px);
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.5);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col p-2 sm:p-4 gap-3 overflow-x-hidden xl:h-screen xl:overflow-hidden">
+
+  <!-- TOP HEADER -->
+  <header class="glass-panel rounded-2xl px-4 py-2 shrink-0 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 via-orange-600 to-sky-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6M10 3v5.5L5.2 16.8A2.5 2.5 0 007.35 20.5h9.3a2.5 2.5 0 002.15-3.7L14 8.5V3" />
+          <path stroke-linecap="round" d="M7.5 15h9" />
+        </svg>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm sm:text-base font-extrabold tracking-tight text-white">Fractional Distillation Lab</span>
+        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500/15 text-sky-300 border border-sky-400/30">
+          GCSE Chemistry
+        </span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Particle Style Toggle -->
+      <button id="btnParticleStyle" class="glass-card-subtle hover:bg-slate-700/70 text-sky-300 border-sky-500/30 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Toggle between Hydrocarbon Chains and Simple Particles">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path stroke-linecap="round" d="M12 8v8M8 12h8" />
+        </svg>
+        <span id="particleStyleLabel">Mode: Hydrocarbon Chains</span>
+      </button>
+
+      <!-- Simulation Speed / Pause -->
+      <button id="btnPlayPause" class="glass-card-subtle hover:bg-slate-700/70 text-slate-200 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer" title="Pause or Resume Particle Simulation">
+        <span id="playPauseIcon">⏸</span>
+        <span id="playPauseLabel" class="hidden sm:inline">Pause</span>
+      </button>
+
+      <!-- Furnace Heat Boost / Flow Toggle -->
+      <button id="btnTrendsOverlay" class="glass-card-subtle hover:bg-slate-700/70 text-amber-300 border-amber-500/30 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+        </svg>
+        <span>GCSE Trend Arrows</span>
+      </button>
+
+      <!-- GCSE Exam Quiz Button -->
+      <button id="btnOpenQuiz" class="bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/25 flex items-center gap-1.5 transition cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>GCSE Quick Quiz</span>
+        <span id="quizScoreBadge" class="ml-1 bg-white/20 px-1.5 py-0.2 rounded-md text-xs font-mono-tech">0/5</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE GRID -->
+  <main class="max-w-[1680px] w-full mx-auto flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch">
+
+    <!-- LEFT / CENTER: INTERACTIVE FRACTIONATING COLUMN CANVAS + TRACKER SIDEBAR -->
+    <div class="xl:col-span-8 glass-panel rounded-2xl p-3 flex flex-col xl:flex-row gap-3 relative overflow-hidden min-h-[460px] xl:min-h-0">
+      
+      <!-- MOLECULE TRACKER SIDEBAR -->
+      <div class="flex xl:flex-col gap-1.5 shrink-0 overflow-x-auto xl:overflow-y-auto xl:w-44 p-1.5 glass-card-subtle rounded-xl">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-300 hidden xl:block px-1 mb-1">
+          Track Molecule:
+        </div>
+        <button data-track="all" class="track-btn active px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-400/40 cursor-pointer transition text-left shrink-0">
+          All Mixture
+        </button>
+        <button data-track="0" class="track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700 hover:border-slate-500 cursor-pointer transition text-left shrink-0">
+          C₃H₈ (Ref. Gas)
+        </button>
+        <button data-track="1" class="track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700 hover:border-slate-500 cursor-pointer transition text-left shrink-0">
+          C₈H₁₈ (Petrol)
+        </button>
+        <button data-track="2" class="track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700 hover:border-slate-500 cursor-pointer transition text-left shrink-0">
+          C₁₀H₂₂ (Naphtha)
+        </button>
+        <button data-track="3" class="track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700 hover:border-slate-500 cursor-pointer transition text-left shrink-0">
+          C₁₂H₂₆ (Kerosene)
+        </button>
+        <button data-track="4" class="track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700 hover:border-slate-500 cursor-pointer transition text-left shrink-0">
+          C₁₆H₃₄ (Diesel)
+        </button>
+        <button data-track="5" class="track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700 hover:border-slate-500 cursor-pointer transition text-left shrink-0">
+          C₃₀H₆₂ (Fuel Oil)
+        </button>
+        <button data-track="6" class="track-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-200 border border-slate-700 hover:border-slate-500 cursor-pointer transition text-left shrink-0">
+          C₇₀+ (Bitumen)
+        </button>
+      </div>
+
+      <!-- Canvas Container -->
+      <div id="canvasWrapper" class="relative flex-1 min-h-[380px] xl:min-h-0 w-full rounded-xl overflow-hidden bg-slate-950/60 border border-slate-800/80 flex flex-col">
+        <div class="absolute top-2.5 right-3 z-10 text-[11px] text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 pointer-events-none hidden sm:flex items-center gap-1.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>Click any tray or tank to inspect</span>
+        </div>
+
+        <canvas id="distillationCanvas" class="w-full h-full block cursor-pointer"></canvas>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: FRACTION INSPECTOR & GCSE PROPERTY TRENDS -->
+    <div class="xl:col-span-4 flex flex-col gap-3 min-h-0">
+
+      <!-- SELECTED FRACTION GCSE FACT CARD -->
+      <div id="inspectorCard" class="glass-panel rounded-2xl p-3.5 sm:p-4 border border-slate-700/60 flex flex-col gap-2.5 shrink-0">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Fraction Inspector</span>
+            <h3 id="inspTitle" class="text-lg sm:text-xl font-extrabold text-white leading-tight">Petrol (Gasoline)</h3>
+            <p id="inspSubtitle" class="text-xs text-slate-300 font-mono-tech">Boiling Point: ~40°C &bull; Chain: C₅ – C₁₀</p>
+          </div>
+          <div id="inspColorSwatch" class="w-11 h-10 rounded-xl border border-white/20 shadow-inner flex items-center justify-center font-mono-tech text-xs font-bold text-slate-900 shrink-0" style="background: #fef08a;">
+            40°C
+          </div>
+        </div>
+
+        <!-- Molecular Chain & Formula Visual Box -->
+        <div class="glass-card-subtle rounded-xl p-2.5">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold text-slate-200">Representative Molecule</span>
+            <span id="inspFormula" class="text-xs sm:text-sm font-mono-tech font-bold text-amber-300">Octane (C₈H₁₈)</span>
+          </div>
+          <!-- Dynamic SVG Ball-and-Stick Alkane Preview -->
+          <div id="moleculeSvgContainer" class="w-full h-10 flex items-center justify-center overflow-hidden">
+            <!-- Rendered dynamically via JS -->
+          </div>
+          <p id="inspForcesNote" class="text-xs text-slate-300 mt-1 leading-snug">
+            Short carbon chains have <strong class="text-white">weak intermolecular forces</strong>, requiring little heat energy to overcome.
+          </p>
+        </div>
+
+        <!-- Physical Property Bars (GCSE Comparison Metrics) -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="glass-card-subtle rounded-xl p-2">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300">Boiling Pt</span>
+              <span id="inspBpLabel" class="font-bold text-sky-300">Low (~40°C)</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="inspBpBar" class="h-full bg-gradient-to-r from-sky-400 to-rose-500 rounded-full transition-all duration-300" style="width: 18%;"></div>
+            </div>
+          </div>
+
+          <div class="glass-card-subtle rounded-xl p-2">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300">Viscosity</span>
+              <span id="inspViscLabel" class="font-bold text-emerald-300">Very Runny</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="inspViscBar" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width: 15%;"></div>
+            </div>
+          </div>
+
+          <div class="glass-card-subtle rounded-xl p-2">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300">Flammability</span>
+              <span id="inspFlamLabel" class="font-bold text-orange-400">Very High</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="inspFlamBar" class="h-full bg-gradient-to-r from-yellow-400 to-red-500 rounded-full transition-all duration-300" style="width: 90%;"></div>
+            </div>
+          </div>
+
+          <div class="glass-card-subtle rounded-xl p-2">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300">Volatility</span>
+              <span id="inspVolLabel" class="font-bold text-purple-300">Evaporates Fast</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="inspVolBar" class="h-full bg-purple-400 rounded-full transition-all duration-300" style="width: 88%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Everyday Uses & Appearance -->
+        <div class="glass-card-subtle rounded-xl p-2 space-y-0.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-medium">Appearance:</span>
+            <span id="inspAppearance" class="text-slate-100 font-semibold">Pale yellow, clear liquid</span>
+          </div>
+          <div class="pt-1 border-t border-slate-700/60">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 block">Key Everyday Uses</span>
+            <p id="inspUses" class="text-xs text-white font-medium leading-snug">Fuel for cars and light motor vehicles.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICK SELECTOR LIST OF ALL 7 GCSE FRACTIONS (TOP TO BOTTOM) -->
+      <div class="glass-panel rounded-2xl p-3 flex-1 min-h-0 flex flex-col">
+        <div class="flex items-center justify-between mb-1.5 shrink-0">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-200">Column Fractions (Coolest → Hottest)</span>
+          <span class="text-xs text-slate-400">Select</span>
+        </div>
+        <div id="fractionListContainer" class="flex flex-col gap-1 overflow-y-auto pr-0.5 flex-1 min-h-0">
+          <!-- Populated dynamically from FRACTIONS array -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- GCSE QUICK-CHECK QUIZ MODAL -->
+  <div id="quizModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+    <div class="glass-panel max-w-xl w-full rounded-3xl p-5 sm:p-6 border border-sky-400/30 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700/70">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-300 font-bold">
+            ?
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-extrabold text-white">GCSE Exam Quick-Check</h3>
+            <p class="text-xs text-slate-400">Test your understanding of fractional distillation</p>
+          </div>
+        </div>
+        <button id="btnCloseQuiz" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center cursor-pointer transition">
+          ✕
+        </button>
+      </div>
+
+      <div id="quizContent" class="py-4 space-y-4">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-400">
+          <span id="quizQuestionCounter">Question 1 of 5</span>
+          <span id="quizLiveScore" class="text-sky-400 font-mono-tech">Score: 0 / 5</span>
+        </div>
+
+        <p id="quizQuestionText" class="text-sm sm:text-base font-bold text-white leading-snug">
+          Loading question...
+        </p>
+
+        <div id="quizOptionsContainer" class="space-y-2">
+          <!-- Options injected by JS -->
+        </div>
+
+        <!-- Immediate Feedback Box -->
+        <div id="quizFeedbackBox" class="hidden rounded-xl p-3 text-xs sm:text-sm leading-relaxed border">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-700/70 flex items-center justify-between">
+        <button id="btnRestartQuiz" class="text-xs font-semibold text-slate-400 hover:text-white cursor-pointer transition">
+          Reset Quiz
+        </button>
+        <button id="btnNextQuestion" class="bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer transition" disabled>
+          Next Question →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * GCSE CHEMISTRY: FRACTIONAL DISTILLATION OF CRUDE OIL SIMULATION
+     * ============================================================================
+     */
+
+    // 1. GCSE FRACTIONS DATA (Ordered from TOP / COOLEST to BOTTOM / HOTTEST)
+    const FRACTIONS = [
+      {
+        id: 'refinery_gas',
+        index: 0,
+        name: 'Refinery Gases (LPG)',
+        shortName: 'Refinery Gases',
+        tempLabel: '~20°C',
+        tempNum: 20,
+        chainLength: 'C₁ – C₄',
+        repName: 'Propane',
+        repFormula: 'C₃H₈',
+        carbons: 3,
+        color: '#bae6fd',
+        liquidColor: 'rgba(186, 230, 253, 0.85)',
+        vapourColor: '#7dd3fc',
+        bpScore: 8,
+        bpText: 'Very Low (<25°C)',
+        viscScore: 5,
+        viscText: 'Gas (Flows freely)',
+        flamScore: 98,
+        flamText: 'Extremely High',
+        volScore: 98,
+        volText: 'Gas at room temp',
+        appearance: 'Colourless gas (bottled under pressure)',
+        uses: 'Bottled gas for domestic heating, camping stoves, and cooking (LPG).',
+        forcesNote: 'Very short chains (1–4 carbons) have the weakest intermolecular forces, so they remain gases even at the cool top of the tower.',
+        levelRatio: 0.09
+      },
+      {
+        id: 'petrol',
+        index: 1,
+        name: 'Petrol (Gasoline)',
+        shortName: 'Petrol',
+        tempLabel: '~40°C',
+        tempNum: 40,
+        chainLength: 'C₅ – C₁₀',
+        repName: 'Octane',
+        repFormula: 'C₈H₁₈',
+        carbons: 8,
+        color: '#fef08a',
+        liquidColor: 'rgba(254, 240, 138, 0.88)',
+        vapourColor: '#fde047',
+        bpScore: 20,
+        bpText: 'Low (~40°C)',
+        viscScore: 15,
+        viscText: 'Very Runny',
+        flamScore: 90,
+        flamText: 'Very High',
+        volScore: 88,
+        volText: 'Evaporates rapidly',
+        appearance: 'Pale yellow, clear runny liquid',
+        uses: 'Fuel for cars and light motor vehicles.',
+        forcesNote: 'Short carbon chains experience weak intermolecular forces, giving petrol a low boiling point and high volatility so it ignites easily in car engines.',
+        levelRatio: 0.23
+      },
+      {
+        id: 'naphtha',
+        index: 2,
+        name: 'Naphtha',
+        shortName: 'Naphtha',
+        tempLabel: '~110°C',
+        tempNum: 110,
+        chainLength: 'C₆ – C₁₀',
+        repName: 'Decane',
+        repFormula: 'C₁₀H₂₂',
+        carbons: 10,
+        color: '#fde68a',
+        liquidColor: 'rgba(253, 224, 71, 0.85)',
+        vapourColor: '#facc15',
+        bpScore: 34,
+        bpText: 'Low–Mod (~110°C)',
+        viscScore: 24,
+        viscText: 'Runny',
+        flamScore: 78,
+        flamText: 'High',
+        volScore: 74,
+        volText: 'Volatile',
+        appearance: 'Clear to pale straw-coloured liquid',
+        uses: 'Chemical feedstock for making plastics (polymers), medicines, dyes, and detergents.',
+        forcesNote: 'Medium-short hydrocarbon chains; crucial raw material for the petrochemical industry rather than just burning as fuel.',
+        levelRatio: 0.37
+      },
+      {
+        id: 'kerosene',
+        index: 3,
+        name: 'Kerosene (Paraffin)',
+        shortName: 'Kerosene',
+        tempLabel: '~180°C',
+        tempNum: 180,
+        chainLength: 'C₁₀ – C₁₆',
+        repName: 'Dodecane',
+        repFormula: 'C₁₂H₂₆',
+        carbons: 12,
+        color: '#fdba74',
+        liquidColor: 'rgba(251, 146, 60, 0.85)',
+        vapourColor: '#fb923c',
+        bpScore: 50,
+        bpText: 'Moderate (~180°C)',
+        viscScore: 40,
+        viscText: 'Moderately Runny',
+        flamScore: 62,
+        flamText: 'Moderate',
+        volScore: 55,
+        volText: 'Moderate',
+        appearance: 'Pale yellow / clear oily liquid',
+        uses: 'Jet aircraft fuel, central heating oil, and paraffin lamps.',
+        forcesNote: 'Longer chains than petrol mean stronger intermolecular forces, requiring higher temperatures (~180°C) before vaporising.',
+        levelRatio: 0.51
+      },
+      {
+        id: 'diesel',
+        index: 4,
+        name: 'Diesel Oil (Gas Oil)',
+        shortName: 'Diesel Oil',
+        tempLabel: '~250°C',
+        tempNum: 250,
+        chainLength: 'C₁₄ – C₂₀',
+        repName: 'Hexadecane',
+        repFormula: 'C₁₆H₃₄',
+        carbons: 16,
+        color: '#f97316',
+        liquidColor: 'rgba(234, 88, 12, 0.9)',
+        vapourColor: '#f97316',
+        bpScore: 68,
+        bpText: 'High (~250°C)',
+        viscScore: 60,
+        viscText: 'Moderately Viscous',
+        flamScore: 45,
+        flamText: 'Lower (Needs compression)',
+        volScore: 36,
+        volText: 'Low volatility',
+        appearance: 'Amber / light brown oily liquid',
+        uses: 'Fuel for lorries (HGVs), buses, trains, tractors, and diesel cars.',
+        forcesNote: 'Longer molecules tangle and attract each other more strongly, increasing viscosity and boiling point.',
+        levelRatio: 0.65
+      },
+      {
+        id: 'fuel_oil',
+        index: 5,
+        name: 'Heavy Fuel Oil',
+        shortName: 'Heavy Fuel Oil',
+        tempLabel: '~300°C',
+        tempNum: 300,
+        chainLength: 'C₃₀ – C₇₀',
+        repName: 'Triacontane',
+        repFormula: 'C₃₀H₆₂',
+        carbons: 22,
+        color: '#b45309',
+        liquidColor: 'rgba(146, 64, 14, 0.94)',
+        vapourColor: '#ea580c',
+        bpScore: 84,
+        bpText: 'Very High (~300°C)',
+        viscScore: 82,
+        viscText: 'Thick & Viscous',
+        flamScore: 25,
+        flamText: 'Hard to ignite',
+        volScore: 18,
+        volText: 'Very low',
+        appearance: 'Dark brown, thick viscous liquid',
+        uses: 'Fuel for large cargo ships, industrial furnaces, and oil-fired power stations.',
+        forcesNote: 'Very long chains have strong intermolecular forces, so heavy fuel oil condenses near the hot base of the tower.',
+        levelRatio: 0.79
+      },
+      {
+        id: 'bitumen',
+        index: 6,
+        name: 'Bitumen (Residue)',
+        shortName: 'Bitumen',
+        tempLabel: '~350°C+',
+        tempNum: 350,
+        chainLength: '> C₇₀',
+        repName: 'Heptacontane+',
+        repFormula: 'C₇₀H₁₄₂+',
+        carbons: 26,
+        color: '#475569',
+        liquidColor: 'rgba(30, 41, 59, 0.98)',
+        vapourColor: '#94a3b8',
+        bpScore: 98,
+        bpText: 'Highest (>350°C)',
+        viscScore: 98,
+        viscText: 'Extremely Viscous (Tar)',
+        flamScore: 10,
+        flamText: 'Very Hard to Ignite',
+        volScore: 5,
+        volText: 'Non-volatile',
+        appearance: 'Thick, black, tar-like semi-solid',
+        uses: 'Surfacing roads (tarmac/asphalt) and waterproofing flat roofs.',
+        forcesNote: 'Huge hydrocarbon chains (>70 carbons) have extremely strong intermolecular forces—bitumen never boils in the furnace and drains out as liquid residue at the bottom.',
+        levelRatio: 0.92
+      }
+    ];
+
+    // GCSE EXAM PRACTICE QUESTIONS
+    const QUIZ_QUESTIONS = [
+      {
+        q: 'Why do shorter-chain hydrocarbons condense near the top of the fractionating column?',
+        options: [
+          'They have stronger covalent bonds between carbon atoms',
+          'They have weaker intermolecular forces, so they have lower boiling points',
+          'They are denser than longer-chain hydrocarbons',
+          'They react with oxygen at the top of the tower'
+        ],
+        correct: 1,
+        explanation:
+          'Correct! Shorter hydrocarbon chains have weaker intermolecular forces of attraction between molecules, requiring less thermal energy to overcome—so they stay gases until reaching the cooler top.'
+      },
+      {
+        q: 'Which fraction is collected at the very bottom of the column (~350°C+) and used for surfacing roads?',
+        options: ['Kerosene', 'Naphtha', 'Bitumen', 'Diesel oil'],
+        correct: 2,
+        explanation:
+          'Spot on! Bitumen contains huge hydrocarbon chains (>70 carbons) with a boiling point above 350°C. It stays liquid and drains from the bottom for road surfacing and roofing.'
+      },
+      {
+        q: 'How do the properties of fractions change as you go UP the fractionating column?',
+        options: [
+          'Higher boiling point, higher viscosity, less flammable',
+          'Lower boiling point, lower viscosity (runnier), more flammable',
+          'Lower boiling point, higher viscosity (thicker), darker colour',
+          'Longer carbon chains, lower volatility, harder to ignite'
+        ],
+        correct: 1,
+        explanation:
+          'Exactly right! Going up the tower, chains get shorter: boiling point decreases, viscosity decreases (they become runnier), and flammability increases.'
+      },
+      {
+        q: 'What is the main use of the Naphtha fraction in industry?',
+        options: [
+          'Fuel for jet aircraft engines',
+          'Fuel for large cargo ships',
+          'Chemical feedstock for making plastics, medicines, and detergents',
+          'Bottled gas for camping stoves'
+        ],
+        correct: 2,
+        explanation:
+          'Well done! Naphtha is a vital petrochemical feedstock used to manufacture polymers (plastics), pharmaceuticals, and detergents.'
+      },
+      {
+        q: 'In the furnace, crude oil is heated to ~350°C. What happens to most of the hydrocarbons?',
+        options: [
+          'They thermally decompose into carbon and hydrogen',
+          'They evaporate (vaporise) into gases before entering the column',
+          'They freeze into solid wax crystals',
+          'They burn completely to form carbon dioxide and water'
+        ],
+        correct: 1,
+        explanation:
+          'Correct! Fractional distillation is a physical separation (no oxygen is present so it does not burn). Heating vaporises the hydrocarbons so they can rise and separate by boiling point.'
+      }
+    ];
+
+    // ============================================================================
+    // APPLICATION STATE
+    // ============================================================================
+    const state = {
+      isPaused: false,
+      selectedFractionIdx: 1, // Default: Petrol
+      trackedFractionIdx: 'all', // 'all' or 0..6
+      showTrendsOverlay: false,
+      useSimpleParticles: false, // false = Hydrocarbon chains, true = Simple gas/liquid particles
+      hoveredFractionIdx: -1,
+      quizIndex: 0,
+      quizScore: 0,
+      quizAnswered: new Array(QUIZ_QUESTIONS.length).fill(null),
+      time: 0
+    };
+
+    // ============================================================================
+    // DOM REFERENCES
+    // ============================================================================
+    const canvas = document.getElementById('distillationCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+
+    // ============================================================================
+    // RESPONSIVE CANVAS LAYOUT & HIT REGIONS
+    // ============================================================================
+    let layout = {};
+    let hitRegions = [];
+
+    const staticCanvas = document.createElement('canvas');
+    const staticCtx = staticCanvas.getContext('2d');
+    let staticDirty = true;
+
+    function markStaticDirty() {
+      staticDirty = true;
+    }
+
+    function computeLayout(w, h) {
+      const pad = Math.max(10, Math.min(16, w * 0.02));
+      const trendSpace = state.showTrendsOverlay ? 135 : 0;
+
+      const furnaceW = Math.max(90, Math.min(130, w * 0.15));
+      const furnaceH = Math.max(70, Math.min(100, h * 0.18));
+      const furnaceX = pad + Math.max(24, w * 0.04);
+      const furnaceY = h - pad - furnaceH - 10;
+
+      const towerX = furnaceX + furnaceW + Math.max(22, w * 0.035);
+      const towerW = Math.max(130, Math.min(210, w * 0.23));
+      const towerTop = pad + 16;
+      const towerBottom = h - pad - 8;
+      const towerH = towerBottom - towerTop;
+
+      const outletStartX = towerX + towerW;
+      const tankW = Math.max(110, Math.min(165, (w - outletStartX - trendSpace - pad * 2) * 0.65));
+      const tankX = w - pad - trendSpace - tankW;
+      const trendX = w - pad - 125;
+
+      layout = {
+        w,
+        h,
+        pad,
+        furnaceX,
+        furnaceY,
+        furnaceW,
+        furnaceH,
+        towerX,
+        towerTop,
+        towerW,
+        towerBottom,
+        towerH,
+        outletStartX,
+        tankX,
+        tankW,
+        trendX
+      };
+      markStaticDirty();
+    }
+
+    function resizeCanvas() {
+      const rect = canvasWrapper.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 2; // Sharp text & crisp rendering
+      const w = Math.max(280, rect.width);
+      const h = Math.max(340, rect.height);
+
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      staticCanvas.width = canvas.width;
+      staticCanvas.height = canvas.height;
+      staticCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      computeLayout(w, h);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    function drawRoundedRect(targetCtx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      targetCtx.beginPath();
+      targetCtx.moveTo(x + r, y);
+      targetCtx.lineTo(x + width - r, y);
+      targetCtx.quadraticCurveTo(x + width, y, x + width, y + r);
+      targetCtx.lineTo(x + width, y + height - r);
+      targetCtx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      targetCtx.lineTo(x + r, y + height);
+      targetCtx.quadraticCurveTo(x, y + height, x, y + height - r);
+      targetCtx.lineTo(x, y + r);
+      targetCtx.quadraticCurveTo(x, y, x + r, y);
+      targetCtx.closePath();
+    }
+
+    // ============================================================================
+    // APPARATUS RENDERERS
+    // ============================================================================
+    function drawFurnaceStatic(targetCtx) {
+      const { furnaceX: fx, furnaceY: fy, furnaceW: fw, furnaceH: fh, towerX: tx, towerBottom: tb } = layout;
+
+      targetCtx.save();
+
+      // Crude oil inlet pipe
+      const pipeY = fy + fh * 0.55;
+      targetCtx.strokeStyle = '#475569';
+      targetCtx.lineWidth = 11;
+      targetCtx.beginPath();
+      targetCtx.moveTo(0, pipeY);
+      targetCtx.lineTo(fx, pipeY);
+      targetCtx.stroke();
+
+      targetCtx.strokeStyle = '#1e293b';
+      targetCtx.lineWidth = 7;
+      targetCtx.beginPath();
+      targetCtx.moveTo(0, pipeY);
+      targetCtx.lineTo(fx, pipeY);
+      targetCtx.stroke();
+
+      targetCtx.fillStyle = '#cbd5e1';
+      targetCtx.font = '800 11px Inter, sans-serif';
+      targetCtx.textAlign = 'left';
+      targetCtx.fillText('CRUDE IN', 8, pipeY - 12);
+
+      // Transfer pipe
+      targetCtx.strokeStyle = '#475569';
+      targetCtx.lineWidth = 12;
+      targetCtx.beginPath();
+      targetCtx.moveTo(fx + fw, fy + fh * 0.45);
+      targetCtx.lineTo(tx + 12, tb - 32);
+      targetCtx.stroke();
+
+      targetCtx.strokeStyle = '#7c2d12';
+      targetCtx.lineWidth = 7;
+      targetCtx.beginPath();
+      targetCtx.moveTo(fx + fw, fy + fh * 0.45);
+      targetCtx.lineTo(tx + 12, tb - 32);
+      targetCtx.stroke();
+
+      // Furnace body
+      const fGrad = targetCtx.createLinearGradient(fx, fy, fx, fy + fh);
+      fGrad.addColorStop(0, '#334155');
+      fGrad.addColorStop(1, '#1e293b');
+      targetCtx.fillStyle = fGrad;
+      targetCtx.strokeStyle = '#64748b';
+      targetCtx.lineWidth = 1.5;
+      drawRoundedRect(targetCtx, fx, fy, fw, fh, 12);
+      targetCtx.fill();
+      targetCtx.stroke();
+
+      // Heating coil
+      targetCtx.strokeStyle = '#f97316';
+      targetCtx.lineWidth = 3.5;
+      targetCtx.beginPath();
+      const coilLeft = fx + 12;
+      const coilRight = fx + fw - 12;
+      for (let i = 0; i <= 20; i++) {
+        const t = i / 20;
+        const cx = coilLeft + t * (coilRight - coilLeft);
+        const cy = fy + fh * 0.52 - t * (fh * 0.14) + Math.sin(t * Math.PI * 3) * 8;
+        if (i === 0) targetCtx.moveTo(cx, cy);
+        else targetCtx.lineTo(cx, cy);
+      }
+      targetCtx.stroke();
+
+      targetCtx.fillStyle = '#f8fafc';
+      targetCtx.font = '800 11.5px Inter, sans-serif';
+      targetCtx.textAlign = 'center';
+      targetCtx.fillText('FURNACE', fx + fw / 2, fy + 16);
+      targetCtx.fillStyle = '#fb923c';
+      targetCtx.font = '700 10.5px JetBrains Mono, monospace';
+      targetCtx.fillText('~350°C', fx + fw / 2, fy + 30);
+
+      targetCtx.restore();
+    }
+
+    function drawFurnaceFlames() {
+      const { furnaceX: fx, furnaceY: fy, furnaceW: fw, furnaceH: fh } = layout;
+      for (let i = 0; i < 3; i++) {
+        const flameX = fx + fw * (0.25 + i * 0.25);
+        const flameBaseY = fy + fh - 8;
+        const flicker = Math.sin(state.time * 11 + i * 1.7) * 3;
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.moveTo(flameX - 6, flameBaseY);
+        ctx.quadraticCurveTo(flameX, flameBaseY - 18 - flicker, flameX + 6, flameBaseY);
+        ctx.fill();
+
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(flameX - 3, flameBaseY);
+        ctx.quadraticCurveTo(flameX, flameBaseY - 11 - flicker * 0.6, flameX + 3, flameBaseY);
+        ctx.fill();
+      }
+    }
+
+    function drawTowerAndTrays(targetCtx) {
+      const { towerX: tx, towerTop: ty, towerW: tw, towerH: th, towerBottom: tb } = layout;
+
+      targetCtx.save();
+
+      const colGrad = targetCtx.createLinearGradient(0, ty, 0, tb);
+      colGrad.addColorStop(0.0, 'rgba(56, 189, 248, 0.22)');
+      colGrad.addColorStop(0.28, 'rgba(250, 204, 21, 0.18)');
+      colGrad.addColorStop(0.62, 'rgba(249, 115, 22, 0.24)');
+      colGrad.addColorStop(1.0, 'rgba(220, 38, 38, 0.32)');
+
+      targetCtx.fillStyle = colGrad;
+      targetCtx.strokeStyle = '#64748b';
+      targetCtx.lineWidth = 2;
+      drawRoundedRect(targetCtx, tx, ty, tw, th, 22);
+      targetCtx.fill();
+      targetCtx.stroke();
+
+      targetCtx.fillStyle = '#7dd3fc';
+      targetCtx.font = '700 10.5px JetBrains Mono, monospace';
+      targetCtx.textAlign = 'center';
+      targetCtx.fillText('20°C (TOP)', tx + tw / 2, ty + 14);
+
+      targetCtx.fillStyle = '#fca5a5';
+      targetCtx.fillText('350°C (BASE)', tx + tw / 2, tb - 8);
+
+      FRACTIONS.forEach((f, idx) => {
+        const trayY = ty + f.levelRatio * th;
+        const isSelected = state.selectedFractionIdx === idx;
+        const isHovered = state.hoveredFractionIdx === idx;
+
+        if (idx >= 1 && idx <= 5) {
+          targetCtx.strokeStyle = isSelected || isHovered ? '#38bdf8' : 'rgba(148, 163, 184, 0.55)';
+          targetCtx.lineWidth = isSelected ? 2.5 : 1.8;
+
+          const riser1 = tx + tw * 0.32;
+          const riser2 = tx + tw * 0.68;
+
+          targetCtx.beginPath();
+          targetCtx.moveTo(tx + 6, trayY);
+          targetCtx.lineTo(riser1 - 9, trayY);
+          targetCtx.moveTo(riser1 + 9, trayY);
+          targetCtx.lineTo(riser2 - 9, trayY);
+          targetCtx.moveTo(riser2 + 9, trayY);
+          targetCtx.lineTo(tx + tw - 6, trayY);
+          targetCtx.stroke();
+
+          targetCtx.fillStyle = f.liquidColor;
+          targetCtx.fillRect(tx + 8, trayY - 4, tw - 16, 4);
+
+          [riser1, riser2].forEach((rx) => {
+            targetCtx.fillStyle = '#94a3b8';
+            drawRoundedRect(targetCtx, rx - 10, trayY - 10, 20, 6, 2.5);
+            targetCtx.fill();
+          });
+        }
+
+        if (idx === 6) {
+          targetCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+          targetCtx.fillRect(tx + 8, trayY - 6, tw - 16, 12);
+        }
+      });
+
+      targetCtx.restore();
+    }
+
+    function drawOutletsAndTanks(targetCtx) {
+      const { towerX: tx, towerTop: ty, towerW: tw, towerH: th, outletStartX, tankX, tankW } = layout;
+
+      hitRegions = [];
+
+      FRACTIONS.forEach((f, idx) => {
+        const y = ty + f.levelRatio * th;
+        const isSelected = state.selectedFractionIdx === idx;
+        const isHovered = state.hoveredFractionIdx === idx;
+
+        targetCtx.save();
+
+        targetCtx.strokeStyle = isSelected || isHovered ? '#38bdf8' : '#475569';
+        targetCtx.lineWidth = isSelected ? 6 : 4.5;
+        targetCtx.beginPath();
+        if (idx === 0) {
+          targetCtx.moveTo(tx + tw * 0.5, ty);
+          targetCtx.lineTo(tx + tw * 0.5, ty - 10);
+          targetCtx.lineTo(tankX - 8, ty - 10);
+          targetCtx.lineTo(tankX, y);
+        } else {
+          targetCtx.moveTo(outletStartX, y);
+          targetCtx.lineTo(tankX, y);
+        }
+        targetCtx.stroke();
+
+        targetCtx.strokeStyle = f.color;
+        targetCtx.lineWidth = 2;
+        targetCtx.beginPath();
+        if (idx === 0) {
+          targetCtx.moveTo(tx + tw * 0.5, ty);
+          targetCtx.lineTo(tx + tw * 0.5, ty - 10);
+          targetCtx.lineTo(tankX - 8, ty - 10);
+          targetCtx.lineTo(tankX, y);
+        } else {
+          targetCtx.moveTo(outletStartX, y);
+          targetCtx.lineTo(tankX, y);
+        }
+        targetCtx.stroke();
+
+        const cardH = Math.max(30, Math.min(42, (th / 7) - 6));
+        const cardY = y - cardH / 2;
+
+        targetCtx.fillStyle = isSelected
+          ? 'rgba(14, 116, 144, 0.45)'
+          : isHovered
+          ? 'rgba(30, 41, 59, 0.92)'
+          : 'rgba(15, 23, 42, 0.86)';
+        targetCtx.strokeStyle = isSelected ? '#38bdf8' : isHovered ? '#94a3b8' : 'rgba(148, 163, 184, 0.28)';
+        targetCtx.lineWidth = isSelected ? 2 : 1.2;
+        drawRoundedRect(targetCtx, tankX, cardY, tankW, cardH, 9);
+        targetCtx.fill();
+        targetCtx.stroke();
+
+        targetCtx.fillStyle = f.color;
+        drawRoundedRect(targetCtx, tankX + 4, cardY + 4, 5, cardH - 8, 2.5);
+        targetCtx.fill();
+
+        // High DPI Crisp Text Rendering
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.font = '700 12px Inter, sans-serif';
+        targetCtx.textAlign = 'left';
+        targetCtx.textBaseline = 'alphabetic';
+        targetCtx.fillText(f.shortName, tankX + 14, cardY + cardH * 0.42);
+
+        targetCtx.fillStyle = '#cbd5e1';
+        targetCtx.font = '600 10.5px JetBrains Mono, monospace';
+        targetCtx.fillText(`${f.tempLabel} • ${f.chainLength}`, tankX + 14, cardY + cardH * 0.80);
+
+        targetCtx.restore();
+
+        hitRegions.push({
+          idx,
+          x: tx,
+          y: cardY - 4,
+          w: tankX + tankW - tx,
+          h: cardH + 8
+        });
+      });
+    }
+
+    function drawTrendsOverlay(targetCtx) {
+      if (!state.showTrendsOverlay) return;
+
+      const { trendX, towerTop: ty, towerH: th, towerBottom: tb } = layout;
+
+      targetCtx.save();
+      const boxW = 125;
+      const boxH = th;
+
+      targetCtx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      targetCtx.strokeStyle = 'rgba(251, 191, 36, 0.45)';
+      targetCtx.lineWidth = 1.5;
+      drawRoundedRect(targetCtx, trendX, ty, boxW, boxH, 10);
+      targetCtx.fill();
+      targetCtx.stroke();
+
+      targetCtx.fillStyle = '#fbbf24';
+      targetCtx.font = '800 10.5px Inter, sans-serif';
+      targetCtx.textAlign = 'center';
+      targetCtx.fillText('GOING UP', trendX + boxW / 2, ty + 16);
+
+      const arrowX = trendX + 18;
+      const arrowTop = ty + 30;
+      const arrowBot = tb - 16;
+      const arrowGrad = targetCtx.createLinearGradient(0, arrowBot, 0, arrowTop);
+      arrowGrad.addColorStop(0, '#ef4444');
+      arrowGrad.addColorStop(0.5, '#facc15');
+      arrowGrad.addColorStop(1, '#38bdf8');
+
+      targetCtx.strokeStyle = arrowGrad;
+      targetCtx.lineWidth = 3.5;
+      targetCtx.beginPath();
+      targetCtx.moveTo(arrowX, arrowBot);
+      targetCtx.lineTo(arrowX, arrowTop + 8);
+      targetCtx.stroke();
+
+      targetCtx.fillStyle = '#38bdf8';
+      targetCtx.beginPath();
+      targetCtx.moveTo(arrowX, arrowTop);
+      targetCtx.lineTo(arrowX - 6, arrowTop + 10);
+      targetCtx.lineTo(arrowX + 6, arrowTop + 10);
+      targetCtx.closePath();
+      targetCtx.fill();
+
+      const trends = [
+        { label: 'Shorter Chains', color: '#7dd3fc', y: ty + th * 0.16 },
+        { label: 'Lower Boiling Pt', color: '#a5f3fc', y: ty + th * 0.36 },
+        { label: 'Lower Viscosity', color: '#fde047', y: ty + th * 0.56 },
+        { label: 'More Volatile', color: '#fdba74', y: ty + th * 0.75 },
+        { label: 'More Flammable', color: '#fca5a5', y: ty + th * 0.92 }
+      ];
+
+      targetCtx.textAlign = 'left';
+      trends.forEach((t) => {
+        targetCtx.fillStyle = t.color;
+        targetCtx.font = '700 10.5px Inter, sans-serif';
+        targetCtx.fillText(t.label, arrowX + 10, t.y);
+      });
+
+      targetCtx.restore();
+    }
+
+    function rebuildStaticLayer() {
+      const { w, h } = layout;
+      staticCtx.clearRect(0, 0, w, h);
+      drawFurnaceStatic(staticCtx);
+      drawTowerAndTrays(staticCtx);
+      drawOutletsAndTanks(staticCtx);
+      drawTrendsOverlay(staticCtx);
+      staticDirty = false;
+    }
+
+    // ============================================================================
+    // PRE-RENDERED ZIG-ZAG HYDROCARBON SPRITE CACHE
+    // ============================================================================
+    const particles = [];
+    const MAX_PARTICLES = 76;
+    const CHAIN_BEAD_COUNTS = [3, 6, 8, 10, 13, 17, 22];
+    const chainSpriteCache = new Map();
+
+    function getHydrocarbonSprite(fracIdx, isGas, isTracked) {
+      const key = `${fracIdx}_${isGas ? 1 : 0}_${isTracked ? 1 : 0}`;
+      if (chainSpriteCache.has(key)) {
+        return chainSpriteCache.get(key);
+      }
+
+      const frac = FRACTIONS[fracIdx];
+      const nodes = CHAIN_BEAD_COUNTS[fracIdx];
+      const scale = isTracked ? 1.25 : 0.88;
+      const bondStep = 4.0 * scale;
+      const zigAmp = 2.3 * scale;
+      const cRadius = 2.4 * scale;
+      const hRadius = 1.2 * scale;
+      const hDist = 4.1 * scale;
+
+      const totalLen = (nodes - 1) * bondStep;
+      const spriteDpr = 1.5;
+      const pad = 14 * scale;
+      const logicalW = Math.ceil(totalLen + pad * 2);
+      const logicalH = Math.ceil(30 * scale);
+
+      const off = document.createElement('canvas');
+      off.width = Math.ceil(logicalW * spriteDpr);
+      off.height = Math.ceil(logicalH * spriteDpr);
+      const octx = off.getContext('2d');
+      octx.scale(spriteDpr, spriteDpr);
+      octx.translate(logicalW / 2, logicalH / 2);
+
+      if (isTracked || isGas) {
+        const grad = octx.createRadialGradient(0, 0, 2, 0, 0, totalLen * 0.5 + 8);
+        grad.addColorStop(0, isTracked ? 'rgba(56, 189, 248, 0.35)' : 'rgba(255, 255, 255, 0.12)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        octx.fillStyle = grad;
+        octx.fillRect(-logicalW / 2, -logicalH / 2, logicalW, logicalH);
+      }
+
+      const startX = -totalLen / 2;
+      const coords = [];
+      for (let i = 0; i < nodes; i++) {
+        const coil = fracIdx === 6 ? Math.sin(i * 0.55) * 1.6 * scale : 0;
+        coords.push({
+          x: startX + i * bondStep,
+          y: (i % 2 === 0 ? -zigAmp : zigAmp) + coil,
+          isUp: i % 2 === 0
+        });
+      }
+
+      octx.strokeStyle = 'rgba(203, 213, 225, 0.72)';
+      octx.lineWidth = 0.9 * scale;
+      octx.beginPath();
+      for (let i = 0; i < nodes; i++) {
+        const pt = coords[i];
+        const dirY = pt.isUp ? -1 : 1;
+        octx.moveTo(pt.x, pt.y);
+        octx.lineTo(pt.x, pt.y + dirY * hDist);
+        if (i === 0) {
+          octx.moveTo(pt.x, pt.y);
+          octx.lineTo(pt.x - hDist * 0.85, pt.y - dirY * hDist * 0.4);
+        }
+        if (i === nodes - 1) {
+          octx.moveTo(pt.x, pt.y);
+          octx.lineTo(pt.x + hDist * 0.85, pt.y - dirY * hDist * 0.4);
+        }
+      }
+      octx.stroke();
+
+      octx.fillStyle = '#f8fafc';
+      octx.beginPath();
+      for (let i = 0; i < nodes; i++) {
+        const pt = coords[i];
+        const dirY = pt.isUp ? -1 : 1;
+        octx.moveTo(pt.x + hRadius, pt.y + dirY * hDist);
+        octx.arc(pt.x, pt.y + dirY * hDist, hRadius, 0, Math.PI * 2);
+
+        if (i === 0) {
+          const hx = pt.x - hDist * 0.85;
+          const hy = pt.y - dirY * hDist * 0.4;
+          octx.moveTo(hx + hRadius, hy);
+          octx.arc(hx, hy, hRadius, 0, Math.PI * 2);
+        }
+        if (i === nodes - 1) {
+          const hx = pt.x + hDist * 0.85;
+          const hy = pt.y - dirY * hDist * 0.4;
+          octx.moveTo(hx + hRadius, hy);
+          octx.arc(hx, hy, hRadius, 0, Math.PI * 2);
+        }
+      }
+      octx.fill();
+
+      octx.strokeStyle = isTracked ? '#38bdf8' : isGas ? frac.vapourColor : '#94a3b8';
+      octx.lineWidth = 1.8 * scale;
+      octx.lineJoin = 'round';
+      octx.lineCap = 'round';
+      octx.beginPath();
+      for (let i = 0; i < nodes; i++) {
+        if (i === 0) octx.moveTo(coords[i].x, coords[i].y);
+        else octx.lineTo(coords[i].x, coords[i].y);
+      }
+      octx.stroke();
+
+      octx.fillStyle = '#0f172a';
+      octx.beginPath();
+      for (let i = 0; i < nodes; i++) {
+        const pt = coords[i];
+        octx.moveTo(pt.x + cRadius, pt.y);
+        octx.arc(pt.x, pt.y, cRadius, 0, Math.PI * 2);
+      }
+      octx.fill();
+
+      octx.strokeStyle = isTracked ? '#38bdf8' : frac.color;
+      octx.lineWidth = 0.9 * scale;
+      octx.beginPath();
+      for (let i = 0; i < nodes; i++) {
+        const pt = coords[i];
+        octx.moveTo(pt.x + cRadius, pt.y);
+        octx.arc(pt.x, pt.y, cRadius, 0, Math.PI * 2);
+      }
+      octx.stroke();
+
+      const entry = { canvas: off, w: logicalW, h: logicalH, halfLen: totalLen * 0.5 };
+      chainSpriteCache.set(key, entry);
+      return entry;
+    }
+
+    function createParticle(initialProgress = false) {
+      const fracIdx = Math.floor(Math.random() * FRACTIONS.length);
+      const frac = FRACTIONS[fracIdx];
+
+      return {
+        fracIdx,
+        frac,
+        phase: initialProgress ? (Math.random() < 0.7 ? 'rising' : 'outlet') : 'inlet',
+        progress: initialProgress ? Math.random() : 0,
+        x: 0,
+        y: 0,
+        angle: (Math.random() - 0.5) * 0.4,
+        targetAngle: 0,
+        wobbleOffset: Math.random() * Math.PI * 2,
+        wobbleSpeed: 2.2 + Math.random() * 2,
+        speedFactor: 0.85 + Math.random() * 0.35,
+        traySide: Math.random() < 0.5 ? -1 : 1
+      };
+    }
+
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      particles.push(createParticle(true));
+    }
+
+    function updateAndDrawParticles(dt) {
+      const {
+        furnaceX: fx,
+        furnaceY: fy,
+        furnaceW: fw,
+        furnaceH: fh,
+        towerX: tx,
+        towerTop: ty,
+        towerW: tw,
+        towerH: th,
+        towerBottom: tb,
+        outletStartX,
+        tankX
+      } = layout;
+
+      const targetBitumenY = ty + FRACTIONS[6].levelRatio * th;
+      const isTrackedMode = state.trackedFractionIdx !== 'all';
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const isThisTracked = isTrackedMode && state.trackedFractionIdx === p.fracIdx;
+        const alphaMult = isTrackedMode ? (isThisTracked ? 1.0 : 0.12) : 0.95;
+
+        if (!state.isPaused) {
+          const speed = dt * 0.42 * p.speedFactor;
+
+          if (p.phase === 'inlet') {
+            p.progress += speed * 1.4;
+            p.x = p.progress * fx;
+            p.y = fy + fh * 0.55 + Math.sin(state.time * 5 + p.wobbleOffset) * 2;
+            p.targetAngle = Math.sin(state.time * 3 + p.wobbleOffset) * 0.12;
+            if (p.progress >= 1) {
+              p.phase = 'furnace';
+              p.progress = 0;
+            }
+          } else if (p.phase === 'furnace') {
+            p.progress += speed * 1.1;
+            if (p.progress < 0.65) {
+              const t = p.progress / 0.65;
+              p.x = fx + 12 + t * (fw - 24);
+              p.y = fy + fh * 0.52 - t * (fh * 0.14) + Math.sin(t * Math.PI * 3) * 8;
+              p.targetAngle = Math.cos(t * Math.PI * 3) * 0.3;
+            } else {
+              const t = (p.progress - 0.65) / 0.35;
+              p.x = fx + fw + t * (tx + 12 - (fx + fw));
+              p.y = fy + fh * 0.45 + t * (tb - 32 - (fy + fh * 0.45));
+              p.targetAngle = -0.22;
+            }
+            if (p.progress >= 1) {
+              if (p.fracIdx === 6) {
+                p.phase = 'condensing';
+                p.progress = 0;
+                p.x = tx + tw * 0.3 + Math.random() * (tw * 0.4);
+                p.y = tb - 30;
+              } else {
+                p.phase = 'rising';
+                p.progress = 0;
+                p.x = tx + tw * 0.25 + Math.random() * (tw * 0.5);
+                p.y = tb - 32;
+              }
+            }
+          } else if (p.phase === 'rising') {
+            const targetY = ty + p.frac.levelRatio * th;
+
+            p.y -= dt * 68 * p.speedFactor;
+            const centerX = tx + tw * (p.traySide < 0 ? 0.32 : 0.68);
+            p.x = centerX + Math.sin(state.time * p.wobbleSpeed + p.wobbleOffset) * (tw * 0.12);
+            p.targetAngle = -Math.PI / 2 + Math.cos(state.time * p.wobbleSpeed + p.wobbleOffset) * 0.25;
+
+            if (p.y <= targetY) {
+              p.y = targetY;
+              p.phase = 'condensing';
+              p.progress = 0;
+            }
+          } else if (p.phase === 'condensing') {
+            p.progress += speed * 2.2;
+            const targetY = ty + p.frac.levelRatio * th;
+            p.targetAngle = 0;
+            if (p.fracIdx === 6) {
+              p.y = p.y + (targetBitumenY - p.y) * 0.15;
+              p.x = p.x + (outletStartX - p.x) * 0.12;
+            } else if (p.fracIdx === 0) {
+              p.y = ty + (1 - p.progress) * (targetY - ty);
+              p.x = p.x + (tx + tw * 0.5 - p.x) * 0.18;
+              p.targetAngle = -Math.PI / 4;
+            } else {
+              p.y = targetY - 3;
+              p.x = p.x + (outletStartX - p.x) * 0.14;
+            }
+
+            if (p.progress >= 1) {
+              p.phase = 'outlet';
+              p.progress = 0;
+            }
+          } else if (p.phase === 'outlet') {
+            p.progress += speed * 1.6;
+            const targetY = ty + p.frac.levelRatio * th;
+            p.targetAngle = 0;
+            if (p.fracIdx === 0) {
+              p.x = tx + tw * 0.5 + p.progress * (tankX - (tx + tw * 0.5));
+              p.y = ty - 10 + Math.max(0, (p.progress - 0.8) * 5) * (targetY - (ty - 10));
+            } else {
+              p.x = outletStartX + p.progress * (tankX - outletStartX);
+              p.y = targetY;
+            }
+
+            if (p.progress >= 1) {
+              Object.assign(p, createParticle(false));
+            }
+          }
+
+          p.angle += (p.targetAngle - p.angle) * Math.min(1, dt * 8);
+        }
+
+        const isGas = p.phase === 'rising' || (p.fracIdx === 0 && p.phase !== 'inlet');
+
+        ctx.save();
+        ctx.globalAlpha = alphaMult;
+
+        if (state.useSimpleParticles) {
+          const radius = isThisTracked ? 9 : (isGas ? 6 : 7);
+          ctx.fillStyle = isGas ? p.frac.vapourColor : p.frac.color;
+          ctx.strokeStyle = isThisTracked ? '#38bdf8' : '#ffffff';
+          ctx.lineWidth = isThisTracked ? 2.5 : 1.2;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          if (isThisTracked) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '800 10px JetBrains Mono, monospace';
+            ctx.fillText(p.frac.repFormula, p.x + 12, p.y + 4);
+          }
+        } else {
+          const sprite = getHydrocarbonSprite(p.fracIdx, isGas, isThisTracked);
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.angle);
+          ctx.drawImage(sprite.canvas, -sprite.w / 2, -sprite.h / 2, sprite.w, sprite.h);
+
+          if (isThisTracked) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '800 10px JetBrains Mono, monospace';
+            ctx.fillText(p.frac.repFormula, sprite.halfLen + 6, 3);
+          }
+        }
+        ctx.restore();
+      }
+    }
+
+    // ============================================================================
+    // INSPECTOR & UI UPDATES
+    // ============================================================================
+    function selectFraction(idx) {
+      state.selectedFractionIdx = idx;
+      const f = FRACTIONS[idx];
+
+      document.getElementById('inspTitle').textContent = f.name;
+      document.getElementById('inspSubtitle').textContent = `Boiling Point: ${f.tempLabel} • Chain Length: ${f.chainLength}`;
+      document.getElementById('inspColorSwatch').style.backgroundColor = f.color;
+      document.getElementById('inspColorSwatch').textContent = f.tempLabel;
+      document.getElementById('inspFormula').textContent = `${f.repName} (${f.repFormula})`;
+      document.getElementById('inspForcesNote').innerHTML = f.forcesNote;
+
+      document.getElementById('inspBpLabel').textContent = f.bpText;
+      document.getElementById('inspBpBar').style.width = `${f.bpScore}%`;
+
+      document.getElementById('inspViscLabel').textContent = f.viscText;
+      document.getElementById('inspViscBar').style.width = `${f.viscScore}%`;
+
+      document.getElementById('inspFlamLabel').textContent = f.flamText;
+      document.getElementById('inspFlamBar').style.width = `${f.flamScore}%`;
+
+      document.getElementById('inspVolLabel').textContent = f.volText;
+      document.getElementById('inspVolBar').style.width = `${f.volScore}%`;
+
+      document.getElementById('inspAppearance').textContent = f.appearance;
+      document.getElementById('inspUses').textContent = f.uses;
+
+      // Render Ball-and-Stick Alkane in Inspector
+      renderInspectorMolecule(f);
+
+      // Highlight active card in selector list
+      document.querySelectorAll('.fraction-item').forEach((el, i) => {
+        if (i === idx) {
+          el.classList.add('border-sky-400', 'bg-sky-500/15');
+          el.classList.remove('border-slate-700', 'bg-slate-800/80');
+        } else {
+          el.classList.remove('border-sky-400', 'bg-sky-500/15');
+          el.classList.add('border-slate-700', 'bg-slate-800/80');
+        }
+      });
+
+      markStaticDirty();
+    }
+
+    function renderInspectorMolecule(f) {
+      const container = document.getElementById('moleculeSvgContainer');
+      container.innerHTML = '';
+      const nodes = Math.min(f.carbons, 12);
+      let svg = `<svg class="w-full h-full" viewBox="0 0 320 40" preserveAspectRatio="xMidYMid meet">`;
+      const startX = 25;
+      const stepX = 27;
+
+      for (let i = 0; i < nodes; i++) {
+        const x = startX + i * stepX;
+        const y = i % 2 === 0 ? 12 : 28;
+        if (i < nodes - 1) {
+          const nextX = startX + (i + 1) * stepX;
+          const nextY = (i + 1) % 2 === 0 ? 12 : 28;
+          svg += `<line x1="${x}" y1="${y}" x2="${nextX}" y2="${nextY}" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>`;
+        }
+      }
+
+      for (let i = 0; i < nodes; i++) {
+        const x = startX + i * stepX;
+        const y = i % 2 === 0 ? 12 : 28;
+        const hY = i % 2 === 0 ? y - 10 : y + 10;
+        svg += `<line x1="${x}" y1="${y}" x2="${x}" y2="${hY}" stroke="#cbd5e1" stroke-width="1.8"/>`;
+        svg += `<circle cx="${x}" cy="${hY}" r="3.5" fill="#f8fafc"/>`;
+        svg += `<circle cx="${x}" cy="${y}" r="6" fill="#0f172a" stroke="${f.color}" stroke-width="2"/>`;
+      }
+      svg += `</svg>`;
+      container.innerHTML = svg;
+    }
+
+    function buildFractionList() {
+      const container = document.getElementById('fractionListContainer');
+      container.innerHTML = '';
+
+      FRACTIONS.forEach((f, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'fraction-item w-full text-left p-2 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700/80 transition flex items-center justify-between cursor-pointer';
+        btn.innerHTML = `
+          <div class="flex items-center gap-2">
+            <div class="w-3.5 h-3.5 rounded-full shrink-0 border border-white/20" style="background-color: ${f.color};"></div>
+            <div>
+              <div class="text-xs font-bold text-white">${f.shortName}</div>
+              <div class="text-[10px] text-slate-400 font-mono-tech">${f.chainLength}</div>
+            </div>
+          </div>
+          <span class="text-xs font-mono-tech font-bold text-sky-300 bg-slate-900/80 px-2 py-0.5 rounded-md border border-slate-700">${f.tempLabel}</span>
+        `;
+        btn.addEventListener('click', () => selectFraction(idx));
+        container.appendChild(btn);
+      });
+    }
+
+    function toggleTrendsOverlay() {
+      state.showTrendsOverlay = !state.showTrendsOverlay;
+      const btn = document.getElementById('btnTrendsOverlay');
+      if (state.showTrendsOverlay) {
+        btn.classList.add('bg-amber-500/20', 'border-amber-400');
+      } else {
+        btn.classList.remove('bg-amber-500/20', 'border-amber-400');
+      }
+      resizeCanvas();
+    }
+
+    // ============================================================================
+    // GCSE EXAM QUICK QUIZ LOGIC
+    // ============================================================================
+    function renderQuizQuestion() {
+      const q = QUIZ_QUESTIONS[state.quizIndex];
+      document.getElementById('quizQuestionCounter').textContent = `Question ${state.quizIndex + 1} of ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quizLiveScore').textContent = `Score: ${state.quizScore} / ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quizQuestionText').textContent = q.q;
+
+      const optContainer = document.getElementById('quizOptionsContainer');
+      optContainer.innerHTML = '';
+
+      const feedbackBox = document.getElementById('quizFeedbackBox');
+      const nextBtn = document.getElementById('btnNextQuestion');
+
+      const answeredIdx = state.quizAnswered[state.quizIndex];
+
+      q.options.forEach((opt, oIdx) => {
+        const optBtn = document.createElement('button');
+        optBtn.className = 'w-full text-left p-2.5 rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer flex items-center justify-between';
+
+        if (answeredIdx !== null) {
+          if (oIdx === q.correct) {
+            optBtn.className += ' bg-emerald-500/20 border-emerald-400 text-emerald-200';
+          } else if (oIdx === answeredIdx) {
+            optBtn.className += ' bg-rose-500/20 border-rose-400 text-rose-200';
+          } else {
+            optBtn.className += ' bg-slate-900/60 border-slate-800 text-slate-400 opacity-60';
+          }
+          optBtn.disabled = true;
+        } else {
+          optBtn.className += ' bg-slate-800/80 border-slate-700 hover:border-sky-400 text-slate-200';
+          optBtn.addEventListener('click', () => handleQuizAnswer(oIdx));
+        }
+
+        optBtn.innerHTML = `<span>${opt}</span>`;
+        optContainer.appendChild(optBtn);
+      });
+
+      if (answeredIdx !== null) {
+        feedbackBox.className = answeredIdx === q.correct
+          ? 'rounded-xl p-3 text-xs sm:text-sm leading-relaxed border bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+          : 'rounded-xl p-3 text-xs sm:text-sm leading-relaxed border bg-rose-950/40 border-rose-500/40 text-rose-200';
+        feedbackBox.innerHTML = q.explanation;
+        feedbackBox.classList.remove('hidden');
+        nextBtn.disabled = false;
+        if (state.quizIndex === QUIZ_QUESTIONS.length - 1) {
+          nextBtn.textContent = 'Finish Quiz 🎉';
+        } else {
+          nextBtn.textContent = 'Next Question →';
+        }
+      } else {
+        feedbackBox.classList.add('hidden');
+        nextBtn.disabled = true;
+      }
+    }
+
+    function handleQuizAnswer(selectedOptIdx) {
+      const q = QUIZ_QUESTIONS[state.quizIndex];
+      state.quizAnswered[state.quizIndex] = selectedOptIdx;
+
+      if (selectedOptIdx === q.correct) {
+        state.quizScore++;
+        document.getElementById('quizScoreBadge').textContent = `${state.quizScore}/${QUIZ_QUESTIONS.length}`;
+      }
+      renderQuizQuestion();
+    }
+
+    // ============================================================================
+    // MAIN ANIMATION LOOP
+    // ============================================================================
+    let lastTime = 0;
+
+    function animate(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+      lastTime = timestamp;
+
+      if (!state.isPaused) {
+        state.time += dt;
+      }
+
+      const { w, h } = layout;
+
+      if (staticDirty) {
+        rebuildStaticLayer();
+      }
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(staticCanvas, 0, 0, w, h);
+
+      drawFurnaceFlames();
+      updateAndDrawParticles(dt);
+
+      requestAnimationFrame(animate);
+    }
+
+    // ============================================================================
+    // EVENT LISTENERS & INITIALISATION
+    // ============================================================================
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      let found = -1;
+      for (let reg of hitRegions) {
+        if (mouseX >= reg.x && mouseX <= reg.x + reg.w && mouseY >= reg.y && mouseY <= reg.y + reg.h) {
+          found = reg.idx;
+          break;
+        }
+      }
+
+      if (state.hoveredFractionIdx !== found) {
+        state.hoveredFractionIdx = found;
+        canvas.style.cursor = found !== -1 ? 'pointer' : 'default';
+        markStaticDirty();
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (state.hoveredFractionIdx !== -1) {
+        state.hoveredFractionIdx = -1;
+        markStaticDirty();
+      }
+    });
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      for (let reg of hitRegions) {
+        if (mouseX >= reg.x && mouseX <= reg.x + reg.w && mouseY >= reg.y && mouseY <= reg.y + reg.h) {
+          selectFraction(reg.idx);
+          break;
+        }
+      }
+    });
+
+    document.querySelectorAll('.track-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.track-btn').forEach((b) => {
+          b.classList.remove('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-400/40');
+          b.classList.add('bg-slate-800/80', 'text-slate-200', 'border-slate-700');
+        });
+        btn.classList.add('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-400/40');
+        btn.classList.remove('bg-slate-800/80', 'text-slate-200', 'border-slate-700');
+
+        const trackVal = btn.getAttribute('data-track');
+        state.trackedFractionIdx = trackVal === 'all' ? 'all' : parseInt(trackVal, 10);
+      });
+    });
+
+    document.getElementById('btnTrendsOverlay').addEventListener('click', () => toggleTrendsOverlay());
+
+    document.getElementById('btnParticleStyle').addEventListener('click', () => {
+      state.useSimpleParticles = !state.useSimpleParticles;
+      document.getElementById('particleStyleLabel').textContent = state.useSimpleParticles
+        ? 'Mode: Simple Particles'
+        : 'Mode: Hydrocarbon Chains';
+    });
+
+    document.getElementById('btnPlayPause').addEventListener('click', () => {
+      state.isPaused = !state.isPaused;
+      document.getElementById('playPauseIcon').textContent = state.isPaused ? '▶' : '⏸';
+      document.getElementById('playPauseLabel').textContent = state.isPaused ? 'Resume' : 'Pause';
+    });
+
+    const quizModal = document.getElementById('quizModal');
+    document.getElementById('btnOpenQuiz').addEventListener('click', () => {
+      quizModal.classList.remove('hidden');
+      quizModal.classList.add('flex');
+      renderQuizQuestion();
+    });
+
+    document.getElementById('btnCloseQuiz').addEventListener('click', () => {
+      quizModal.classList.add('hidden');
+      quizModal.classList.remove('flex');
+    });
+
+    document.getElementById('btnNextQuestion').addEventListener('click', () => {
+      if (state.quizIndex < QUIZ_QUESTIONS.length - 1) {
+        state.quizIndex++;
+        renderQuizQuestion();
+      } else {
+        quizModal.classList.add('hidden');
+        quizModal.classList.remove('flex');
+      }
+    });
+
+    document.getElementById('btnRestartQuiz').addEventListener('click', () => {
+      state.quizIndex = 0;
+      state.quizScore = 0;
+      state.quizAnswered = new Array(QUIZ_QUESTIONS.length).fill(null);
+      document.getElementById('quizScoreBadge').textContent = `0/${QUIZ_QUESTIONS.length}`;
+      renderQuizQuestion();
+    });
+
+    window.addEventListener('load', () => {
+      buildFractionList();
+      selectFraction(1);
+      resizeCanvas();
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
