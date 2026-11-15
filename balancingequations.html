@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Balancing Chemical Equations — GCSE Chemistry Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      user-select: none;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .day-panel {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+    }
+    .drop-zone {
+      transition: all 0.2s ease;
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+    .drop-zone.drag-over {
+      border-color: #0284c7 !important;
+      background-color: #e0f2fe !important;
+      transform: scale(1.005);
+    }
+    .drop-zone.drag-over-remove {
+      border-color: #e11d48 !important;
+      background-color: #ffe4e6 !important;
+    }
+    .molecule-chip {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .molecule-chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px -4px rgba(15, 23, 42, 0.14);
+    }
+    .molecule-chip:active {
+      cursor: grabbing;
+      transform: scale(0.97);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.75); opacity: 0; }
+      70% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    /* Custom scrollbar for projector clarity */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col p-2.5 sm:p-3.5 gap-2.5 xl:h-screen xl:overflow-hidden">
+
+  <!-- TOP CONTROL BAR (DAYLIGHT PROJECTOR HEADER) -->
+  <header class="day-panel rounded-2xl px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-indigo-700 flex items-center justify-center text-white shadow-md">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M12 3v18M6 12l-3 5h6l-3-5zm12 0l-3 5h6l-3-5z" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900">Balancing Chemical Equations</h1>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-sky-100 text-sky-800 border border-sky-300">
+            GCSE Chemistry
+          </span>
+        </div>
+        <p class="text-xs text-slate-600 hidden sm:block font-medium">Drag molecules into Reactants &amp; Products (or drag out to remove)</p>
+      </div>
+    </div>
+
+    <!-- EQUATION SELECTOR & DIFFICULTY FILTER -->
+    <div class="flex flex-wrap items-center gap-2 flex-1 max-w-3xl justify-end">
+      <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-300 text-xs font-bold">
+        <button data-diff="all" class="diff-btn px-2.5 py-1 rounded-lg bg-white text-slate-900 shadow-sm cursor-pointer">All (16)</button>
+        <button data-diff="Easy" class="diff-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer">Easy</button>
+        <button data-diff="Medium" class="diff-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer">Medium</button>
+        <button data-diff="Hard" class="diff-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 cursor-pointer">Hard</button>
+      </div>
+
+      <div class="flex items-center gap-1.5 flex-1 min-w-[240px] max-w-md">
+        <button id="btnPrevEq" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-black flex items-center justify-center cursor-pointer transition" title="Previous Equation">
+          ◀
+        </button>
+        <select id="equationSelect" class="flex-1 h-9 rounded-xl bg-white border-2 border-slate-300 focus:border-sky-600 px-3 text-xs sm:text-sm font-bold text-slate-900 cursor-pointer outline-none">
+          <!-- Populated dynamically -->
+        </select>
+        <button id="btnNextEq" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-black flex items-center justify-center cursor-pointer transition" title="Next Equation">
+          ▶
+        </button>
+      </div>
+
+      <button id="btnResetEq" class="h-9 px-3 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer transition">
+        <span>↺</span>
+        <span>Reset</span>
+      </button>
+
+      <button id="btnHint" class="h-9 px-3 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border border-indigo-300 text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer transition">
+        <span>💡</span>
+        <span>Hint</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- LARGE SYMBOL EQUATION DISPLAY BANNER (HIGHLIGHTS GREEN WHEN BALANCED) -->
+  <section id="equationBanner" class="day-panel rounded-2xl px-4 py-3 sm:py-3.5 shrink-0 border-2 border-slate-300 bg-white transition-all duration-300 flex flex-col gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span id="eqCategoryBadge" class="px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-slate-200 text-slate-800">
+          Complete Combustion
+        </span>
+        <span id="eqDifficultyBadge" class="px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+          Easy
+        </span>
+        <span id="eqTitleText" class="text-sm sm:text-base font-extrabold text-slate-700">
+          Combustion of Methane
+        </span>
+      </div>
+
+      <!-- Status Pill -->
+      <div id="balanceStatusPill" class="px-3.5 py-1 rounded-full text-xs sm:text-sm font-black tracking-wide bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+        <span>UNBALANCED — Drag molecules to balance</span>
+      </div>
+    </div>
+
+    <!-- GIANT PROJECTOR EQUATION READOUT -->
+    <div id="symbolEquationDisplay" class="w-full py-1.5 px-2 rounded-xl flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-2xl sm:text-3xl lg:text-4xl font-mono-tech font-extrabold text-slate-900 tracking-tight">
+      <!-- Populated dynamically with large coefficients & formulas -->
+    </div>
+
+    <!-- Optional Hint Drawer -->
+    <div id="hintBox" class="hidden rounded-xl bg-indigo-50 border border-indigo-200 px-3.5 py-2 text-xs sm:text-sm text-indigo-950 font-medium flex items-center justify-between gap-2">
+      <span id="hintText">Hint text here...</span>
+      <button id="btnCloseHint" class="text-indigo-700 font-black px-2 py-0.5 hover:bg-indigo-100 rounded cursor-pointer">✕</button>
+    </div>
+  </section>
+
+  <!-- MAIN WORKSPACE: SPECIES PALETTE + REACTANTS/PRODUCTS DROP ZONES + ATOM TALLY -->
+  <main class="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch">
+
+    <!-- LEFT COLUMN (3 cols): DRAGGABLE SPECIES PALETTE & ATOM KEY -->
+    <aside id="paletteDropZone" class="xl:col-span-3 day-panel rounded-2xl p-3 flex flex-col gap-2.5 min-h-0 border-2 border-slate-300 transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2 shrink-0">
+        <div>
+          <h2 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-800">Species Palette</h2>
+          <p class="text-[11px] text-slate-500 font-medium">Drag into boxes or click <strong class="text-slate-700">+</strong></p>
+        </div>
+        <span class="text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg border border-slate-200">
+          Drag out to remove
+        </span>
+      </div>
+
+      <!-- Draggable Species Cards -->
+      <div id="speciesPaletteList" class="flex-1 overflow-y-auto flex flex-col gap-2 pr-0.5 min-h-[160px]">
+        <!-- Populated dynamically -->
+      </div>
+    </aside>
+
+    <!-- CENTER WORKBENCH (6 cols): REACTANTS & PRODUCTS DROP ARENAS -->
+    <div class="xl:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-3 min-h-[340px] xl:min-h-0">
+
+      <!-- REACTANTS DROP ZONE -->
+      <div id="reactantsZone" data-side="reactants" class="drop-zone day-panel rounded-2xl p-3 flex flex-col border-2 border-dashed border-sky-400 bg-sky-50/40 min-h-[260px] xl:min-h-0">
+        <div class="flex items-center justify-between bg-white/95 border border-sky-200 rounded-xl px-3 py-2 mb-2.5 shrink-0 shadow-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-sky-600"></span>
+            <h2 class="text-sm sm:text-base font-black text-sky-950 uppercase tracking-wide">Reactants (Left)</h2>
+          </div>
+          <span id="reactantCountBadge" class="text-xs font-mono-tech font-bold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md">
+            0 molecules
+          </span>
+        </div>
+
+        <div id="reactantsContainer" class="flex-1 overflow-y-auto flex flex-col gap-2 p-1 content-start">
+          <!-- Dropped reactant molecules grouped cleanly by species -->
+        </div>
+      </div>
+
+      <!-- PRODUCTS DROP ZONE -->
+      <div id="productsZone" data-side="products" class="drop-zone day-panel rounded-2xl p-3 flex flex-col border-2 border-dashed border-indigo-400 bg-indigo-50/40 min-h-[260px] xl:min-h-0">
+        <div class="flex items-center justify-between bg-white/95 border border-indigo-200 rounded-xl px-3 py-2 mb-2.5 shrink-0 shadow-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-indigo-600"></span>
+            <h2 class="text-sm sm:text-base font-black text-indigo-950 uppercase tracking-wide">Products (Right)</h2>
+          </div>
+          <span id="productCountBadge" class="text-xs font-mono-tech font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">
+            0 molecules
+          </span>
+        </div>
+
+        <div id="productsContainer" class="flex-1 overflow-y-auto flex flex-col gap-2 p-1 content-start">
+          <!-- Dropped product molecules grouped cleanly by species -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN (3 cols): LIVE ATOM TALLY & CONSERVATION OF MASS SCALES -->
+    <aside class="xl:col-span-3 day-panel rounded-2xl p-3 flex flex-col gap-2.5 min-h-0 border-2 border-slate-300">
+      <div class="border-b border-slate-200 pb-2 shrink-0">
+        <h2 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-800">Atom Tally (Conservation of Mass)</h2>
+        <p class="text-[11px] text-slate-500 font-medium">Reactant atoms must equal Product atoms</p>
+      </div>
+
+      <div id="atomTallyList" class="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-0.5">
+        <!-- Populated dynamically with element comparison bars -->
+      </div>
+    </aside>
+
+  </main>
+
+  <script>
+    /**
+     * ============================================================================
+     * GCSE CHEMISTRY: BALANCING EQUATIONS SIMULATION (DAYLIGHT PROJECTOR EDITION)
+     * ============================================================================
+     */
+
+    // 1. ATOM VISUAL STYLES (CPK-INSPIRED HIGH-CONTRAST DAYLIGHT SPHERES)
+    const ATOM_STYLES = {
+      C:  { name: 'Carbon',    fill: '#1e293b', stroke: '#0f172a', text: '#ffffff', radius: 13 },
+      H:  { name: 'Hydrogen',  fill: '#ffffff', stroke: '#475569', text: '#0f172a', radius: 9.5 },
+      O:  { name: 'Oxygen',    fill: '#ef4444', stroke: '#991b1b', text: '#ffffff', radius: 12 },
+      N:  { name: 'Nitrogen',  fill: '#2563eb', stroke: '#1e3a8a', text: '#ffffff', radius: 12.5 },
+      Cl: { name: 'Chlorine',  fill: '#16a34a', stroke: '#14532d', text: '#ffffff', radius: 13.5 },
+      Na: { name: 'Sodium',    fill: '#7c3aed', stroke: '#4c1d95', text: '#ffffff', radius: 14 },
+      Mg: { name: 'Magnesium', fill: '#0d9488', stroke: '#115e59', text: '#ffffff', radius: 14 },
+      Ca: { name: 'Calcium',   fill: '#d97706', stroke: '#78350f', text: '#ffffff', radius: 14.5 },
+      Al: { name: 'Aluminium', fill: '#64748b', stroke: '#334155', text: '#ffffff', radius: 14 },
+      Fe: { name: 'Iron',      fill: '#b45309', stroke: '#451a03', text: '#ffffff', radius: 14 },
+      Cu: { name: 'Copper',    fill: '#ea580c', stroke: '#7c2d12', text: '#ffffff', radius: 14 },
+      S:  { name: 'Sulfur',    fill: '#eab308', stroke: '#854d0e', text: '#0f172a', radius: 13.5 }
+    };
+
+    // 2. SPECIES DEFINITIONS (WITH CONNECTED-SPHERE GEOMETRIES & EXACT ATOM COUNTS)
+    // Layouts: 'diatomic', 'tri_bent', 'tri_linear', 'tetra', 'alkane', 'alkene', 'ionic_pair', 'bracket_oh2', 'bracket_oh3', 'bracket_no3_2', 'bracket_so4_3', 'co3', 'so4'
+    const SPECIES_DB = {
+      H2:      { formula: 'H₂',       name: 'Hydrogen',            atoms: { H: 2 },               layout: 'diatomic',      backbone: ['H', 'H'] },
+      O2:      { formula: 'O₂',       name: 'Oxygen',              atoms: { O: 2 },               layout: 'diatomic',      backbone: ['O', 'O'] },
+      N2:      { formula: 'N₂',       name: 'Nitrogen',            atoms: { N: 2 },               layout: 'diatomic',      backbone: ['N', 'N'] },
+      Cl2:     { formula: 'Cl₂',      name: 'Chlorine',            atoms: { Cl: 2 },              layout: 'diatomic',      backbone: ['Cl', 'Cl'] },
+      HCl:     { formula: 'HCl',      name: 'Hydrochloric acid',   atoms: { H: 1, Cl: 1 },        layout: 'diatomic',      backbone: ['H', 'Cl'] },
+      CO:      { formula: 'CO',       name: 'Carbon monoxide',     atoms: { C: 1, O: 1 },         layout: 'diatomic',      backbone: ['C', 'O'] },
+      C:       { formula: 'C',        name: 'Carbon (soot)',       atoms: { C: 1 },               layout: 'single',        backbone: ['C'] },
+      Mg:      { formula: 'Mg',       name: 'Magnesium',           atoms: { Mg: 1 },              layout: 'single',        backbone: ['Mg'] },
+      Na:      { formula: 'Na',       name: 'Sodium',              atoms: { Na: 1 },              layout: 'single',        backbone: ['Na'] },
+      Fe:      { formula: 'Fe',       name: 'Iron',                atoms: { Fe: 1 },              layout: 'single',        backbone: ['Fe'] },
+      Al:      { formula: 'Al',       name: 'Aluminium',           atoms: { Al: 1 },              layout: 'single',        backbone: ['Al'] },
+      H2O:     { formula: 'H₂O',      name: 'Water',               atoms: { H: 2, O: 1 },         layout: 'tri_bent',      center: 'O', sides: ['H', 'H'] },
+      CO2:     { formula: 'CO₂',      name: 'Carbon dioxide',      atoms: { C: 1, O: 2 },         layout: 'tri_linear',    center: 'C', sides: ['O', 'O'] },
+      NH3:     { formula: 'NH₃',      name: 'Ammonia',             atoms: { N: 1, H: 3 },         layout: 'trigonal',      center: 'N', sides: ['H', 'H', 'H'] },
+      CH4:     { formula: 'CH₄',      name: 'Methane (Alkane)',    atoms: { C: 1, H: 4 },         layout: 'alkane',        carbons: 1 },
+      C2H6:    { formula: 'C₂H₆',     name: 'Ethane (Alkane)',     atoms: { C: 2, H: 6 },         layout: 'alkane',        carbons: 2 },
+      C3H8:    { formula: 'C₃H₈',     name: 'Propane (Alkane)',    atoms: { C: 3, H: 8 },         layout: 'alkane',        carbons: 3 },
+      C4H10:   { formula: 'C₄H₁₀',    name: 'Butane (Alkane)',     atoms: { C: 4, H: 10 },        layout: 'alkane',        carbons: 4 },
+      C2H4:    { formula: 'C₂H₄',     name: 'Ethene (Alkene)',     atoms: { C: 2, H: 4 },         layout: 'alkene',        carbons: 2 },
+      C3H6:    { formula: 'C₃H₆',     name: 'Propene (Alkene)',    atoms: { C: 3, H: 6 },         layout: 'alkene',        carbons: 3 },
+      MgO:     { formula: 'MgO',      name: 'Magnesium oxide',     atoms: { Mg: 1, O: 1 },        layout: 'diatomic',      backbone: ['Mg', 'O'] },
+      NaCl:    { formula: 'NaCl',     name: 'Sodium chloride',     atoms: { Na: 1, Cl: 1 },       layout: 'diatomic',      backbone: ['Na', 'Cl'] },
+      NaOH:    { formula: 'NaOH',     name: 'Sodium hydroxide',    atoms: { Na: 1, O: 1, H: 1 },  layout: 'tri_linear',    center: 'O', sides: ['Na', 'H'] },
+      MgCl2:   { formula: 'MgCl₂',    name: 'Magnesium chloride',  atoms: { Mg: 1, Cl: 2 },       layout: 'tri_linear',    center: 'Mg', sides: ['Cl', 'Cl'] },
+      Fe2O3:   { formula: 'Fe₂O₃',    name: 'Iron(III) oxide',     atoms: { Fe: 2, O: 3 },        layout: 'fe2o3' },
+      CaCO3:   { formula: 'CaCO₃',    name: 'Calcium carbonate',   atoms: { Ca: 1, C: 1, O: 3 },  layout: 'caco3' },
+      CaO:     { formula: 'CaO',      name: 'Calcium oxide',       atoms: { Ca: 1, O: 1 },        layout: 'diatomic',      backbone: ['Ca', 'O'] },
+      H2SO4:   { formula: 'H₂SO₄',    name: 'Sulfuric acid',       atoms: { H: 2, S: 1, O: 4 },   layout: 'h2so4' },
+      HNO3:    { formula: 'HNO₃',     name: 'Nitric acid',         atoms: { H: 1, N: 1, O: 3 },   layout: 'hno3' },
+      // Bracketed Formulas
+      CaOH2:   { formula: 'Ca(OH)₂',    name: 'Calcium hydroxide',   atoms: { Ca: 1, O: 2, H: 2 },  layout: 'bracket_oh2',   metal: 'Ca' },
+      MgOH2:   { formula: 'Mg(OH)₂',    name: 'Magnesium hydroxide', atoms: { Mg: 1, O: 2, H: 2 },  layout: 'bracket_oh2',   metal: 'Mg' },
+      FeOH3:   { formula: 'Fe(OH)₃',    name: 'Iron(III) hydroxide', atoms: { Fe: 1, O: 3, H: 3 },  layout: 'bracket_oh3',   metal: 'Fe' },
+      MgNO32:  { formula: 'Mg(NO₃)₂',   name: 'Magnesium nitrate',   atoms: { Mg: 1, N: 2, O: 6 },  layout: 'bracket_no3_2', metal: 'Mg' },
+      Al2SO43: { formula: 'Al₂(SO₄)₃',  name: 'Aluminium sulfate',   atoms: { Al: 2, S: 3, O: 12 }, layout: 'bracket_so4_3' }
+    };
+
+    // 3. 16 CURATED GCSE EQUATIONS (EASY -> MEDIUM -> HARD, INCLUDING ALKANE/ALKENE COMPLETE & INCOMPLETE COMBUSTION + BRACKETS)
+    const EQUATIONS = [
+      {
+        id: 1,
+        title: 'Formation of Water',
+        category: 'Synthesis',
+        difficulty: 'Easy',
+        reactants: ['H2', 'O2'],
+        products: ['H2O'],
+        solution: { reactants: { H2: 2, O2: 1 }, products: { H2O: 2 } },
+        hint: 'Start with 1 O₂ (2 oxygen atoms on the left). You will need 2 H₂O molecules on the right to match the oxygen atoms.'
+      },
+      {
+        id: 2,
+        title: 'Burning Magnesium Ribbon',
+        category: 'Metal Oxidation',
+        difficulty: 'Easy',
+        reactants: ['Mg', 'O2'],
+        products: ['MgO'],
+        solution: { reactants: { Mg: 2, O2: 1 }, products: { MgO: 2 } },
+        hint: 'Oxygen gas travels in pairs (O₂). Add 2 MgO on the right, then balance the Mg atoms on the left.'
+      },
+      {
+        id: 3,
+        title: 'Sodium + Chlorine',
+        category: 'Halogen Reaction',
+        difficulty: 'Easy',
+        reactants: ['Na', 'Cl2'],
+        products: ['NaCl'],
+        solution: { reactants: { Na: 2, Cl2: 1 }, products: { NaCl: 2 } },
+        hint: 'Cl₂ has two chlorine atoms, so you must make 2 NaCl on the product side.'
+      },
+      {
+        id: 4,
+        title: 'Complete Combustion of Methane (Alkane)',
+        category: 'Alkane Combustion',
+        difficulty: 'Easy',
+        reactants: ['CH4', 'O2'],
+        products: ['CO2', 'H2O'],
+        solution: { reactants: { CH4: 1, O2: 2 }, products: { CO2: 1, H2O: 2 } },
+        hint: 'Balance C first (1 CO₂), then H (4 H in CH₄ means 2 H₂O), and finally count total O atoms on the right (2 + 2 = 4 O atoms = 2 O₂).'
+      },
+      {
+        id: 5,
+        title: 'Haber Process (Making Ammonia)',
+        category: 'Reversible Synthesis',
+        difficulty: 'Easy',
+        reactants: ['N2', 'H2'],
+        products: ['NH3'],
+        solution: { reactants: { N2: 1, H2: 3 }, products: { NH3: 2 } },
+        hint: '1 N₂ has 2 nitrogen atoms, so make 2 NH₃ on the right. That gives 6 hydrogen atoms, so add 3 H₂ on the left.'
+      },
+      {
+        id: 6,
+        title: 'Magnesium + Hydrochloric Acid',
+        category: 'Metal + Acid',
+        difficulty: 'Easy',
+        reactants: ['Mg', 'HCl'],
+        products: ['MgCl2', 'H2'],
+        solution: { reactants: { Mg: 1, HCl: 2 }, products: { MgCl2: 1, H2: 1 } },
+        hint: 'Notice MgCl₂ has 2 Cl atoms and H₂ has 2 H atoms — adding a second HCl balances both at once!'
+      },
+      {
+        id: 7,
+        title: 'Incomplete Combustion of Methane (Carbon Monoxide)',
+        category: 'Incomplete Combustion',
+        difficulty: 'Medium',
+        reactants: ['CH4', 'O2'],
+        products: ['CO', 'H2O'],
+        solution: { reactants: { CH4: 2, O2: 3 }, products: { CO: 2, H2O: 4 } },
+        hint: 'With 1 CH₄ you get 1 CO + 2 H₂O = 3 oxygen atoms (1.5 O₂). Double everything so all coefficients are whole numbers!'
+      },
+      {
+        id: 8,
+        title: 'Complete Combustion of Propane (Alkane)',
+        category: 'Alkane Combustion',
+        difficulty: 'Medium',
+        reactants: ['C3H8', 'O2'],
+        products: ['CO2', 'H2O'],
+        solution: { reactants: { C3H8: 1, O2: 5 }, products: { CO2: 3, H2O: 4 } },
+        hint: 'C₃H₈ has 3 carbons (3 CO₂) and 8 hydrogens (4 H₂O). Total oxygen atoms on right = (3×2) + 4 = 10, so you need 5 O₂.'
+      },
+      {
+        id: 9,
+        title: 'Complete Combustion of Ethene (Alkene)',
+        category: 'Alkene Combustion',
+        difficulty: 'Medium',
+        reactants: ['C2H4', 'O2'],
+        products: ['CO2', 'H2O'],
+        solution: { reactants: { C2H4: 1, O2: 3 }, products: { CO2: 2, H2O: 2 } },
+        hint: 'Ethene (C₂H₄) has 2 carbons (2 CO₂) and 4 hydrogens (2 H₂O). Count oxygen atoms: 4 + 2 = 6 oxygen atoms = 3 O₂.'
+      },
+      {
+        id: 10,
+        title: 'Incomplete Combustion of Ethene (Soot + Water)',
+        category: 'Incomplete Combustion',
+        difficulty: 'Medium',
+        reactants: ['C2H4', 'O2'],
+        products: ['C', 'H2O'],
+        solution: { reactants: { C2H4: 1, O2: 1 }, products: { C: 2, H2O: 2 } },
+        hint: 'Limited oxygen produces solid carbon soot (C) and water. 1 C₂H₄ forms 2 C and 2 H₂O, needing just 1 O₂!'
+      },
+      {
+        id: 11,
+        title: 'Calcium Hydroxide + Hydrochloric Acid [Brackets]',
+        category: 'Neutralisation (Brackets)',
+        difficulty: 'Medium',
+        reactants: ['CaOH2', 'HCl'],
+        products: ['CaCO3'].includes('CaCl2') ? [] : ['MgCl2'].includes('CaCl2') ? [] : ['CaOH2', 'HCl'], // Replaced cleanly below
+        solution: null,
+        hint: ''
+      },
+      {
+        id: 12,
+        title: 'Complete Combustion of Ethane (Alkane)',
+        category: 'Alkane Combustion',
+        difficulty: 'Hard',
+        reactants: ['C2H6', 'O2'],
+        products: ['CO2', 'H2O'],
+        solution: { reactants: { C2H6: 2, O2: 7 }, products: { CO2: 4, H2O: 6 } },
+        hint: '1 C₂H₆ gives 2 CO₂ + 3 H₂O (7 oxygen atoms = 3.5 O₂). Double the whole equation to get 2 C₂H₆ + 7 O₂ → 4 CO₂ + 6 H₂O.'
+      },
+      {
+        id: 13,
+        title: 'Complete Combustion of Propene (Alkene)',
+        category: 'Alkene Combustion',
+        difficulty: 'Hard',
+        reactants: ['C3H6', 'O2'],
+        products: ['CO2', 'H2O'],
+        solution: { reactants: { C3H6: 2, O2: 9 }, products: { CO2: 6, H2O: 6 } },
+        hint: '1 C₃H₆ needs 4.5 O₂ to form 3 CO₂ + 3 H₂O. Double all molecules to remove the half: 2 C₃H₆ + 9 O₂ → 6 CO₂ + 6 H₂O.'
+      },
+      {
+        id: 14,
+        title: 'Complete Combustion of Butane (Alkane)',
+        category: 'Alkane Combustion',
+        difficulty: 'Hard',
+        reactants: ['C4H10', 'O2'],
+        products: ['CO2', 'H2O'],
+        solution: { reactants: { C4H10: 2, O2: 13 }, products: { CO2: 8, H2O: 10 } },
+        hint: '1 C₄H₁₀ makes 4 CO₂ + 5 H₂O (13 oxygen atoms). Since O₂ comes in pairs, double everything: 2 C₄H₁₀ + 13 O₂ → 8 CO₂ + 10 H₂O.'
+      },
+      {
+        id: 15,
+        title: 'Magnesium Hydroxide + Nitric Acid [Brackets]',
+        category: 'Neutralisation (Brackets)',
+        difficulty: 'Hard',
+        reactants: ['MgOH2', 'HNO3'],
+        products: ['MgNO32', 'H2O'],
+        solution: { reactants: { MgOH2: 1, HNO3: 2 }, products: { MgNO32: 1, H2O: 2 } },
+        hint: 'Mg(NO₃)₂ has 2 nitrate groups (2 N and 6 O), so you need 2 HNO₃. Combine the 2 H⁺ and 2 OH⁻ to make 2 H₂O.'
+      },
+      {
+        id: 16,
+        title: 'Aluminium + Sulfuric Acid [Double Brackets]',
+        category: 'Metal + Acid (Brackets)',
+        difficulty: 'Hard',
+        reactants: ['Al', 'H2SO4'],
+        products: ['Al2SO43', 'H2'],
+        solution: { reactants: { Al: 2, H2SO4: 3 }, products: { Al2SO43: 1, H2: 3 } },
+        hint: 'Al₂(SO₄)₃ contains 2 Al atoms and 3 sulfate (SO₄) groups. Add 2 Al and 3 H₂SO₄ on the left, which releases 3 H₂!'
+      }
+    ];
+
+    // Add CaCl2 cleanly for Equation 11 so all 16 equations have valid species
+    SPECIES_DB.CaCl2 = { formula: 'CaCl₂', name: 'Calcium chloride', atoms: { Ca: 1, Cl: 2 }, layout: 'tri_linear', center: 'Ca', sides: ['Cl', 'Cl'] };
+    EQUATIONS[10] = {
+      id: 11,
+      title: 'Calcium Hydroxide + Hydrochloric Acid [Brackets]',
+      category: 'Neutralisation (Brackets)',
+      difficulty: 'Medium',
+      reactants: ['CaOH2', 'HCl'],
+      products: ['CaCl2', 'H2O'],
+      solution: { reactants: { CaOH2: 1, HCl: 2 }, products: { CaCl2: 1, H2O: 2 } },
+      hint: 'Ca(OH)₂ has 2 OH groups inside the bracket (2 O and 2 H). Add 2 HCl on the left to make CaCl₂ and 2 H₂O.'
+    };
+
+    // ============================================================================
+    // APPLICATION STATE
+    // ============================================================================
+    const state = {
+      difficultyFilter: 'all',
+      currentEqId: 1,
+      reactantCounts: {}, // { speciesKey: count }
+      productCounts: {},  // { speciesKey: count }
+      dragPayload: null   // { speciesKey, source: 'palette' | 'reactants' | 'products' }
+    };
+
+    function getCurrentEquation() {
+      return EQUATIONS.find(eq => eq.id === state.currentEqId) || EQUATIONS[0];
+    }
+
+    function loadEquation(eqId) {
+      state.currentEqId = eqId;
+      const eq = getCurrentEquation();
+
+      // Start with 1 of each species on both sides so the equation is visible immediately (standard GCSE classroom style)
+      state.reactantCounts = {};
+      state.productCounts = {};
+      eq.reactants.forEach(sp => { state.reactantCounts[sp] = 1; });
+      eq.products.forEach(sp => { state.productCounts[sp] = 1; });
+
+      document.getElementById('hintBox').classList.add('hidden');
+      renderAll();
+    }
+
+    // ============================================================================
+    // CONNECTED-SPHERE SVG MOLECULE RENDERER
+    // ============================================================================
+    function renderMoleculeSVG(speciesKey, compact = false) {
+      const sp = SPECIES_DB[speciesKey];
+      const scale = compact ? 0.78 : 0.92;
+      const atoms = [];
+      const bonds = [];
+
+      function addAtom(sym, x, y) {
+        const idx = atoms.length;
+        atoms.push({ sym, x, y });
+        return idx;
+      }
+
+      if (sp.layout === 'single') {
+        addAtom(sp.backbone[0], 0, 0);
+      } else if (sp.layout === 'diatomic') {
+        const a0 = addAtom(sp.backbone[0], -14, 0);
+        const a1 = addAtom(sp.backbone[1], 14, 0);
+        bonds.push([a0, a1]);
+      } else if (sp.layout === 'tri_linear') {
+        const c = addAtom(sp.center, 0, 0);
+        const l = addAtom(sp.sides[0], -23, 0);
+        const r = addAtom(sp.sides[1], 23, 0);
+        bonds.push([c, l], [c, r]);
+      } else if (sp.layout === 'tri_bent') {
+        const c = addAtom(sp.center, 0, -5);
+        const l = addAtom(sp.sides[0], -17, 10);
+        const r = addAtom(sp.sides[1], 17, 10);
+        bonds.push([c, l], [c, r]);
+      } else if (sp.layout === 'trigonal') {
+        const c = addAtom(sp.center, 0, -2);
+        const b1 = addAtom(sp.sides[0], -18, 11);
+        const b2 = addAtom(sp.sides[1], 0, 15);
+        const b3 = addAtom(sp.sides[2], 18, 11);
+        bonds.push([c, b1], [c, b2], [c, b3]);
+      } else if (sp.layout === 'alkane') {
+        const n = sp.carbons;
+        const stepX = 24;
+        const startX = -((n - 1) * stepX) / 2;
+        const cIndices = [];
+        for (let i = 0; i < n; i++) {
+          const cx = startX + i * stepX;
+          const cy = i % 2 === 0 ? -4 : 4;
+          const ci = addAtom('C', cx, cy);
+          cIndices.push(ci);
+          if (i > 0) bonds.push([cIndices[i - 1], ci]);
+
+          // Top & bottom H
+          const hTop = addAtom('H', cx, cy - 17);
+          const hBot = addAtom('H', cx, cy + 17);
+          bonds.push([ci, hTop], [ci, hBot]);
+
+          if (i === 0) {
+            const hLeft = addAtom('H', cx - 17, cy);
+            bonds.push([ci, hLeft]);
+          }
+          if (i === n - 1) {
+            const hRight = addAtom('H', cx + 17, cy);
+            bonds.push([ci, hRight]);
+          }
+        }
+      } else if (sp.layout === 'alkene') {
+        const n = sp.carbons;
+        const stepX = 25;
+        const startX = -((n - 1) * stepX) / 2;
+        const cIndices = [];
+        for (let i = 0; i < n; i++) {
+          const cx = startX + i * stepX;
+          const cy = i % 2 === 0 ? -3 : 3;
+          const ci = addAtom('C', cx, cy);
+          cIndices.push(ci);
+          if (i > 0) {
+            // Double bond on first C=C
+            bonds.push([cIndices[i - 1], ci, i === 1]);
+          }
+          if (i === 0) {
+            bonds.push([ci, addAtom('H', cx - 14, cy - 13)]);
+            bonds.push([ci, addAtom('H', cx - 14, cy + 13)]);
+          } else if (i === 1 && n === 2) {
+            bonds.push([ci, addAtom('H', cx + 14, cy - 13)]);
+            bonds.push([ci, addAtom('H', cx + 14, cy + 13)]);
+          } else if (i === 1 && n === 3) {
+            bonds.push([ci, addAtom('H', cx, cy + 17)]);
+          } else if (i === 2) {
+            bonds.push([ci, addAtom('H', cx, cy - 17)]);
+            bonds.push([ci, addAtom('H', cx, cy + 17)]);
+          }
+        }
+      } else if (sp.layout === 'bracket_oh2') {
+        const m = addAtom(sp.metal, 0, 0);
+        const o1 = addAtom('O', -22, -4);
+        const h1 = addAtom('H', -37, 6);
+        const o2 = addAtom('O', 22, -4);
+        const h2 = addAtom('H', 37, 6);
+        bonds.push([m, o1], [o1, h1], [m, o2], [o2, h2]);
+      } else if (sp.layout === 'bracket_oh3') {
+        const m = addAtom(sp.metal, 0, 0);
+        const angles = [-Math.PI / 2, Math.PI / 6, (5 * Math.PI) / 6];
+        angles.forEach(ang => {
+          const ox = Math.cos(ang) * 21;
+          const oy = Math.sin(ang) * 21;
+          const hx = Math.cos(ang + 0.35) * 35;
+          const hy = Math.sin(ang + 0.35) * 35;
+          const oi = addAtom('O', ox, oy);
+          const hi = addAtom('H', hx, hy);
+          bonds.push([m, oi], [oi, hi]);
+        });
+      } else if (sp.layout === 'bracket_no3_2') {
+        const m = addAtom(sp.metal, 0, 0);
+        [-1, 1].forEach(dir => {
+          const ni = addAtom('N', dir * 24, 0);
+          bonds.push([m, ni]);
+          bonds.push([ni, addAtom('O', dir * 38, -13)]);
+          bonds.push([ni, addAtom('O', dir * 38, 13)]);
+          bonds.push([ni, addAtom('O', dir * 24, -18)]);
+        });
+      } else if (sp.layout === 'h2so4') {
+        const s = addAtom('S', 0, 0);
+        const oTop = addAtom('O', 0, -18);
+        const oBot = addAtom('O', 0, 18);
+        const oL = addAtom('O', -19, 0);
+        const oR = addAtom('O', 19, 0);
+        const hL = addAtom('H', -34, 8);
+        const hR = addAtom('H', 34, 8);
+        bonds.push([s, oTop], [s, oBot], [s, oL], [s, oR], [oL, hL], [oR, hR]);
+      } else if (sp.layout === 'hno3') {
+        const n = addAtom('N', 0, 0);
+        const o1 = addAtom('O', 16, -12);
+        const o2 = addAtom('O', 16, 12);
+        const o3 = addAtom('O', -18, 0);
+        const h = addAtom('H', -33, 8);
+        bonds.push([n, o1], [n, o2], [n, o3], [o3, h]);
+      } else if (sp.layout === 'bracket_so4_3') {
+        const al1 = addAtom('Al', -24, -10);
+        const al2 = addAtom('Al', 24, -10);
+        const positions = [[-34, 14], [0, 14], [34, 14]];
+        positions.forEach(([sx, sy], idx) => {
+          const si = addAtom('S', sx, sy);
+          if (idx === 0) bonds.push([al1, si]);
+          if (idx === 1) bonds.push([al1, si], [al2, si]);
+          if (idx === 2) bonds.push([al2, si]);
+          bonds.push([si, addAtom('O', sx - 11, sy - 11)]);
+          bonds.push([si, addAtom('O', sx + 11, sy - 11)]);
+          bonds.push([si, addAtom('O', sx - 11, sy + 11)]);
+          bonds.push([si, addAtom('O', sx + 11, sy + 11)]);
+        });
+      }
+
+      // Compute bounding box
+      let minX = -20, maxX = 20, minY = -20, maxY = 20;
+      atoms.forEach(a => {
+        const r = (ATOM_STYLES[a.sym]?.radius || 11) + 4;
+        if (a.x - r < minX) minX = a.x - r;
+        if (a.x + r > maxX) maxX = a.x + r;
+        if (a.y - r < minY) minY = a.y - r;
+        if (a.y + r > maxY) maxY = a.y + r;
+      });
+
+      const pad = 4;
+      const vbX = minX - pad;
+      const vbY = minY - pad;
+      const vbW = (maxX - minX) + pad * 2;
+      const vbH = (maxY - minY) + pad * 2;
+
+      const svgW = Math.min(155, Math.max(46, vbW * scale));
+      const svgH = Math.min(54, Math.max(32, vbH * scale));
+
+      let svg = `<svg width="${svgW}" height="${svgH}" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" class="shrink-0 overflow-visible">`;
+
+      // Render bonds
+      bonds.forEach(([i1, i2, isDouble]) => {
+        const a1 = atoms[i1];
+        const a2 = atoms[i2];
+        if (isDouble) {
+          svg += `<line x1="${a1.x}" y1="${a1.y - 2.5}" x2="${a2.x}" y2="${a2.y - 2.5}" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>`;
+          svg += `<line x1="${a1.x}" y1="${a1.y + 2.5}" x2="${a2.x}" y2="${a2.y + 2.5}" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>`;
+        } else {
+          svg += `<line x1="${a1.x}" y1="${a1.y}" x2="${a2.x}" y2="${a2.y}" stroke="#64748b" stroke-width="3.5" stroke-linecap="round"/>`;
+        }
+      });
+
+      // Render connected spheres with subtle 3D highlight
+      atoms.forEach(a => {
+        const st = ATOM_STYLES[a.sym] || ATOM_STYLES.C;
+        svg += `<circle cx="${a.x}" cy="${a.y}" r="${st.radius}" fill="${st.fill}" stroke="${st.stroke}" stroke-width="1.8"/>`;
+        svg += `<circle cx="${a.x - st.radius * 0.3}" cy="${a.y - st.radius * 0.3}" r="${st.radius * 0.25}" fill="rgba(255,255,255,0.45)"/>`;
+        svg += `<text x="${a.x}" y="${a.y + 3.5}" text-anchor="middle" font-family="Inter, sans-serif" font-weight="800" font-size="${st.radius * 0.92}" fill="${st.text}">${a.sym}</text>`;
+      });
+
+      svg += `</svg>`;
+      return svg;
+    }
+
+    // ============================================================================
+    // ATOM TALLY & BALANCE CHECKING LOGIC
+    // ============================================================================
+    function calculateAtomTotals() {
+      const leftTotals = {};
+      const rightTotals = {};
+      const allElements = new Set();
+
+      Object.entries(state.reactantCounts).forEach(([spKey, count]) => {
+        const sp = SPECIES_DB[spKey];
+        if (!sp) return;
+        Object.entries(sp.atoms).forEach(([el, qty]) => {
+          allElements.add(el);
+          leftTotals[el] = (leftTotals[el] || 0) + qty * count;
+        });
+      });
+
+      Object.entries(state.productCounts).forEach(([spKey, count]) => {
+        const sp = SPECIES_DB[spKey];
+        if (!sp) return;
+        Object.entries(sp.atoms).forEach(([el, qty]) => {
+          allElements.add(el);
+          rightTotals[el] = (rightTotals[el] || 0) + qty * count;
+        });
+      });
+
+      // Order elements in classic GCSE combustion / chemical order: C, H, O, then alphabetical
+      const priority = ['C', 'H', 'O', 'N', 'S', 'Cl', 'Na', 'Mg', 'Ca', 'Al', 'Fe', 'Cu'];
+      const elements = Array.from(allElements).sort((a, b) => {
+        const ia = priority.indexOf(a);
+        const ib = priority.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      let isBalanced = elements.length > 0;
+      let hasAnyMolecules = false;
+
+      Object.values(state.reactantCounts).forEach(c => { if (c > 0) hasAnyMolecules = true; });
+      Object.values(state.productCounts).forEach(c => { if (c > 0) hasAnyMolecules = true; });
+
+      // Ensure every required species in the equation has at least 1 molecule
+      const eq = getCurrentEquation();
+      const allSpeciesPresent =
+        eq.reactants.every(sp => (state.reactantCounts[sp] || 0) >= 1) &&
+        eq.products.every(sp => (state.productCounts[sp] || 0) >= 1);
+
+      if (!hasAnyMolecules || !allSpeciesPresent) {
+        isBalanced = false;
+      } else {
+        elements.forEach(el => {
+          if ((leftTotals[el] || 0) !== (rightTotals[el] || 0) || (leftTotals[el] || 0) === 0) {
+            isBalanced = false;
+          }
+        });
+      }
+
+      return { elements, leftTotals, rightTotals, isBalanced };
+    }
+
+    // ============================================================================
+    // UI RENDERERS
+    // ============================================================================
+    function renderEquationDropdown() {
+      const select = document.getElementById('equationSelect');
+      select.innerHTML = '';
+
+      const filtered = EQUATIONS.filter(eq => state.difficultyFilter === 'all' || eq.difficulty === state.difficultyFilter);
+      if (!filtered.some(eq => eq.id === state.currentEqId) && filtered.length > 0) {
+        state.currentEqId = filtered[0].id;
+      }
+
+      filtered.forEach(eq => {
+        const opt = document.createElement('option');
+        opt.value = eq.id;
+        opt.textContent = `#${eq.id} [${eq.difficulty}] ${eq.title}`;
+        if (eq.id === state.currentEqId) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderSymbolEquationBanner(isBalanced) {
+      const eq = getCurrentEquation();
+      const banner = document.getElementById('equationBanner');
+      const statusPill = document.getElementById('balanceStatusPill');
+      const display = document.getElementById('symbolEquationDisplay');
+
+      document.getElementById('eqCategoryBadge').textContent = eq.category;
+      document.getElementById('eqTitleText').textContent = eq.title;
+
+      const diffBadge = document.getElementById('eqDifficultyBadge');
+      diffBadge.textContent = eq.difficulty;
+      if (eq.difficulty === 'Easy') {
+        diffBadge.className = 'px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300';
+      } else if (eq.difficulty === 'Medium') {
+        diffBadge.className = 'px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300';
+      } else {
+        diffBadge.className = 'px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300';
+      }
+
+      // Highlight entire banner GREEN when balanced!
+      if (isBalanced) {
+        banner.className = 'rounded-2xl px-4 py-3 sm:py-3.5 shrink-0 border-2 border-emerald-500 bg-emerald-50 shadow-lg shadow-emerald-500/15 transition-all duration-300 flex flex-col gap-2';
+        statusPill.className = 'px-4 py-1 rounded-full text-xs sm:text-sm font-black tracking-wide bg-emerald-600 text-white shadow-sm flex items-center gap-2';
+        statusPill.innerHTML = `<span>✔</span><span>BALANCED EQUATION!</span>`;
+      } else {
+        banner.className = 'day-panel rounded-2xl px-4 py-3 sm:py-3.5 shrink-0 border-2 border-slate-300 bg-white transition-all duration-300 flex flex-col gap-2';
+        statusPill.className = 'px-3.5 py-1 rounded-full text-xs sm:text-sm font-black tracking-wide bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-2';
+        statusPill.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span><span>UNBALANCED — Adjust molecule counts</span>`;
+      }
+
+      // Build Large Symbol Equation HTML
+      let html = '';
+
+      eq.reactants.forEach((spKey, idx) => {
+        const count = state.reactantCounts[spKey] || 0;
+        const sp = SPECIES_DB[spKey];
+        if (idx > 0) {
+          html += `<span class="text-slate-400 font-black mx-1">+</span>`;
+        }
+        const coeffClass = count === 0
+          ? 'bg-rose-100 text-rose-700 border-rose-300'
+          : isBalanced
+          ? 'bg-emerald-600 text-white border-emerald-700'
+          : 'bg-sky-100 text-sky-900 border-sky-300';
+        const coeffDisplay = count === 1 ? '1' : count;
+
+        html += `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl ${isBalanced ? 'bg-emerald-100/80' : 'bg-slate-50'} border ${isBalanced ? 'border-emerald-300' : 'border-slate-200'}">
+            <span class="inline-flex items-center justify-center min-w-[2.1rem] h-9 sm:h-10 px-2 rounded-lg border-2 ${coeffClass} text-xl sm:text-2xl lg:text-3xl font-black" title="Stoichiometric Coefficient">
+              ${coeffDisplay}
+            </span>
+            <span class="text-slate-900">${sp.formula}</span>
+          </span>
+        `;
+      });
+
+      html += `<span class="text-2xl sm:text-4xl font-black ${isBalanced ? 'text-emerald-700' : 'text-slate-700'} mx-2">→</span>`;
+
+      eq.products.forEach((spKey, idx) => {
+        const count = state.productCounts[spKey] || 0;
+        const sp = SPECIES_DB[spKey];
+        if (idx > 0) {
+          html += `<span class="text-slate-400 font-black mx-1">+</span>`;
+        }
+        const coeffClass = count === 0
+          ? 'bg-rose-100 text-rose-700 border-rose-300'
+          : isBalanced
+          ? 'bg-emerald-600 text-white border-emerald-700'
+          : 'bg-indigo-100 text-indigo-900 border-indigo-300';
+        const coeffDisplay = count === 1 ? '1' : count;
+
+        html += `
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl ${isBalanced ? 'bg-emerald-100/80' : 'bg-slate-50'} border ${isBalanced ? 'border-emerald-300' : 'border-slate-200'}">
+            <span class="inline-flex items-center justify-center min-w-[2.1rem] h-9 sm:h-10 px-2 rounded-lg border-2 ${coeffClass} text-xl sm:text-2xl lg:text-3xl font-black" title="Stoichiometric Coefficient">
+              ${coeffDisplay}
+            </span>
+            <span class="text-slate-900">${sp.formula}</span>
+          </span>
+        `;
+      });
+
+      display.innerHTML = html;
+    }
+
+    function renderSpeciesPalette(elements) {
+      const eq = getCurrentEquation();
+      const paletteEl = document.getElementById('speciesPaletteList');
+      paletteEl.innerHTML = '';
+
+      // Unique species involved in this equation
+      const uniqueKeys = Array.from(new Set([...eq.reactants, ...eq.products]));
+
+      uniqueKeys.forEach(spKey => {
+        const sp = SPECIES_DB[spKey];
+        const isReactant = eq.reactants.includes(spKey);
+        const isProduct = eq.products.includes(spKey);
+        const roleTag = isReactant && isProduct ? 'Both' : isReactant ? 'Reactant' : 'Product';
+        const tagStyle = isReactant
+          ? 'bg-sky-100 text-sky-800 border-sky-200'
+          : 'bg-indigo-100 text-indigo-800 border-indigo-200';
+
+        const card = document.createElement('div');
+        card.draggable = true;
+        card.className = 'molecule-chip bg-white border-2 border-slate-200 hover:border-sky-500 rounded-xl p-2 flex items-center justify-between gap-2 cursor-grab shadow-xs';
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-1 flex items-center justify-center">
+              ${renderMoleculeSVG(spKey, true)}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono-tech text-sm sm:text-base font-black text-slate-900">${sp.formula}</span>
+                <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded border ${tagStyle}">${roleTag}</span>
+              </div>
+              <div class="text-[11px] text-slate-500 font-semibold truncate">${sp.name}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            ${isReactant ? `<button type="button" data-add-side="reactants" data-sp="${spKey}" class="quick-add-btn px-2 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold cursor-pointer" title="Add to Reactants">+L</button>` : ''}
+            ${isProduct ? `<button type="button" data-add-side="products" data-sp="${spKey}" class="quick-add-btn px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold cursor-pointer" title="Add to Products">+R</button>` : ''}
+          </div>
+        `;
+
+        card.addEventListener('dragstart', (e) => {
+          state.dragPayload = { speciesKey: spKey, source: 'palette' };
+          e.dataTransfer.effectAllowed = 'copyMove';
+          e.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
+        });
+
+        paletteEl.appendChild(card);
+      });
+
+      // Quick-add button listeners
+      paletteEl.querySelectorAll('.quick-add-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const side = btn.getAttribute('data-add-side');
+          const spKey = btn.getAttribute('data-sp');
+          adjustMoleculeCount(side, spKey, 1);
+        });
+      });
+    }
+
+    function renderDropArenas() {
+      const eq = getCurrentEquation();
+
+      renderSideContainer('reactants', eq.reactants, state.reactantCounts, 'reactantsContainer', 'reactantCountBadge', 'sky');
+      renderSideContainer('products', eq.products, state.productCounts, 'productsContainer', 'productCountBadge', 'indigo');
+    }
+
+    function renderSideContainer(side, allowedSpecies, countsMap, containerId, badgeId, themeColor) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      let totalMols = 0;
+      Object.values(countsMap).forEach(c => { totalMols += c; });
+      document.getElementById(badgeId).textContent = `${totalMols} molecule${totalMols === 1 ? '' : 's'}`;
+
+      allowedSpecies.forEach(spKey => {
+        const sp = SPECIES_DB[spKey];
+        const count = countsMap[spKey] || 0;
+
+        const groupCard = document.createElement('div');
+        groupCard.className = `bg-white border-2 ${count === 0 ? 'border-rose-300 bg-rose-50/40' : `border-${themeColor}-200`} rounded-xl p-2.5 shadow-xs flex flex-col gap-2`;
+
+        // Header row with formula & +/- controls
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between gap-2';
+        header.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="font-mono-tech text-base sm:text-lg font-black text-slate-900">${count} × ${sp.formula}</span>
+            <span class="text-xs text-slate-500 font-semibold hidden sm:inline">(${sp.name})</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" class="btn-dec w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-100 hover:text-rose-700 border border-slate-300 font-black text-slate-800 flex items-center justify-center cursor-pointer transition" title="Remove 1 ${sp.formula}">−</button>
+            <button type="button" class="btn-inc w-7 h-7 rounded-lg bg-${themeColor}-600 hover:bg-${themeColor}-700 text-white font-black flex items-center justify-center cursor-pointer transition" title="Add 1 ${sp.formula}">+</button>
+          </div>
+        `;
+
+        header.querySelector('.btn-dec').addEventListener('click', () => adjustMoleculeCount(side, spKey, -1));
+        header.querySelector('.btn-inc').addEventListener('click', () => adjustMoleculeCount(side, spKey, 1));
+        groupCard.appendChild(header);
+
+        // Visual Connected-Sphere Molecules (Each molecule can be dragged out to remove!)
+        const molGrid = document.createElement('div');
+        molGrid.className = 'flex flex-wrap items-center gap-2 min-h-[42px] bg-slate-50/90 rounded-lg p-1.5 border border-slate-200/80';
+
+        if (count === 0) {
+          molGrid.innerHTML = `<span class="text-xs font-bold text-rose-600 px-2 py-1">0 molecules — drag ${sp.formula} here or click +</span>`;
+        } else {
+          for (let i = 0; i < count; i++) {
+            const molItem = document.createElement('div');
+            molItem.draggable = true;
+            molItem.className = 'molecule-chip animate-pop bg-white border border-slate-300 hover:border-rose-400 rounded-lg px-2 py-1 flex items-center gap-1 cursor-grab relative group';
+            molItem.title = `Drag out or click × to remove 1 ${sp.formula}`;
+            molItem.innerHTML = `
+              ${renderMoleculeSVG(spKey, false)}
+              <span class="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-black text-rose-600 bg-rose-50 border border-rose-200 rounded px-1 ml-0.5">×</span>
+            `;
+
+            molItem.addEventListener('dragstart', (e) => {
+              state.dragPayload = { speciesKey: spKey, source: side };
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', JSON.stringify(state.dragPayload));
+            });
+
+            // Clicking the small × badge removes that molecule
+            molItem.querySelector('span').addEventListener('click', (e) => {
+              e.stopPropagation();
+              adjustMoleculeCount(side, spKey, -1);
+            });
+
+            molGrid.appendChild(molItem);
+          }
+        }
+
+        groupCard.appendChild(molGrid);
+        container.appendChild(groupCard);
+      });
+    }
+
+    function renderAtomTally(elements, leftTotals, rightTotals) {
+      const list = document.getElementById('atomTallyList');
+      list.innerHTML = '';
+
+      elements.forEach(el => {
+        const st = ATOM_STYLES[el] || ATOM_STYLES.C;
+        const lVal = leftTotals[el] || 0;
+        const rVal = rightTotals[el] || 0;
+        const matched = lVal === rVal && lVal > 0;
+        const maxVal = Math.max(lVal, rVal, 1);
+
+        const card = document.createElement('div');
+        card.className = `rounded-xl p-2.5 border-2 transition-colors ${
+          matched ? 'bg-emerald-50/90 border-emerald-400' : 'bg-white border-slate-200'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-black border-2 shadow-2xs" style="background:${st.fill}; border-color:${st.stroke}; color:${st.text};">${el}</span>
+              <span class="text-xs sm:text-sm font-extrabold text-slate-900">${st.name}</span>
+            </div>
+            <span class="text-xs font-black px-2 py-0.5 rounded-md ${
+              matched ? 'bg-emerald-600 text-white' : 'bg-amber-100 text-amber-900 border border-amber-300'
+            }">
+              ${matched ? '✔ Equal' : lVal > rVal ? 'Left Heavy' : 'Right Heavy'}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono-tech font-bold">
+            <div class="bg-sky-50 border border-sky-200 rounded-lg px-2 py-1 flex items-center justify-between">
+              <span class="text-sky-900">Reactants:</span>
+              <span class="text-base font-black text-sky-950">${lVal}</span>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1 flex items-center justify-between">
+              <span class="text-indigo-900">Products:</span>
+              <span class="text-base font-black text-indigo-950">${rVal}</span>
+            </div>
+          </div>
+
+          <!-- Visual Comparison Bars -->
+          <div class="mt-2 space-y-1">
+            <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-sky-600 rounded-full transition-all duration-200" style="width: ${(lVal / maxVal) * 100}%;"></div>
+            </div>
+            <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-indigo-600 rounded-full transition-all duration-200" style="width: ${(rVal / maxVal) * 100}%;"></div>
+            </div>
+          </div>
+        `;
+
+        list.appendChild(card);
+      });
+    }
+
+    function adjustMoleculeCount(side, spKey, delta) {
+      const map = side === 'reactants' ? state.reactantCounts : state.productCounts;
+      const nextVal = Math.max(0, Math.min(18, (map[spKey] || 0) + delta));
+      map[spKey] = nextVal;
+      renderAll();
+    }
+
+    function renderAll() {
+      const { elements, leftTotals, rightTotals, isBalanced } = calculateAtomTotals();
+      renderEquationDropdown();
+      renderSymbolEquationBanner(isBalanced);
+      renderSpeciesPalette(elements);
+      renderDropArenas();
+      renderAtomTally(elements, leftTotals, rightTotals);
+    }
+
+    // ============================================================================
+    // DRAG AND DROP HANDLERS (DROP INTO REACTANTS/PRODUCTS OR DRAG OUT TO REMOVE)
+    // ============================================================================
+    function setupDropZones() {
+      const reactantsZone = document.getElementById('reactantsZone');
+      const productsZone = document.getElementById('productsZone');
+      const paletteZone = document.getElementById('paletteDropZone');
+
+      [reactantsZone, productsZone].forEach(zone => {
+        const targetSide = zone.getAttribute('data-side');
+
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('drag-over');
+        });
+
+        zone.addEventListener('dragleave', () => {
+          zone.classList.remove('drag-over');
+        });
+
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          zone.classList.remove('drag-over');
+
+          let payload = state.dragPayload;
+          if (!payload) {
+            try {
+              payload = JSON.parse(e.dataTransfer.getData('text/plain'));
+            } catch (_) {}
+          }
+          if (!payload) return;
+
+          const eq = getCurrentEquation();
+          const allowed = targetSide === 'reactants' ? eq.reactants : eq.products;
+
+          // Only add if this species belongs on that side of the equation
+          if (allowed.includes(payload.speciesKey)) {
+            if (payload.source === 'palette') {
+              adjustMoleculeCount(targetSide, payload.speciesKey, 1);
+            } else if (payload.source !== targetSide) {
+              // Moved from other side (e.g. if species appears on both sides)
+              adjustMoleculeCount(payload.source, payload.speciesKey, -1);
+              adjustMoleculeCount(targetSide, payload.speciesKey, 1);
+            }
+          }
+          state.dragPayload = null;
+        });
+      });
+
+      // Dragging a molecule back onto the Palette (or anywhere outside the arenas) removes it!
+      paletteZone.addEventListener('dragover', (e) => {
+        if (state.dragPayload && state.dragPayload.source !== 'palette') {
+          e.preventDefault();
+          paletteZone.classList.add('drag-over-remove');
+        }
+      });
+
+      paletteZone.addEventListener('dragleave', () => {
+        paletteZone.classList.remove('drag-over-remove');
+      });
+
+      paletteZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        paletteZone.classList.remove('drag-over-remove');
+        if (state.dragPayload && state.dragPayload.source !== 'palette') {
+          adjustMoleculeCount(state.dragPayload.source, state.dragPayload.speciesKey, -1);
+        }
+        state.dragPayload = null;
+      });
+
+      // Also allow dropping anywhere on the body outside the two arenas to remove a dragged molecule
+      document.body.addEventListener('dragover', (e) => {
+        if (state.dragPayload && state.dragPayload.source !== 'palette') {
+          e.preventDefault();
+        }
+      });
+
+      document.body.addEventListener('drop', (e) => {
+        if (state.dragPayload && state.dragPayload.source !== 'palette') {
+          const inReactants = reactantsZone.contains(e.target);
+          const inProducts = productsZone.contains(e.target);
+          if (!inReactants && !inProducts) {
+            adjustMoleculeCount(state.dragPayload.source, state.dragPayload.speciesKey, -1);
+          }
+        }
+        state.dragPayload = null;
+      });
+    }
+
+    // ============================================================================
+    // HEADER & NAVIGATION EVENT LISTENERS
+    // ============================================================================
+    document.getElementById('equationSelect').addEventListener('change', (e) => {
+      loadEquation(parseInt(e.target.value, 10));
+    });
+
+    document.getElementById('btnPrevEq').addEventListener('click', () => {
+      const filtered = EQUATIONS.filter(eq => state.difficultyFilter === 'all' || eq.difficulty === state.difficultyFilter);
+      const idx = filtered.findIndex(eq => eq.id === state.currentEqId);
+      const prevIdx = (idx - 1 + filtered.length) % filtered.length;
+      loadEquation(filtered[prevIdx].id);
+    });
+
+    document.getElementById('btnNextEq').addEventListener('click', () => {
+      const filtered = EQUATIONS.filter(eq => state.difficultyFilter === 'all' || eq.difficulty === state.difficultyFilter);
+      const idx = filtered.findIndex(eq => eq.id === state.currentEqId);
+      const nextIdx = (idx + 1) % filtered.length;
+      loadEquation(filtered[nextIdx].id);
+    });
+
+    document.getElementById('btnResetEq').addEventListener('click', () => {
+      loadEquation(state.currentEqId);
+    });
+
+    document.getElementById('btnHint').addEventListener('click', () => {
+      const eq = getCurrentEquation();
+      const hintBox = document.getElementById('hintBox');
+      document.getElementById('hintText').textContent = `💡 Hint: ${eq.hint}`;
+      hintBox.classList.toggle('hidden');
+    });
+
+    document.getElementById('btnCloseHint').addEventListener('click', () => {
+      document.getElementById('hintBox').classList.add('hidden');
+    });
+
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => {
+          b.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+          b.classList.add('text-slate-600');
+        });
+        btn.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+        btn.classList.remove('text-slate-600');
+
+        state.difficultyFilter = btn.getAttribute('data-diff');
+        const filtered = EQUATIONS.filter(eq => state.difficultyFilter === 'all' || eq.difficulty === state.difficultyFilter);
+        if (filtered.length > 0 && !filtered.some(eq => eq.id === state.currentEqId)) {
+          loadEquation(filtered[0].id);
+        } else {
+          renderEquationDropdown();
+        }
+      });
+    });
+
+    // Initialise on page load
+    window.addEventListener('load', () => {
+      setupDropZones();
+      loadEquation(1);
+    });
+  </script>
+</body>
+</html>
