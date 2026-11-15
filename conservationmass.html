@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conservation of Mass (Particle Model) — GCSE Chemistry Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      user-select: none;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .day-panel {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+    }
+    .digital-scale {
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border: 2px solid #475569;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), 0 4px 10px rgba(15, 23, 42, 0.15);
+    }
+    .scale-lcd {
+      background: #064e3b;
+      border: 1.5px solid #10b981;
+      color: #6ee7b7;
+      text-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
+    }
+    .scale-lcd-warn {
+      background: #78350f;
+      border: 1.5px solid #f59e0b;
+      color: #fde68a;
+      text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
+    }
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.45); }
+      50% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(2, 132, 199, 0); }
+    }
+    .btn-react-ready {
+      animation: pulseGlow 2.2s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col p-2.5 sm:p-3.5 gap-2.5 xl:h-screen xl:overflow-hidden">
+
+  <!-- TOP HEADER & 6 SCENARIO SELECTOR TABS -->
+  <header class="day-panel rounded-2xl px-4 py-2.5 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-emerald-600 flex items-center justify-center text-white shadow-md">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M12 3v18M6 12l-3 5h6l-3-5zm12 0l-3 5h6l-3-5z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900">Conservation of Mass: Particle Model</h1>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+              GCSE Chemistry
+            </span>
+          </div>
+          <p class="text-xs text-slate-600 hidden sm:block font-medium">No atoms are created or destroyed — they simply rearrange</p>
+        </div>
+      </div>
+
+      <!-- System Lid Toggle (Open vs Closed System) -->
+      <button id="btnToggleSystem" class="lg:hidden px-3 py-1.5 rounded-xl bg-amber-100 border border-amber-300 text-amber-950 text-xs font-extrabold cursor-pointer">
+        System: <span id="sysLabelMobile">Open (No Lid)</span>
+      </button>
+    </div>
+
+    <!-- 6 GCSE EXAMPLES SELECTOR -->
+    <div id="scenarioTabs" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 flex-1 max-w-5xl">
+      <!-- Populated dynamically -->
+    </div>
+
+    <!-- System Lid Toggle (Desktop) -->
+    <div class="hidden lg:flex items-center gap-2 shrink-0">
+      <button id="btnToggleSystemDesktop" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 text-slate-900 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition" title="Toggle between an Open container and a Sealed Closed System">
+        <span id="sysIcon">🔓</span>
+        <span>System: <strong id="sysLabelDesktop" class="text-sky-700">Open Container</strong></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- EQUATION & CONCEPT BANNER -->
+  <section class="day-panel rounded-2xl px-4 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5 flex-wrap">
+      <span id="scCategoryBadge" class="px-2.5 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-sky-100 text-sky-900 border border-sky-300">
+        Change of State
+      </span>
+      <h2 id="scTitle" class="text-base sm:text-lg font-black text-slate-900">1. Melting Ice (Solid → Liquid)</h2>
+    </div>
+
+    <!-- Large Symbol Equation -->
+    <div id="scEquation" class="font-mono-tech text-lg sm:text-2xl font-extrabold text-slate-900 bg-slate-100 px-3.5 py-1 rounded-xl border border-slate-300">
+      H₂O(s) → H₂O(l)
+    </div>
+
+    <!-- Atom Count Verification Pill -->
+    <div id="atomTallyPill" class="flex items-center gap-2 flex-wrap text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-950 border border-emerald-300 px-3 py-1 rounded-xl">
+      <!-- Populated dynamically -->
+    </div>
+  </section>
+
+  <!-- MAIN SIMULATION STAGE: LEFT BOX + CENTER REACT ARROW + RIGHT BOX -->
+  <main class="flex-1 min-h-0 day-panel rounded-2xl p-3 flex flex-col gap-2.5 relative">
+
+    <!-- Particle Legend & Reset Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shrink-0">
+      <div id="atomLegend" class="flex items-center gap-3 flex-wrap">
+        <!-- Populated dynamically with atom spheres & Ar mass -->
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span id="stageStatusText" class="text-xs sm:text-sm font-extrabold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-lg border border-sky-200">
+          Step 1: Click the REACT arrow in the middle
+        </span>
+        <button id="btnResetSim" class="px-3 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 text-xs font-extrabold cursor-pointer transition">
+          ↺ Reset Particles
+        </button>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE CANVAS CONTAINER (WITH OVERLAID CENTER BUTTON) -->
+    <div id="canvasWrapper" class="relative flex-1 min-h-[300px] w-full rounded-xl overflow-hidden bg-slate-100/70 border border-slate-300">
+      <canvas id="massCanvas" class="w-full h-full block"></canvas>
+
+      <!-- CENTER INTERACTIVE REACT ARROW BUTTON -->
+      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none z-10">
+        <button id="btnReactArrow" class="pointer-events-auto btn-react-ready group bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 active:scale-95 text-white rounded-2xl px-4 py-3 shadow-xl border-2 border-white flex flex-col items-center gap-1 cursor-pointer transition-all">
+          <span id="reactBtnLabel" class="text-xs sm:text-sm font-black uppercase tracking-wider">REACT</span>
+          <svg class="w-8 h-8 sm:w-10 sm:h-10 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 12h14" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- BOTTOM DIGITAL MASS BALANCES & GCSE EXPLANATION BAR -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 shrink-0 items-stretch">
+
+      <!-- LEFT DIGITAL BALANCE (BEFORE / REACTANTS) -->
+      <div class="lg:col-span-4 digital-scale rounded-xl px-3.5 py-2 flex items-center justify-between text-white">
+        <div>
+          <div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Balance A: Start (Reactants)</div>
+          <div id="leftScaleSub" class="text-xs text-slate-300 font-medium">Total mass of starting particles</div>
+        </div>
+        <div class="scale-lcd rounded-lg px-3 py-1 font-mono-tech text-xl sm:text-2xl font-black tracking-wider">
+          <span id="leftMassReadout">108.0</span> <span class="text-sm">g</span>
+        </div>
+      </div>
+
+      <!-- CENTER GCSE EXPLANATION CARD -->
+      <div class="lg:col-span-4 bg-sky-50 border-2 border-sky-200 rounded-xl px-3.5 py-2 flex flex-col justify-center">
+        <div class="text-[11px] font-black uppercase tracking-wider text-sky-800">GCSE Explanation</div>
+        <p id="scExplanation" class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
+          When ice melts, water molecules gain energy and move freely, but no molecules are lost or gained. Mass stays identical.
+        </p>
+      </div>
+
+      <!-- RIGHT DIGITAL BALANCE (AFTER / PRODUCTS) -->
+      <div class="lg:col-span-4 digital-scale rounded-xl px-3.5 py-2 flex items-center justify-between text-white">
+        <div>
+          <div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Balance B: End (Products)</div>
+          <div id="rightScaleSub" class="text-xs text-slate-300 font-medium">Awaiting reaction...</div>
+        </div>
+        <div id="rightLcdBox" class="scale-lcd rounded-lg px-3 py-1 font-mono-tech text-xl sm:text-2xl font-black tracking-wider">
+          <span id="rightMassReadout">---.-</span> <span class="text-sm">g</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /**
+     * ============================================================================
+     * GCSE CHEMISTRY: CONSERVATION OF MASS IN TERMS OF PARTICLES
+     * ============================================================================
+     */
+
+    // Relative Atomic Masses (Ar) & High-Contrast Daylight Sphere Colours
+    const ATOMS = {
+      H:  { symbol: 'H',  name: 'Hydrogen',  ar: 1,   fill: '#ffffff', stroke: '#334155', text: '#0f172a', r: 9 },
+      C:  { symbol: 'C',  name: 'Carbon',    ar: 12,  fill: '#1e293b', stroke: '#0f172a', text: '#ffffff', r: 12.5 },
+      N:  { symbol: 'N',  name: 'Nitrogen',  ar: 14,  fill: '#2563eb', stroke: '#1e3a8a', text: '#ffffff', r: 12.5 },
+      O:  { symbol: 'O',  name: 'Oxygen',    ar: 16,  fill: '#ef4444', stroke: '#991b1b', text: '#ffffff', r: 12 },
+      Na: { symbol: 'Na', name: 'Sodium',    ar: 23,  fill: '#7c3aed', stroke: '#4c1d95', text: '#ffffff', r: 14 },
+      Mg: { symbol: 'Mg', name: 'Magnesium', ar: 24,  fill: '#0d9488', stroke: '#115e59', text: '#ffffff', r: 14 },
+      Cl: { symbol: 'Cl', name: 'Chlorine',  ar: 35.5,fill: '#16a34a', stroke: '#14532d', text: '#ffffff', r: 13.5 },
+      Ca: { symbol: 'Ca', name: 'Calcium',   ar: 40,  fill: '#d97706', stroke: '#78350f', text: '#ffffff', r: 14.5 },
+      Ag: { symbol: 'Ag', name: 'Silver',    ar: 108, fill: '#64748b', stroke: '#1e293b', text: '#ffffff', r: 15 }
+    };
+
+    /**
+     * 6 GCSE EXAMPLES:
+     * 1. Change of state: Solid to Liquid (Melting Ice)
+     * 2. Dissolving: Salt dissolving in water
+     * 3. Gas + Gas: Hydrogen + Chlorine -> Hydrogen Chloride
+     * 4. Liquid + Liquid: Silver Nitrate + Sodium Chloride -> Silver Chloride precipitate + Sodium Nitrate
+     * 5. Apparent Mass Decrease (Gas Released): Calcium Carbonate + HCl -> CO2 gas escapes
+     * 6. Apparent Mass Increase (Gas Added): Magnesium burning in Oxygen from air -> MgO
+     */
+    const SCENARIOS = [
+      {
+        id: 0,
+        shortTab: '1. Solid → Liquid',
+        category: 'Change of State',
+        title: '1. Melting Ice (Solid → Liquid)',
+        equation: '6 H₂O(s)  →  6 H₂O(l)',
+        actionWord: 'MELT',
+        gasBehavior: 'none', // 'none' | 'escape' | 'added'
+        atomTypes: ['H', 'O'],
+        explanation:
+          'Physical change: Ice particles vibrate in a fixed lattice on the left. Heating gives them energy to slide past each other as liquid water on the right—zero particles enter or leave, so mass stays 108.0 g.',
+        openScaleNote: 'No gas involved — mass stays 108.0 g',
+        // 6 H2O molecules: 12 H (12g) + 6 O (96g) = 108.0 g
+        buildClusters: () => {
+          const reactants = [];
+          const products = [];
+          // Left: 2x3 crystalline ice lattice
+          for (let i = 0; i < 6; i++) {
+            const col = i % 3;
+            const row = Math.floor(i / 3);
+            reactants.push({
+              id: `h2o_${i}`,
+              type: 'H2O',
+              motion: 'solid',
+              rx: 0.26 + col * 0.24,
+              ry: 0.36 + row * 0.28,
+              atoms: [
+                { uid: `O_${i}`, el: 'O', dx: 0, dy: -5 },
+                { uid: `H_${i}_a`, el: 'H', dx: -14, dy: 8 },
+                { uid: `H_${i}_b`, el: 'H', dx: 14, dy: 8 }
+              ],
+              bonds: [[0, 1], [0, 2]]
+            });
+
+            // Right: Liquid water molecules at bottom half moving freely
+            products.push({
+              id: `h2o_l_${i}`,
+              type: 'H2O',
+              motion: 'liquid',
+              rx: 0.22 + (i % 3) * 0.28,
+              ry: 0.56 + Math.floor(i / 3) * 0.22,
+              atoms: [
+                { uid: `O_${i}`, el: 'O', dx: 0, dy: -5 },
+                { uid: `H_${i}_a`, el: 'H', dx: -14, dy: 8 },
+                { uid: `H_${i}_b`, el: 'H', dx: 14, dy: 8 }
+              ],
+              bonds: [[0, 1], [0, 2]]
+            });
+          }
+          return { reactants, products };
+        }
+      },
+      {
+        id: 1,
+        shortTab: '2. Dissolving',
+        category: 'Dissolving (Physical)',
+        title: '2. Dissolving Salt in Water',
+        equation: '2 NaCl(s) + 4 H₂O(l)  →  2 NaCl(aq) + 4 H₂O(l)',
+        actionWord: 'DISSOLVE',
+        gasBehavior: 'none',
+        atomTypes: ['Na', 'Cl', 'H', 'O'],
+        explanation:
+          'Dissolving: The NaCl crystal lattice breaks apart as water molecules surround the Na⁺ and Cl⁻ ions. Even though the salt "disappears" from view, all particles are still in the beaker (117.0 g + 72.0 g = 189.0 g).',
+        openScaleNote: 'Solute + Solvent mass = Solution mass',
+        // 2 NaCl (2 * 58.5 = 117g) + 4 H2O (4 * 18 = 72g) = 189.0 g
+        buildClusters: () => {
+          const reactants = [
+            // Solid NaCl crystal cluster at bottom-left
+            {
+              id: 'nacl_crystal',
+              type: 'NaCl(s)',
+              motion: 'solid',
+              rx: 0.28,
+              ry: 0.68,
+              atoms: [
+                { uid: 'Na_0', el: 'Na', dx: -14, dy: -13 },
+                { uid: 'Cl_0', el: 'Cl', dx: 14, dy: -13 },
+                { uid: 'Cl_1', el: 'Cl', dx: -14, dy: 13 },
+                { uid: 'Na_1', el: 'Na', dx: 14, dy: 13 }
+              ],
+              bonds: [[0, 1], [2, 3], [0, 2], [1, 3]]
+            }
+          ];
+
+          // 4 liquid water molecules around it
+          const wPos = [[0.62, 0.42], [0.76, 0.65], [0.34, 0.36], [0.64, 0.78]];
+          for (let i = 0; i < 4; i++) {
+            reactants.push({
+              id: `w_${i}`,
+              type: 'H2O',
+              motion: 'liquid',
+              rx: wPos[i][0],
+              ry: wPos[i][1],
+              atoms: [
+                { uid: `O_${i}`, el: 'O', dx: 0, dy: -5 },
+                { uid: `H_${i}_a`, el: 'H', dx: -13, dy: 8 },
+                { uid: `H_${i}_b`, el: 'H', dx: 13, dy: 8 }
+              ],
+              bonds: [[0, 1], [0, 2]]
+            });
+          }
+
+          // Products: Dispersed Na+ and Cl- ions mixed evenly among water molecules
+          const products = [
+            { id: 'na_aq_0', type: 'Na⁺', motion: 'liquid', rx: 0.24, ry: 0.48, atoms: [{ uid: 'Na_0', el: 'Na', dx: 0, dy: 0 }], bonds: [] },
+            { id: 'cl_aq_0', type: 'Cl⁻', motion: 'liquid', rx: 0.74, ry: 0.46, atoms: [{ uid: 'Cl_0', el: 'Cl', dx: 0, dy: 0 }], bonds: [] },
+            { id: 'na_aq_1', type: 'Na⁺', motion: 'liquid', rx: 0.68, ry: 0.76, atoms: [{ uid: 'Na_1', el: 'Na', dx: 0, dy: 0 }], bonds: [] },
+            { id: 'cl_aq_1', type: 'Cl⁻', motion: 'liquid', rx: 0.28, ry: 0.76, atoms: [{ uid: 'Cl_1', el: 'Cl', dx: 0, dy: 0 }], bonds: [] }
+          ];
+          const wpPos = [[0.48, 0.44], [0.50, 0.72], [0.26, 0.62], [0.75, 0.62]];
+          for (let i = 0; i < 4; i++) {
+            products.push({
+              id: `wp_${i}`,
+              type: 'H2O',
+              motion: 'liquid',
+              rx: wpPos[i][0],
+              ry: wpPos[i][1],
+              atoms: [
+                { uid: `O_${i}`, el: 'O', dx: 0, dy: -5 },
+                { uid: `H_${i}_a`, el: 'H', dx: -13, dy: 8 },
+                { uid: `H_${i}_b`, el: 'H', dx: 13, dy: 8 }
+              ],
+              bonds: [[0, 1], [0, 2]]
+            });
+          }
+
+          return { reactants, products };
+        }
+      },
+      {
+        id: 2,
+        shortTab: '3. Gas + Gas',
+        category: 'Gas Phase Reaction',
+        title: '3. Hydrogen + Chlorine → Hydrogen Chloride',
+        equation: '2 H₂(g) + 2 Cl₂(g)  →  4 HCl(g)',
+        actionWord: 'REACT',
+        gasBehavior: 'none',
+        atomTypes: ['H', 'Cl'],
+        explanation:
+          'Gas + Gas: Diatomic H₂ and Cl₂ gas molecules collide, break their covalent bonds, and recombine into 4 HCl gas molecules. Every H and Cl atom is accounted for (4.0 g + 142.0 g = 146.0 g).',
+        openScaleNote: 'Closed gas syringe/vessel — 146.0 g',
+        // 2 H2 (4g) + 2 Cl2 (142g) = 146.0 g
+        buildClusters: () => {
+          const reactants = [
+            { id: 'h2_0', type: 'H2', motion: 'gas', rx: 0.28, ry: 0.30, atoms: [{ uid: 'H_0', el: 'H', dx: -11, dy: 0 }, { uid: 'H_1', el: 'H', dx: 11, dy: 0 }], bonds: [[0, 1]] },
+            { id: 'h2_1', type: 'H2', motion: 'gas', rx: 0.32, ry: 0.68, atoms: [{ uid: 'H_2', el: 'H', dx: -11, dy: 0 }, { uid: 'H_3', el: 'H', dx: 11, dy: 0 }], bonds: [[0, 1]] },
+            { id: 'cl2_0', type: 'Cl2', motion: 'gas', rx: 0.68, ry: 0.32, atoms: [{ uid: 'Cl_0', el: 'Cl', dx: -14, dy: 0 }, { uid: 'Cl_1', el: 'Cl', dx: 14, dy: 0 }], bonds: [[0, 1]] },
+            { id: 'cl2_1', type: 'Cl2', motion: 'gas', rx: 0.66, ry: 0.70, atoms: [{ uid: 'Cl_2', el: 'Cl', dx: -14, dy: 0 }, { uid: 'Cl_3', el: 'Cl', dx: 14, dy: 0 }], bonds: [[0, 1]] }
+          ];
+
+          const pPos = [[0.28, 0.30], [0.70, 0.32], [0.30, 0.68], [0.70, 0.68]];
+          const products = [];
+          for (let i = 0; i < 4; i++) {
+            products.push({
+              id: `hcl_${i}`,
+              type: 'HCl',
+              motion: 'gas',
+              rx: pPos[i][0],
+              ry: pPos[i][1],
+              atoms: [
+                { uid: `H_${i}`, el: 'H', dx: -13, dy: 0 },
+                { uid: `Cl_${i}`, el: 'Cl', dx: 11, dy: 0 }
+              ],
+              bonds: [[0, 1]]
+            });
+          }
+          return { reactants, products };
+        }
+      },
+      {
+        id: 3,
+        shortTab: '4. Liquid + Liquid',
+        category: 'Precipitation Reaction',
+        title: '4. Silver Nitrate + Sodium Chloride (Solutions)',
+        equation: 'AgNO₃(aq) + NaCl(aq)  →  AgCl(s)↓ + NaNO₃(aq)',
+        actionWord: 'MIX & REACT',
+        gasBehavior: 'none',
+        atomTypes: ['Ag', 'N', 'O', 'Na', 'Cl'],
+        explanation:
+          'Liquid + Liquid: Mixing two clear solutions forms an insoluble white solid precipitate (AgCl) that sinks to the bottom. Because no gas is produced, the mass on the balance stays completely unchanged (228.5 g).',
+        openScaleNote: 'Precipitate forms inside beaker — 228.5 g',
+        // AgNO3 (108 + 14 + 48 = 170g) + NaCl (23 + 35.5 = 58.5g) = 228.5 g
+        buildClusters: () => {
+          const reactants = [
+            { id: 'ag_0', type: 'Ag⁺', motion: 'liquid', rx: 0.26, ry: 0.46, atoms: [{ uid: 'Ag_0', el: 'Ag', dx: 0, dy: 0 }], bonds: [] },
+            {
+              id: 'no3_0',
+              type: 'NO₃⁻',
+              motion: 'liquid',
+              rx: 0.46,
+              ry: 0.72,
+              atoms: [
+                { uid: 'N_0', el: 'N', dx: 0, dy: 0 },
+                { uid: 'O_0', el: 'O', dx: 0, dy: -18 },
+                { uid: 'O_1', el: 'O', dx: -16, dy: 11 },
+                { uid: 'O_2', el: 'O', dx: 16, dy: 11 }
+              ],
+              bonds: [[0, 1], [0, 2], [0, 3]]
+            },
+            { id: 'na_0', type: 'Na⁺', motion: 'liquid', rx: 0.72, ry: 0.48, atoms: [{ uid: 'Na_0', el: 'Na', dx: 0, dy: 0 }], bonds: [] },
+            { id: 'cl_0', type: 'Cl⁻', motion: 'liquid', rx: 0.74, ry: 0.74, atoms: [{ uid: 'Cl_0', el: 'Cl', dx: 0, dy: 0 }], bonds: [] }
+          ];
+
+          const products = [
+            // Solid AgCl precipitate settled at bottom
+            {
+              id: 'agcl_s',
+              type: 'AgCl(s) Precipitate',
+              motion: 'solid',
+              rx: 0.34,
+              ry: 0.78,
+              atoms: [
+                { uid: 'Ag_0', el: 'Ag', dx: -15, dy: 0 },
+                { uid: 'Cl_0', el: 'Cl', dx: 15, dy: 0 }
+              ],
+              bonds: [[0, 1]]
+            },
+            { id: 'na_p', type: 'Na⁺(aq)', motion: 'liquid', rx: 0.32, ry: 0.45, atoms: [{ uid: 'Na_0', el: 'Na', dx: 0, dy: 0 }], bonds: [] },
+            {
+              id: 'no3_p',
+              type: 'NO₃⁻(aq)',
+              motion: 'liquid',
+              rx: 0.68,
+              ry: 0.54,
+              atoms: [
+                { uid: 'N_0', el: 'N', dx: 0, dy: 0 },
+                { uid: 'O_0', el: 'O', dx: 0, dy: -18 },
+                { uid: 'O_1', el: 'O', dx: -16, dy: 11 },
+                { uid: 'O_2', el: 'O', dx: 16, dy: 11 }
+              ],
+              bonds: [[0, 1], [0, 2], [0, 3]]
+            }
+          ];
+
+          return { reactants, products };
+        }
+      },
+      {
+        id: 4,
+        shortTab: '5. Mass ↓ (Gas Out)',
+        category: 'Gas Escapes (Open System)',
+        title: '5. Marble Chips + Hydrochloric Acid (Gas Released)',
+        equation: 'CaCO₃(s) + 2 HCl(aq)  →  CaCl₂(aq) + H₂O(l) + CO₂(g)↑',
+        actionWord: 'REACT',
+        gasBehavior: 'escape',
+        atomTypes: ['Ca', 'C', 'O', 'H', 'Cl'],
+        explanation:
+          'Apparent Mass Decrease: Carbon dioxide gas (CO₂, 44.0 g) is produced. In an OPEN flask, CO₂ escapes into the room so the balance drops from 173.0 g to 129.0 g—even though all atoms still exist! Put the lid on to trap the gas.',
+        openScaleNote: 'Open flask: 44.0 g CO₂ gas escaped!',
+        // CaCO3 (40+12+48 = 100g) + 2 HCl (2 * 36.5 = 73g) = 173.0 g
+        // Products: CaCl2 (111g) + H2O (18g) = 129.0 g remaining in flask + CO2 (44g) escaped!
+        buildClusters: () => {
+          const reactants = [
+            {
+              id: 'caco3',
+              type: 'CaCO₃(s)',
+              motion: 'solid',
+              rx: 0.30,
+              ry: 0.72,
+              atoms: [
+                { uid: 'Ca_0', el: 'Ca', dx: -24, dy: 0 },
+                { uid: 'C_0', el: 'C', dx: 4, dy: 0 },
+                { uid: 'O_0', el: 'O', dx: 4, dy: -18 },
+                { uid: 'O_1', el: 'O', dx: 22, dy: -8 },
+                { uid: 'O_2', el: 'O', dx: 22, dy: 12 }
+              ],
+              bonds: [[0, 1], [1, 2], [1, 3], [1, 4]]
+            },
+            {
+              id: 'hcl_0',
+              type: 'HCl',
+              motion: 'liquid',
+              rx: 0.68,
+              ry: 0.45,
+              atoms: [{ uid: 'H_0', el: 'H', dx: -13, dy: 0 }, { uid: 'Cl_0', el: 'Cl', dx: 11, dy: 0 }],
+              bonds: [[0, 1]]
+            },
+            {
+              id: 'hcl_1',
+              type: 'HCl',
+              motion: 'liquid',
+              rx: 0.70,
+              ry: 0.72,
+              atoms: [{ uid: 'H_1', el: 'H', dx: -13, dy: 0 }, { uid: 'Cl_1', el: 'Cl', dx: 11, dy: 0 }],
+              bonds: [[0, 1]]
+            }
+          ];
+
+          const products = [
+            {
+              id: 'cacl2',
+              type: 'CaCl₂(aq)',
+              motion: 'liquid',
+              rx: 0.34,
+              ry: 0.68,
+              atoms: [
+                { uid: 'Ca_0', el: 'Ca', dx: 0, dy: 0 },
+                { uid: 'Cl_0', el: 'Cl', dx: -23, dy: 0 },
+                { uid: 'Cl_1', el: 'Cl', dx: 23, dy: 0 }
+              ],
+              bonds: [[0, 1], [0, 2]]
+            },
+            {
+              id: 'h2o_p',
+              type: 'H₂O(l)',
+              motion: 'liquid',
+              rx: 0.72,
+              ry: 0.68,
+              atoms: [
+                { uid: 'O_2', el: 'O', dx: 0, dy: -5 },
+                { uid: 'H_0', el: 'H', dx: -13, dy: 8 },
+                { uid: 'H_1', el: 'H', dx: 13, dy: 8 }
+              ],
+              bonds: [[0, 1], [0, 2]]
+            },
+            {
+              id: 'co2_gas',
+              type: 'CO₂(g)',
+              motion: 'gas',
+              isEscapingGas: true,
+              rx: 0.50,
+              ry: 0.24,
+              atoms: [
+                { uid: 'C_0', el: 'C', dx: 0, dy: 0 },
+                { uid: 'O_0', el: 'O', dx: -21, dy: 0 },
+                { uid: 'O_1', el: 'O', dx: 21, dy: 0 }
+              ],
+              bonds: [[0, 1], [0, 2]]
+            }
+          ];
+
+          return { reactants, products };
+        }
+      },
+      {
+        id: 5,
+        shortTab: '6. Mass ↑ (Gas In)',
+        category: 'Gas Added from Air',
+        title: '6. Burning Magnesium in Air (Oxygen Added)',
+        equation: '2 Mg(s) + O₂(g)  →  2 MgO(s)',
+        actionWord: 'BURN',
+        gasBehavior: 'added',
+        atomTypes: ['Mg', 'O'],
+        explanation:
+          'Apparent Mass Increase: Magnesium (48.0 g) reacts with invisible oxygen gas (O₂, 32.0 g) from the surrounding air. Because the oxygen atoms become bonded into the solid magnesium oxide, the crucible balance rises from 48.0 g to 80.0 g!',
+        openScaleNote: 'Open crucible: +32.0 g O₂ gained from air!',
+        // 2 Mg (48g) on crucible + O2 (32g) from air -> 2 MgO (80g)
+        buildClusters: () => {
+          const reactants = [
+            {
+              id: 'mg_solid',
+              type: '2 Mg(s)',
+              motion: 'solid',
+              rx: 0.34,
+              ry: 0.74,
+              atoms: [
+                { uid: 'Mg_0', el: 'Mg', dx: -16, dy: 0 },
+                { uid: 'Mg_1', el: 'Mg', dx: 16, dy: 0 }
+              ],
+              bonds: [[0, 1]]
+            },
+            {
+              id: 'o2_air',
+              type: 'O₂(g) from Air',
+              motion: 'gas',
+              isFromAir: true,
+              rx: 0.64,
+              ry: 0.22,
+              atoms: [
+                { uid: 'O_0', el: 'O', dx: -13, dy: 0 },
+                { uid: 'O_1', el: 'O', dx: 13, dy: 0 }
+              ],
+              bonds: [[0, 1]]
+            }
+          ];
+
+          const products = [
+            {
+              id: 'mgo_0',
+              type: 'MgO(s)',
+              motion: 'solid',
+              rx: 0.32,
+              ry: 0.74,
+              atoms: [
+                { uid: 'Mg_0', el: 'Mg', dx: -14, dy: 0 },
+                { uid: 'O_0', el: 'O', dx: 14, dy: 0 }
+              ],
+              bonds: [[0, 1]]
+            },
+            {
+              id: 'mgo_1',
+              type: 'MgO(s)',
+              motion: 'solid',
+              rx: 0.68,
+              ry: 0.74,
+              atoms: [
+                { uid: 'Mg_1', el: 'Mg', dx: -14, dy: 0 },
+                { uid: 'O_1', el: 'O', dx: 14, dy: 0 }
+              ],
+              bonds: [[0, 1]]
+            }
+          ];
+
+          return { reactants, products };
+        }
+      }
+    ];
+
+    // ============================================================================
+    // APPLICATION STATE
+    // ============================================================================
+    const state = {
+      scenarioIdx: 0,
+      isClosedSystem: false, // false = Open Container (shows apparent mass change), true = Closed System (lid on)
+      phase: 'before',       // 'before' | 'animating' | 'after'
+      animProgress: 0,       // 0.0 -> 1.0
+      time: 0,
+      reactants: [],
+      products: []
+    };
+
+    const canvas = document.getElementById('massCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+
+    let canvasW = 1000;
+    let canvasH = 420;
+    let boxes = {};
+
+    function resizeCanvas() {
+      const rect = canvasWrapper.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1.5, 2);
+      canvasW = Math.max(320, rect.width);
+      canvasH = Math.max(260, rect.height);
+
+      canvas.width = Math.floor(canvasW * dpr);
+      canvas.height = Math.floor(canvasH * dpr);
+      canvas.style.width = `${canvasW}px`;
+      canvas.style.height = `${canvasH}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const padX = Math.max(16, canvasW * 0.03);
+      const padTop = 44;
+      const padBot = 26;
+      const centerGap = Math.max(115, canvasW * 0.14);
+      const boxW = (canvasW - padX * 2 - centerGap) / 2;
+      const boxH = canvasH - padTop - padBot;
+
+      boxes = {
+        left:  { x: padX, y: padTop, w: boxW, h: boxH },
+        right: { x: padX + boxW + centerGap, y: padTop, w: boxW, h: boxH }
+      };
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // ============================================================================
+    // MASS & ATOM CALCULATION HELPERS
+    // ============================================================================
+    function computeMasses() {
+      const sc = SCENARIOS[state.scenarioIdx];
+      let totalLeftMass = 0;
+      let airGasMass = 0;
+
+      state.reactants.forEach(cl => {
+        let m = 0;
+        cl.atoms.forEach(a => { m += ATOMS[a.el].ar; });
+        totalLeftMass += m;
+        if (cl.isFromAir) airGasMass += m;
+      });
+
+      let totalRightMass = 0;
+      let escapedGasMass = 0;
+
+      state.products.forEach(cl => {
+        let m = 0;
+        cl.atoms.forEach(a => { m += ATOMS[a.el].ar; });
+        totalRightMass += m;
+        if (cl.isEscapingGas) escapedGasMass += m;
+      });
+
+      // Apparent scale readings when system is OPEN vs CLOSED
+      const scaleLeft = (!state.isClosedSystem && sc.gasBehavior === 'added')
+        ? totalLeftMass - airGasMass
+        : totalLeftMass;
+
+      const scaleRight = (!state.isClosedSystem && sc.gasBehavior === 'escape')
+        ? totalRightMass - escapedGasMass
+        : totalRightMass;
+
+      return { totalLeftMass, totalRightMass, scaleLeft, scaleRight, airGasMass, escapedGasMass };
+    }
+
+    function updateReadouts() {
+      const sc = SCENARIOS[state.scenarioIdx];
+      const { scaleLeft, scaleRight } = computeMasses();
+
+      document.getElementById('leftMassReadout').textContent = scaleLeft.toFixed(1);
+
+      const leftSub = document.getElementById('leftScaleSub');
+      if (!state.isClosedSystem && sc.gasBehavior === 'added') {
+        leftSub.textContent = 'Crucible only (O₂ is in air above)';
+      } else if (state.isClosedSystem && sc.gasBehavior === 'added') {
+        leftSub.textContent = 'Sealed flask (includes O₂ gas)';
+      } else {
+        leftSub.textContent = 'Total mass of starting particles';
+      }
+
+      const rightLcd = document.getElementById('rightLcdBox');
+      const rightReadout = document.getElementById('rightMassReadout');
+      const rightSub = document.getElementById('rightScaleSub');
+
+      if (state.phase === 'before') {
+        rightReadout.textContent = '---.-';
+        rightSub.textContent = `Click "${sc.actionWord}" arrow to observe`;
+        rightLcd.className = 'scale-lcd rounded-lg px-3 py-1 font-mono-tech text-xl sm:text-2xl font-black tracking-wider opacity-60';
+      } else if (state.phase === 'animating') {
+        rightReadout.textContent = '....';
+        rightSub.textContent = 'Particles rearranging...';
+        rightLcd.className = 'scale-lcd rounded-lg px-3 py-1 font-mono-tech text-xl sm:text-2xl font-black tracking-wider';
+      } else {
+        rightReadout.textContent = scaleRight.toFixed(1);
+        const apparentDiff = Math.abs(scaleRight - scaleLeft) > 0.05;
+        if (apparentDiff) {
+          rightLcd.className = 'scale-lcd-warn rounded-lg px-3 py-1 font-mono-tech text-xl sm:text-2xl font-black tracking-wider';
+          rightSub.textContent = sc.openScaleNote;
+        } else {
+          rightLcd.className = 'scale-lcd rounded-lg px-3 py-1 font-mono-tech text-xl sm:text-2xl font-black tracking-wider';
+          rightSub.textContent = state.isClosedSystem
+            ? 'Closed system: All particles trapped!'
+            : 'Exact match — Mass conserved!';
+        }
+      }
+    }
+
+    // ============================================================================
+    // SCENARIO LOADING & UI SETUP
+    // ============================================================================
+    function loadScenario(idx) {
+      state.scenarioIdx = idx;
+      state.phase = 'before';
+      state.animProgress = 0;
+
+      const sc = SCENARIOS[idx];
+      const built = sc.buildClusters();
+      state.reactants = built.reactants;
+      state.products = built.products;
+
+      // Update Header Tabs
+      document.querySelectorAll('.sc-tab').forEach((btn, i) => {
+        if (i === idx) {
+          btn.className = 'sc-tab px-2 py-1.5 rounded-xl text-xs font-extrabold bg-sky-600 text-white shadow-sm cursor-pointer transition text-center truncate';
+        } else {
+          btn.className = 'sc-tab px-2 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 cursor-pointer transition text-center truncate';
+        }
+      });
+
+      document.getElementById('scCategoryBadge').textContent = sc.category;
+      document.getElementById('scTitle').textContent = sc.title;
+      document.getElementById('scEquation').textContent = sc.equation;
+      document.getElementById('scExplanation').textContent = sc.explanation;
+      document.getElementById('reactBtnLabel').textContent = sc.actionWord;
+
+      const reactBtn = document.getElementById('btnReactArrow');
+      reactBtn.classList.add('btn-react-ready');
+      reactBtn.disabled = false;
+      reactBtn.classList.remove('opacity-50');
+
+      document.getElementById('stageStatusText').textContent = `Step 1: Click the ${sc.actionWord} arrow in the middle`;
+
+      // Atom Tally Pill (Proves identical atom count before and after)
+      const counts = {};
+      state.reactants.forEach(cl => cl.atoms.forEach(a => { counts[a.el] = (counts[a.el] || 0) + 1; }));
+      const tallyHtml = Object.entries(counts)
+        .map(([el, num]) => `<span class="px-2 py-0.5 rounded bg-white border border-emerald-200 font-mono-tech">${num} × ${el}</span>`)
+        .join('');
+      document.getElementById('atomTallyPill').innerHTML = `<span class="text-emerald-800">Atoms Both Sides:</span> ${tallyHtml}`;
+
+      // Atom Legend with Relative Atomic Mass (Ar)
+      const legendEl = document.getElementById('atomLegend');
+      legendEl.innerHTML = sc.atomTypes.map(el => {
+        const a = ATOMS[el];
+        return `
+          <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+            <span class="w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] font-black border-2" style="background:${a.fill}; border-color:${a.stroke}; color:${a.text};">${a.symbol}</span>
+            <span>${a.name} <span class="font-mono-tech text-slate-500">(Aᵣ=${a.ar})</span></span>
+          </div>
+        `;
+      }).join('');
+
+      updateReadouts();
+    }
+
+    function triggerReaction() {
+      if (state.phase !== 'before') return;
+      state.phase = 'animating';
+      state.animProgress = 0;
+
+      const reactBtn = document.getElementById('btnReactArrow');
+      reactBtn.classList.remove('btn-react-ready');
+      reactBtn.disabled = true;
+      reactBtn.classList.add('opacity-50');
+
+      document.getElementById('stageStatusText').textContent = 'Step 2: Watch atoms rearrange without being created or destroyed...';
+      updateReadouts();
+    }
+
+    // ============================================================================
+    // CANVAS RENDERING ENGINE (LEFT BOX, ANIMATED PARTICLE RECOMBINATION, RIGHT BOX)
+    // ============================================================================
+    function drawContainerBox(box, title, subtitle, isActive, side) {
+      const sc = SCENARIOS[state.scenarioIdx];
+
+      ctx.save();
+      // Box background
+      ctx.fillStyle = isActive ? '#ffffff' : '#f8fafc';
+      ctx.strokeStyle = isActive ? '#0284c7' : '#94a3b8';
+      ctx.lineWidth = isActive ? 2.5 : 2;
+      ctx.beginPath();
+      ctx.roundRect(box.x, box.y, box.w, box.h, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      // Subtle liquid water level tint for dissolving / liquid / acid scenarios
+      if (sc.id === 1 || sc.id === 3 || sc.id === 4) {
+        const waterY = box.y + box.h * 0.36;
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.32)';
+        ctx.beginPath();
+        ctx.roundRect(box.x + 2, waterY, box.w - 4, box.y + box.h - waterY - 2, [0, 0, 14, 14]);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(box.x + 4, waterY);
+        ctx.lineTo(box.x + box.w - 4, waterY);
+        ctx.stroke();
+      }
+
+      // Draw Lid or Open Top Indicator
+      if (state.isClosedSystem) {
+        // Sealed Rubber Bung / Lid across top
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.roundRect(box.x + 14, box.y - 7, box.w - 28, 12, 5);
+        ctx.fill();
+
+        ctx.fillStyle = '#e0f2fe';
+        ctx.font = '800 9.5px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('SEALED CLOSED SYSTEM (LID ON)', box.x + box.w / 2, box.y + 1);
+      } else if ((side === 'left' && sc.gasBehavior === 'added') || (side === 'right' && sc.gasBehavior === 'escape')) {
+        // Open top gap indicator for gas entering/leaving
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(box.x + box.w * 0.25, box.y - 3, box.w * 0.5, 6);
+
+        ctx.fillStyle = '#b45309';
+        ctx.font = '800 10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        const openTxt = side === 'left' ? 'OPEN TOP (O₂ in surrounding air)' : 'OPEN TOP (CO₂ gas escapes ↑)';
+        ctx.fillText(openTxt, box.x + box.w / 2, box.y + 14);
+      }
+
+      // Top Header Title above Box
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 13px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(title, box.x + 4, box.y - 16);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = '700 11.5px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(subtitle, box.x + box.w - 4, box.y - 16);
+
+      ctx.restore();
+    }
+
+    function getClusterWorldPositions(clusters, box, side) {
+      const sc = SCENARIOS[state.scenarioIdx];
+      const atomPosMap = new Map();
+      const clusterCenters = [];
+
+      clusters.forEach((cl, idx) => {
+        let cx = box.x + cl.rx * box.w;
+        let cy = box.y + cl.ry * box.h;
+
+        // Motion dynamics depending on solid, liquid, or gas
+        if (cl.motion === 'solid') {
+          cx += Math.sin(state.time * 9 + idx * 1.4) * 1.6;
+          cy += Math.cos(state.time * 10 + idx * 1.7) * 1.4;
+        } else if (cl.motion === 'liquid') {
+          cx += Math.sin(state.time * 1.8 + idx * 2.1) * 14;
+          cy += Math.cos(state.time * 2.1 + idx * 1.7) * 9;
+        } else if (cl.motion === 'gas') {
+          // If escaping gas in an OPEN system on the right, float up and out of the top of the box!
+          if (side === 'right' && cl.isEscapingGas && !state.isClosedSystem && state.phase === 'after') {
+            const floatCycle = (state.time * 0.45) % 1;
+            cy = box.y + 24 - floatCycle * 44;
+            cx = box.x + box.w * 0.5 + Math.sin(state.time * 3) * 28;
+          } else {
+            cx += Math.sin(state.time * 3.1 + idx * 2.3) * 26;
+            cy += Math.cos(state.time * 2.7 + idx * 1.9) * 18;
+          }
+        }
+
+        clusterCenters.push({ cl, cx, cy });
+
+        cl.atoms.forEach(a => {
+          atomPosMap.set(a.uid, {
+            uid: a.uid,
+            el: a.el,
+            x: cx + a.dx,
+            y: cy + a.dy
+          });
+        });
+      });
+
+      return { atomPosMap, clusterCenters };
+    }
+
+    function drawSphere(x, y, el) {
+      const st = ATOMS[el];
+      ctx.save();
+      ctx.fillStyle = st.fill;
+      ctx.strokeStyle = st.stroke;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, st.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Gloss highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.42)';
+      ctx.beginPath();
+      ctx.arc(x - st.r * 0.3, y - st.r * 0.3, st.r * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Element Symbol
+      ctx.fillStyle = st.text;
+      ctx.font = `800 ${Math.round(st.r * 0.9)}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(st.symbol, x, y + 0.5);
+      ctx.restore();
+    }
+
+    function drawClusterBondsAndLabels(clusters, atomPosMap, clusterCenters, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Draw covalent/ionic bonds inside each cluster
+      clusters.forEach(cl => {
+        cl.bonds.forEach(([i1, i2]) => {
+          const p1 = atomPosMap.get(cl.atoms[i1].uid);
+          const p2 = atomPosMap.get(cl.atoms[i2].uid);
+          if (!p1 || !p2) return;
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 3.5;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        });
+      });
+
+      // Draw subtle species labels below clusters
+      clusterCenters.forEach(({ cl, cx, cy }) => {
+        let maxDy = 14;
+        cl.atoms.forEach(a => { if (a.dy + 16 > maxDy) maxDy = a.dy + 16; });
+        ctx.fillStyle = '#334155';
+        ctx.font = '700 10.5px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(cl.type, cx, cy + maxDy + 6);
+      });
+
+      ctx.restore();
+    }
+
+    // Smooth cubic ease-in-out
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function renderFrame(dt) {
+      state.time += dt;
+
+      if (state.phase === 'animating') {
+        state.animProgress += dt * 0.55; // ~1.8 second smooth recombination
+        if (state.animProgress >= 1) {
+          state.animProgress = 1;
+          state.phase = 'after';
+          document.getElementById('stageStatusText').textContent = 'Step 3: Compare both balances & toggle Closed/Open System!';
+          updateReadouts();
+        }
+      }
+
+      ctx.clearRect(0, 0, canvasW, canvasH);
+
+      // Draw Left (Reactants) & Right (Products) Containers
+      drawContainerBox(
+        boxes.left,
+        'BEFORE (Reactants)',
+        'Starting Particles',
+        state.phase === 'before',
+        'left'
+      );
+
+      drawContainerBox(
+        boxes.right,
+        'AFTER (Products)',
+        state.phase === 'after' ? 'Rearranged Particles' : 'Empty before reaction',
+        state.phase === 'after',
+        'right'
+      );
+
+      const leftData = getClusterWorldPositions(state.reactants, boxes.left, 'left');
+      const rightData = getClusterWorldPositions(state.products, boxes.right, 'right');
+
+      if (state.phase === 'before') {
+        // Draw Reactants in Left Box
+        drawClusterBondsAndLabels(state.reactants, leftData.atomPosMap, leftData.clusterCenters, 1);
+        leftData.atomPosMap.forEach(pos => drawSphere(pos.x, pos.y, pos.el));
+      } else if (state.phase === 'animating') {
+        // Keep faint ghost imprint of reactants on left so students can compare
+        drawClusterBondsAndLabels(state.reactants, leftData.atomPosMap, leftData.clusterCenters, 0.22);
+        ctx.save();
+        ctx.globalAlpha = 0.25;
+        leftData.atomPosMap.forEach(pos => drawSphere(pos.x, pos.y, pos.el));
+        ctx.restore();
+
+        // Fade out old bonds in first 35%, fade in new product bonds in final 35%
+        const t = easeInOutCubic(state.animProgress);
+        if (state.animProgress > 0.65) {
+          const bondAlpha = (state.animProgress - 0.65) / 0.35;
+          drawClusterBondsAndLabels(state.products, rightData.atomPosMap, rightData.clusterCenters, bondAlpha);
+        }
+
+        // Interpolate every single atom from its exact reactant position to its new product position!
+        leftData.atomPosMap.forEach((startPos, uid) => {
+          const endPos = rightData.atomPosMap.get(uid) || startPos;
+          // Subtle arc lift during travel
+          const arcY = -Math.sin(t * Math.PI) * 24;
+          const curX = startPos.x + (endPos.x - startPos.x) * t;
+          const curY = startPos.y + (endPos.y - startPos.y) * t + arcY;
+          drawSphere(curX, curY, startPos.el);
+        });
+      } else {
+        // Phase === 'after': Ghost on left, full rearranged products on right
+        drawClusterBondsAndLabels(state.reactants, leftData.atomPosMap, leftData.clusterCenters, 0.2);
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        leftData.atomPosMap.forEach(pos => drawSphere(pos.x, pos.y, pos.el));
+        ctx.restore();
+
+        drawClusterBondsAndLabels(state.products, rightData.atomPosMap, rightData.clusterCenters, 1);
+        rightData.atomPosMap.forEach(pos => drawSphere(pos.x, pos.y, pos.el));
+      }
+    }
+
+    // ============================================================================
+    // ANIMATION LOOP & EVENT LISTENERS
+    // ============================================================================
+    let lastTime = 0;
+    function animate(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+      lastTime = timestamp;
+
+      renderFrame(dt);
+      requestAnimationFrame(animate);
+    }
+
+    function buildScenarioTabs() {
+      const container = document.getElementById('scenarioTabs');
+      container.innerHTML = '';
+      SCENARIOS.forEach((sc, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sc-tab px-2 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 cursor-pointer transition text-center truncate';
+        btn.textContent = sc.shortTab;
+        btn.title = sc.title;
+        btn.addEventListener('click', () => loadScenario(idx));
+        container.appendChild(btn);
+      });
+    }
+
+    function toggleSystemLid() {
+      state.isClosedSystem = !state.isClosedSystem;
+      const label = state.isClosedSystem ? 'Closed (Lid On)' : 'Open Container';
+      document.getElementById('sysLabelDesktop').textContent = label;
+      document.getElementById('sysLabelMobile').textContent = label;
+      document.getElementById('sysIcon').textContent = state.isClosedSystem ? '🔒' : '🔓';
+      updateReadouts();
+    }
+
+    document.getElementById('btnToggleSystemDesktop').addEventListener('click', toggleSystemLid);
+    document.getElementById('btnToggleSystem').addEventListener('click', toggleSystemLid);
+    document.getElementById('btnReactArrow').addEventListener('click', triggerReaction);
+    document.getElementById('btnResetSim').addEventListener('click', () => loadScenario(state.scenarioIdx));
+
+    window.addEventListener('load', () => {
+      buildScenarioTabs();
+      resizeCanvas();
+      loadScenario(0);
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
