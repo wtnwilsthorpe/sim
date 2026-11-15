@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Properties of Alkanes — GCSE Chemistry Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #f8fafc;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    }
+    .glass-card-subtle {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .modal-backdrop {
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(8px);
+    }
+    /* Custom Range Slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #38bdf8 0%, #facc15 50%, #f97316 100%);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      margin-top: -6px;
+      background-color: #ffffff;
+      border: 3px solid #0284c7;
+      height: 20px;
+      width: 20px;
+      border-radius: 9999px;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+      transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    input[type="range"].temp-slider::-webkit-slider-runnable-track {
+      background: linear-gradient(90deg, #60a5fa 0%, #34d399 35%, #fbbf24 70%, #ef4444 100%);
+    }
+    input[type="range"].temp-slider::-webkit-slider-thumb {
+      border-color: #f97316;
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col p-2 sm:p-4 gap-3 overflow-x-hidden xl:h-screen xl:overflow-hidden">
+
+  <!-- TOP HEADER & CARBON CHAIN LENGTH SLIDER -->
+  <header class="glass-panel rounded-2xl px-4 py-3 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+    
+    <!-- Brand & Title -->
+    <div class="flex items-center justify-between lg:justify-start gap-3 shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 via-indigo-600 to-amber-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 15l4-6 4 6 4-6 4 6" />
+            <circle cx="4" cy="15" r="1.5" fill="currentColor" />
+            <circle cx="8" cy="9" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="15" r="1.5" fill="currentColor" />
+            <circle cx="16" cy="9" r="1.5" fill="currentColor" />
+            <circle cx="20" cy="15" r="1.5" fill="currentColor" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm sm:text-base font-extrabold tracking-tight text-white">Properties of Alkanes</span>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-500/15 text-sky-300 border border-sky-400/30">
+              GCSE Chemistry
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden sm:block">General Formula: <span class="font-mono-tech text-sky-300 font-bold">CₙH₂ₙ₊₂</span> • Saturated Hydrocarbons</p>
+        </div>
+      </div>
+
+      <!-- Mobile Quick Controls -->
+      <div class="flex lg:hidden items-center gap-2">
+        <button id="btnOpenQuizMobile" class="bg-gradient-to-r from-sky-500 to-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-lg cursor-pointer">
+          Quiz <span class="quiz-badge-text">0/5</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- CENTER: CARBON ATOM SLIDER (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 80, 100) -->
+    <div class="flex-1 max-w-3xl bg-slate-900/80 border border-slate-700/80 rounded-xl px-3.5 py-2 flex flex-col gap-1">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-bold text-slate-200 flex items-center gap-1.5">
+          <span>Chain Length (Carbon Atoms):</span>
+          <span id="sliderCarbonBadge" class="font-mono-tech text-sm font-extrabold text-amber-300 bg-amber-500/15 border border-amber-400/30 px-2 py-0.5 rounded-md">
+            4 Carbons (Butane)
+          </span>
+        </span>
+        <div class="hidden sm:flex items-center gap-1">
+          <button id="btnStepDown" class="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center border border-slate-600 cursor-pointer" title="Shorter Chain">−</button>
+          <button id="btnStepUp" class="w-6 h-6 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center border border-slate-600 cursor-pointer" title="Longer Chain">+</button>
+        </div>
+      </div>
+
+      <input id="carbonSlider" type="range" min="0" max="15" step="1" value="3" class="w-full my-1" aria-label="Number of carbon atoms">
+
+      <!-- Tick Labels for Exact Scale -->
+      <div id="sliderTicks" class="flex justify-between text-[9px] sm:text-[10px] font-mono-tech text-slate-400 select-none px-0.5">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- RIGHT ACTION CONTROLS -->
+    <div class="flex items-center gap-2 shrink-0 flex-wrap">
+      <!-- Intermolecular Forces Toggle -->
+      <button id="btnToggleIMF" class="bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer shadow-md shadow-sky-500/10">
+        <span id="imfDot" class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+        <span>Intermolecular Forces: <strong id="imfStateLabel" class="text-white">ON</strong></span>
+      </button>
+
+      <!-- Pause / Play -->
+      <button id="btnPlayPause" class="glass-card-subtle hover:bg-slate-700/70 text-slate-200 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer">
+        <span id="playPauseIcon">⏸</span>
+        <span class="hidden sm:inline" id="playPauseLabel">Pause</span>
+      </button>
+
+      <!-- GCSE Quiz Button (Desktop) -->
+      <button id="btnOpenQuiz" class="hidden lg:flex bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/25 items-center gap-1.5 transition cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>GCSE Quiz</span>
+        <span class="quiz-badge-text ml-1 bg-white/20 px-1.5 py-0.2 rounded-md text-xs font-mono-tech">0/5</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE GRID -->
+  <main class="max-w-[1680px] w-full mx-auto flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch">
+
+    <!-- LEFT / MAIN FRAME: HYDROCARBON CHAINS & INTERMOLECULAR FORCES CANVAS -->
+    <div class="xl:col-span-8 glass-panel rounded-2xl p-3 flex flex-col gap-2.5 relative overflow-hidden min-h-[430px] xl:min-h-0">
+      
+      <!-- Top Bar Inside Canvas Panel: Temperature Control & Legend -->
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-2 shrink-0">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+            <span class="w-3.5 h-3.5 rounded-full bg-slate-900 border-2 border-amber-400 inline-block"></span>
+            <span>Carbon (C)</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+            <span class="w-2.5 h-2.5 rounded-full bg-white inline-block"></span>
+            <span>Hydrogen (H)</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+            <span class="w-5 h-0.5 bg-slate-400 inline-block"></span>
+            <span>Covalent Bond</span>
+          </div>
+          <div id="legendImfItem" class="flex items-center gap-1.5 text-xs font-semibold text-sky-300 transition-opacity">
+            <span class="w-6 border-t-2 border-dashed border-sky-400 inline-block"></span>
+            <span>Intermolecular Force</span>
+          </div>
+        </div>
+
+        <!-- Interactive Temperature Slider to Test Boiling / Melting -->
+        <div class="flex items-center gap-2.5">
+          <span class="text-xs font-bold text-slate-300">Temp:</span>
+          <input id="tempSlider" type="range" min="-200" max="750" step="5" value="20" class="temp-slider w-28 sm:w-36" aria-label="Sample Temperature">
+          <span id="tempReadout" class="font-mono-tech text-xs font-extrabold text-emerald-300 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700 w-16 text-center">
+            20°C
+          </span>
+          <button id="btnResetTemp" class="text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded-md border border-slate-700 cursor-pointer transition">
+            Room (20°C)
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Wrapper -->
+      <div id="canvasWrapper" class="relative flex-1 min-h-[340px] xl:min-h-0 w-full rounded-xl overflow-hidden bg-slate-950/80 border border-slate-800/80">
+        <!-- State & Intermolecular Force Banner Overlay -->
+        <div class="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-2 pointer-events-none">
+          <div id="statePill" class="px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-400/40 backdrop-blur-md">
+            State at 20°C: GAS
+          </div>
+          <div id="imfStrengthPill" class="px-3 py-1 rounded-lg text-xs font-bold bg-slate-900/85 text-slate-200 border border-slate-700/80 backdrop-blur-md">
+            Intermolecular Forces: Weak (Few contact points)
+          </div>
+        </div>
+
+        <canvas id="alkaneCanvas" class="w-full h-full block"></canvas>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE PANEL: ALKANE NAME, FORMULA & PROPERTY SCALES -->
+    <div class="xl:col-span-4 flex flex-col gap-3 min-h-0 overflow-y-auto pr-0.5">
+
+      <!-- ALKANE IDENTITY CARD -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-700/60 flex flex-col gap-3 shrink-0">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Selected Alkane</span>
+            <h1 id="propName" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">Butane</h1>
+            <p id="propSubInfo" class="text-xs sm:text-sm text-slate-300 font-mono-tech mt-0.5">
+              4 Carbon Atoms &bull; 10 Hydrogen Atoms
+            </p>
+          </div>
+          <div class="bg-slate-900/90 border border-sky-400/30 rounded-xl px-3 py-2 text-right shrink-0">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 block font-bold">Formula</span>
+            <span id="propFormula" class="font-mono-tech text-lg sm:text-xl font-extrabold text-amber-300">C₄H₁₀</span>
+          </div>
+        </div>
+
+        <!-- GCSE Exam Explanation Box -->
+        <div class="glass-card-subtle rounded-xl p-3 border-l-4 border-l-sky-400">
+          <div class="text-xs font-bold text-sky-300 uppercase tracking-wider mb-1">GCSE Structure &amp; Bonding Link</div>
+          <p id="propExplanation" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            Short hydrocarbon chains have <strong class="text-white">weak intermolecular forces</strong> between molecules. Only a small amount of thermal energy is needed to overcome these forces, so butane boils below room temperature (−1°C).
+          </p>
+        </div>
+      </div>
+
+      <!-- PROPERTY SCALES CARD (BOILING POINT, VISCOSITY, FLAMMABILITY, VOLATILITY) -->
+      <div class="glass-panel rounded-2xl p-4 border border-slate-700/60 flex flex-col gap-3.5 flex-1">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-200">Physical Property Scales</span>
+          <span class="text-[11px] text-slate-400">Relative to C₁–C₁₀₀</span>
+        </div>
+
+        <!-- 1. BOILING POINT SCALE -->
+        <div class="glass-card-subtle rounded-xl p-3 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+              <span class="text-rose-400">🌡️</span> Boiling Point
+            </span>
+            <span id="bpValueText" class="font-mono-tech text-xs sm:text-sm font-extrabold text-rose-300">−1°C (Very Low)</span>
+          </div>
+          <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700/80">
+            <div id="bpBar" class="h-full rounded-full bg-gradient-to-r from-sky-400 via-amber-400 to-rose-500 transition-all duration-300" style="width: 18%;"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono-tech">
+            <span>−162°C (Methane)</span>
+            <span>Increases with chain length →</span>
+            <span>&gt;700°C</span>
+          </div>
+        </div>
+
+        <!-- 2. FLAMMABILITY SCALE -->
+        <div class="glass-card-subtle rounded-xl p-3 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+              <span class="text-orange-400">🔥</span> Flammability
+            </span>
+            <span id="flamValueText" class="font-mono-tech text-xs sm:text-sm font-extrabold text-orange-300">Extremely High</span>
+          </div>
+          <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700/80">
+            <div id="flamBar" class="h-full rounded-full bg-gradient-to-r from-amber-500 to-red-500 transition-all duration-300" style="width: 92%;"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Hard to ignite (clean/sooty)</span>
+            <span>← Decreases with chain length</span>
+            <span>Ignites easily</span>
+          </div>
+        </div>
+
+        <!-- 3. VOLATILITY SCALE -->
+        <div class="glass-card-subtle rounded-xl p-3 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+              <span class="text-purple-400">💨</span> Volatility (Tendency to Evaporate)
+            </span>
+            <span id="volValueText" class="font-mono-tech text-xs sm:text-sm font-extrabold text-purple-300">Gas at Room Temp</span>
+          </div>
+          <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700/80">
+            <div id="volBar" class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-400 transition-all duration-300" style="width: 94%;"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Non-volatile solid/tar</span>
+            <span>← Decreases with chain length</span>
+            <span>Evaporates instantly</span>
+          </div>
+        </div>
+
+        <!-- 4. VISCOSITY SCALE (Bonus GCSE Core Property) -->
+        <div class="glass-card-subtle rounded-xl p-3 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+              <span class="text-amber-400">🍯</span> Viscosity (Resistance to Flow)
+            </span>
+            <span id="viscValueText" class="font-mono-tech text-xs sm:text-sm font-extrabold text-amber-300">Very Low (Gas)</span>
+          </div>
+          <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700/80">
+            <div id="viscBar" class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 to-amber-700 transition-all duration-300" style="width: 8%;"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>Runny / Free-flowing</span>
+            <span>Increases (chains tangle) →</span>
+            <span>Thick / Solid</span>
+          </div>
+        </div>
+
+        <!-- Real-World Fraction & Use Footer -->
+        <div class="bg-slate-900/85 border border-slate-800 rounded-xl p-3 mt-auto flex items-center justify-between gap-2">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Typical Fraction &amp; Use</span>
+            <span id="propUseText" class="text-xs sm:text-sm font-semibold text-white">Refinery Gas (LPG) — Camping stoves &amp; heating</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- GCSE QUICK-CHECK QUIZ MODAL -->
+  <div id="quizModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+    <div class="glass-panel max-w-xl w-full rounded-3xl p-5 sm:p-6 border border-sky-400/30 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700/70">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-300 font-bold">
+            ?
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-extrabold text-white">GCSE Alkanes Quick-Check</h3>
+            <p class="text-xs text-slate-400">Test your understanding of chain length &amp; intermolecular forces</p>
+          </div>
+        </div>
+        <button id="btnCloseQuiz" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center cursor-pointer transition">
+          ✕
+        </button>
+      </div>
+
+      <div id="quizContent" class="py-4 space-y-4">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-400">
+          <span id="quizQuestionCounter">Question 1 of 5</span>
+          <span id="quizLiveScore" class="text-sky-400 font-mono-tech">Score: 0 / 5</span>
+        </div>
+
+        <p id="quizQuestionText" class="text-sm sm:text-base font-bold text-white leading-snug">
+          Loading question...
+        </p>
+
+        <div id="quizOptionsContainer" class="space-y-2">
+          <!-- Options injected by JS -->
+        </div>
+
+        <div id="quizFeedbackBox" class="hidden rounded-xl p-3 text-xs sm:text-sm leading-relaxed border">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-700/70 flex items-center justify-between">
+        <button id="btnRestartQuiz" class="text-xs font-semibold text-slate-400 hover:text-white cursor-pointer transition">
+          Reset Quiz
+        </button>
+        <button id="btnNextQuestion" class="bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer transition" disabled>
+          Next Question →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * GCSE CHEMISTRY: PROPERTIES OF ALKANES SIMULATION
+     * ============================================================================
+     */
+
+    // Exact Carbon Atom Scale Requested: 1,2,3,4,5,6,7,8,9,10,20,30,40,50,80,100
+    const CARBON_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 80, 100];
+
+    const ALKANE_DATA = {
+      1: {
+        name: 'Methane',
+        bp: -162,
+        mp: -182,
+        bpScore: 4,
+        flamScore: 99,
+        flamLabel: 'Extremely High (Clean blue flame)',
+        volScore: 99,
+        volLabel: 'Gas at room temp (Highest)',
+        viscScore: 3,
+        viscLabel: 'Gas (Flows freely)',
+        color: '#bae6fd',
+        use: 'Natural gas — Domestic gas boilers, cookers & Bunsen burners'
+      },
+      2: {
+        name: 'Ethane',
+        bp: -89,
+        mp: -183,
+        bpScore: 9,
+        flamScore: 96,
+        flamLabel: 'Extremely High',
+        volScore: 97,
+        volLabel: 'Gas at room temp',
+        viscScore: 4,
+        viscLabel: 'Gas (Flows freely)',
+        color: '#93c5fd',
+        use: 'Refinery gas — Petrochemical feedstock for making ethene & plastics'
+      },
+      3: {
+        name: 'Propane',
+        bp: -42,
+        mp: -188,
+        bpScore: 14,
+        flamScore: 94,
+        flamLabel: 'Extremely High',
+        volScore: 95,
+        volLabel: 'Gas at room temp',
+        viscScore: 6,
+        viscLabel: 'Gas (Flows freely)',
+        color: '#7dd3fc',
+        use: 'Bottled LPG — Patio heaters, BBQs & rural home heating'
+      },
+      4: {
+        name: 'Butane',
+        bp: -1,
+        mp: -138,
+        bpScore: 18,
+        flamScore: 92,
+        flamLabel: 'Very High',
+        volScore: 92,
+        volLabel: 'Gas at room temp (Easily liquefied)',
+        viscScore: 8,
+        viscLabel: 'Gas / Very Runny',
+        color: '#67e8f9',
+        use: 'Bottled LPG — Portable camping stoves & cigarette lighters'
+      },
+      5: {
+        name: 'Pentane',
+        bp: 36,
+        mp: -130,
+        bpScore: 23,
+        flamScore: 88,
+        flamLabel: 'Very High',
+        volScore: 86,
+        volLabel: 'Very High (Evaporates in seconds)',
+        viscScore: 12,
+        viscLabel: 'Very Runny Liquid',
+        color: '#fef08a',
+        use: 'Petrol blend & laboratory organic solvent'
+      },
+      6: {
+        name: 'Hexane',
+        bp: 69,
+        mp: -95,
+        bpScore: 27,
+        flamScore: 85,
+        flamLabel: 'High',
+        volScore: 80,
+        volLabel: 'High (Evaporates rapidly)',
+        viscScore: 16,
+        viscLabel: 'Very Runny Liquid',
+        color: '#fde047',
+        use: 'Petrol component & industrial solvent'
+      },
+      7: {
+        name: 'Heptane',
+        bp: 98,
+        mp: -91,
+        bpScore: 31,
+        flamScore: 82,
+        flamLabel: 'High',
+        volScore: 74,
+        volLabel: 'High',
+        viscScore: 20,
+        viscLabel: 'Runny Liquid',
+        color: '#facc15',
+        use: 'Petrol (gasoline) fuel for motor cars'
+      },
+      8: {
+        name: 'Octane',
+        bp: 126,
+        mp: -57,
+        bpScore: 35,
+        flamScore: 79,
+        flamLabel: 'High (Vaporises easily in engine)',
+        volScore: 68,
+        volLabel: 'Moderately High',
+        viscScore: 24,
+        viscLabel: 'Runny Liquid',
+        color: '#fde68a',
+        use: 'Key component of Petrol (gasoline) for cars'
+      },
+      9: {
+        name: 'Nonane',
+        bp: 151,
+        mp: -51,
+        bpScore: 39,
+        flamScore: 74,
+        flamLabel: 'Moderately High',
+        volScore: 62,
+        volLabel: 'Moderate',
+        viscScore: 28,
+        viscLabel: 'Runny Liquid',
+        color: '#fed7aa',
+        use: 'Petrol / Naphtha & Kerosene blend'
+      },
+      10: {
+        name: 'Decane',
+        bp: 174,
+        mp: -30,
+        bpScore: 43,
+        flamScore: 70,
+        flamLabel: 'Moderate',
+        volScore: 56,
+        volLabel: 'Moderate',
+        viscScore: 33,
+        viscLabel: 'Light Oily Liquid',
+        color: '#fdba74',
+        use: 'Kerosene (aviation jet fuel) & Naphtha feedstock'
+      },
+      20: {
+        name: 'Icosane',
+        bp: 343,
+        mp: 37,
+        bpScore: 62,
+        flamScore: 48,
+        flamLabel: 'Moderate–Low (Needs wick/atomiser)',
+        volScore: 32,
+        volLabel: 'Low (Evaporates very slowly)',
+        viscScore: 56,
+        viscLabel: 'Thick Oily / Waxy',
+        color: '#fb923c',
+        use: 'Diesel oil / Paraffin wax & lubricating oils'
+      },
+      30: {
+        name: 'Triacontane',
+        bp: 450,
+        mp: 66,
+        bpScore: 73,
+        flamScore: 34,
+        flamLabel: 'Low (Hard to ignite; smoky flame)',
+        volScore: 18,
+        volLabel: 'Very Low',
+        viscScore: 72,
+        viscLabel: 'Thick Heavy Oil / Soft Wax',
+        color: '#ea580c',
+        use: 'Heavy fuel oil (cargo ships) & paraffin wax candles'
+      },
+      40: {
+        name: 'Tetracontane',
+        bp: 525,
+        mp: 81,
+        bpScore: 81,
+        flamScore: 24,
+        flamLabel: 'Very Low (Requires pre-heating)',
+        volScore: 11,
+        volLabel: 'Negligible',
+        viscScore: 82,
+        viscLabel: 'Waxy Solid at 20°C',
+        color: '#d97706',
+        use: 'Heavy fuel oil & industrial greases/waxes'
+      },
+      50: {
+        name: 'Pentacontane',
+        bp: 575,
+        mp: 92,
+        bpScore: 87,
+        flamScore: 17,
+        flamLabel: 'Very Low (Sooty yellow flame)',
+        volScore: 7,
+        volLabel: 'Virtually Non-volatile',
+        viscScore: 89,
+        viscLabel: 'Hard Waxy Solid',
+        color: '#b45309',
+        use: 'Paraffin wax coatings & heavy lubricating grease'
+      },
+      80: {
+        name: 'Octacontane',
+        bp: 675,
+        mp: 110,
+        bpScore: 95,
+        flamScore: 9,
+        flamLabel: 'Extremely Low (Hard to burn)',
+        volScore: 3,
+        volLabel: 'Non-volatile',
+        viscScore: 96,
+        viscLabel: 'Very Viscous / Tar-like Solid',
+        color: '#78716c',
+        use: 'Bitumen residue — Road surfacing (asphalt) & roof waterproofing'
+      },
+      100: {
+        name: 'Hectane',
+        bp: 725,
+        mp: 115,
+        bpScore: 100,
+        flamScore: 5,
+        flamLabel: 'Lowest (Very hard to ignite)',
+        volScore: 2,
+        volLabel: 'Non-volatile',
+        viscScore: 100,
+        viscLabel: 'Maximum Viscosity (Solid/Tar)',
+        color: '#64748b',
+        use: 'Bitumen residue — Tarmac roads & heavy waterproofing'
+      }
+    };
+
+    // GCSE EXAM PRACTICE QUESTIONS
+    const QUIZ_QUESTIONS = [
+      {
+        q: 'What is the general formula for the homologous series of alkanes?',
+        options: ['CₙH₂ₙ', 'CₙH₂ₙ₊₂', 'CₙH₂ₙ₋₂', 'CₙHₙ'],
+        correct: 1,
+        explanation: 'Correct! Every alkane has twice as many hydrogen atoms as carbon atoms, plus two more on the ends: CₙH₂ₙ₊₂.'
+      },
+      {
+        q: 'Why does the boiling point of alkanes increase as the carbon chain gets longer?',
+        options: [
+          'The covalent C–C bonds inside the molecule become stronger and break when boiling',
+          'Longer chains have stronger intermolecular forces between molecules, needing more energy to overcome',
+          'Longer alkanes contain double bonds between carbon atoms',
+          'Longer alkanes react faster with oxygen in the air'
+        ],
+        correct: 1,
+        explanation: 'Spot on! Covalent bonds do NOT break during boiling. Longer chains have more surface contact, creating stronger intermolecular forces between neighbouring molecules.'
+      },
+      {
+        q: 'Which statement correctly describes a short-chain alkane like Propane (C₃H₈) compared to a long-chain alkane?',
+        options: [
+          'Higher boiling point, more viscous, less flammable',
+          'Lower boiling point, less viscous (runnier), more flammable and volatile',
+          'Higher viscosity, lower volatility, harder to ignite',
+          'Higher boiling point and burns with a very smoky flame'
+        ],
+        correct: 1,
+        explanation: 'Exactly right! Short-chain alkanes have weak intermolecular forces, giving them low boiling points, high volatility, low viscosity, and high flammability.'
+      },
+      {
+        q: 'Why are very long-chain alkanes (like C₈₀H₁₆₂ in bitumen) so viscous (thick)?',
+        options: [
+          'Their long chains have strong intermolecular attractions and easily tangle together',
+          'They have no hydrogen atoms attached to the carbon backbone',
+          'They are gases at room temperature',
+          'Their covalent bonds are ionic'
+        ],
+        correct: 0,
+        explanation: 'Well done! Strong intermolecular forces along the entire length of long chains plus physical entanglement prevent the molecules from sliding past each other easily.'
+      },
+      {
+        q: 'What is the molecular formula of Octane, an alkane with 8 carbon atoms?',
+        options: ['C₈H₁₆', 'C₈H₁₈', 'C₈H₁₄', 'C₈H₂₀'],
+        correct: 1,
+        explanation: 'Correct! Using CₙH₂ₙ₊₂ with n = 8 gives C₈H(2×8 + 2) = C₈H₁₈.'
+      }
+    ];
+
+    // ============================================================================
+    // APPLICATION STATE
+    // ============================================================================
+    const state = {
+      scaleIndex: 3, // Default: index 3 -> 4 Carbons (Butane)
+      showIMF: true,
+      isPaused: false,
+      temperature: 20, // °C
+      quizIndex: 0,
+      quizScore: 0,
+      quizAnswered: new Array(QUIZ_QUESTIONS.length).fill(null),
+      time: 0
+    };
+
+    // ============================================================================
+    // DOM & CANVAS SETUP
+    // ============================================================================
+    const canvas = document.getElementById('alkaneCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+
+    let canvasW = 800;
+    let canvasH = 500;
+
+    function resizeCanvas() {
+      const rect = canvasWrapper.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1.5, 2);
+      canvasW = Math.max(300, rect.width);
+      canvasH = Math.max(300, rect.height);
+
+      canvas.width = Math.floor(canvasW * dpr);
+      canvas.height = Math.floor(canvasH * dpr);
+      canvas.style.width = `${canvasW}px`;
+      canvas.style.height = `${canvasH}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // ============================================================================
+    // SUBSCRIPT HELPER & UI UPDATES
+    // ============================================================================
+    function toSubscript(num) {
+      const subMap = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉' };
+      return String(num).split('').map(d => subMap[d] || d).join('');
+    }
+
+    function getFormulaString(n) {
+      const h = 2 * n + 2;
+      return `C${n === 1 ? '' : toSubscript(n)}H${toSubscript(h)}`;
+    }
+
+    function getMatterState(data, temp) {
+      if (temp >= data.bp) return 'GAS';
+      if (temp >= data.mp) return 'LIQUID';
+      return 'SOLID';
+    }
+
+    function updateUI() {
+      const n = CARBON_SCALE[state.scaleIndex];
+      const data = ALKANE_DATA[n];
+      const hCount = 2 * n + 2;
+      const formula = getFormulaString(n);
+      const matterState = getMatterState(data, state.temperature);
+
+      // Header Badge
+      document.getElementById('sliderCarbonBadge').textContent = `${n} Carbon${n === 1 ? '' : 's'} (${data.name})`;
+
+      // Highlight active tick
+      document.querySelectorAll('.tick-btn').forEach((el, idx) => {
+        if (idx === state.scaleIndex) {
+          el.classList.add('text-amber-300', 'font-extrabold', 'scale-110');
+          el.classList.remove('text-slate-400');
+        } else {
+          el.classList.remove('text-amber-300', 'font-extrabold', 'scale-110');
+          el.classList.add('text-slate-400');
+        }
+      });
+
+      // Right Side Identity Panel
+      document.getElementById('propName').textContent = data.name;
+      document.getElementById('propSubInfo').textContent = `${n} Carbon Atom${n === 1 ? '' : 's'} • ${hCount} Hydrogen Atoms`;
+      document.getElementById('propFormula').textContent = formula;
+      document.getElementById('propUseText').textContent = data.use;
+
+      // GCSE Explanation Dynamic Copy
+      const expEl = document.getElementById('propExplanation');
+      if (n <= 4) {
+        expEl.innerHTML = `Short hydrocarbon chains (<strong class="text-white">${n} carbon${n === 1 ? '' : 's'}</strong>) have <strong class="text-sky-300">very weak intermolecular forces</strong> between molecules. Little heat energy is needed to separate them, so ${data.name.toLowerCase()} boils at <strong class="text-white">${data.bp}°C</strong> and is a flammable gas at room temperature.`;
+      } else if (n <= 10) {
+        expEl.innerHTML = `Medium-short chains (<strong class="text-white">${n} carbons</strong>) have slightly more surface contact, giving <strong class="text-sky-300">moderate intermolecular forces</strong>. ${data.name} is a runny, volatile liquid at 20°C (boils at <strong class="text-white">${data.bp}°C</strong>) that ignites easily.`;
+      } else if (n <= 30) {
+        expEl.innerHTML = `Long hydrocarbon chains (<strong class="text-white">${n} carbons</strong>) have many points of contact along their length, creating <strong class="text-sky-300">strong intermolecular forces</strong>. Much more thermal energy is needed to boil ${data.name.toLowerCase()} (<strong class="text-white">${data.bp}°C</strong>), and chains tangle to increase viscosity.`;
+      } else {
+        expEl.innerHTML = `Very long chains (<strong class="text-white">${n} carbons</strong>) experience <strong class="text-sky-300">extremely strong total intermolecular forces</strong> across the molecule. Note that <strong class="text-amber-300">covalent bonds do not break</strong>—it is the strong attraction between chains that causes a very high boiling point (<strong class="text-white">${data.bp}°C</strong>) and high viscosity.`;
+      }
+
+      // Property Bars & Readouts
+      document.getElementById('bpValueText').textContent = `${data.bp}°C`;
+      document.getElementById('bpBar').style.width = `${data.bpScore}%`;
+
+      document.getElementById('flamValueText').textContent = data.flamLabel;
+      document.getElementById('flamBar').style.width = `${data.flamScore}%`;
+
+      document.getElementById('volValueText').textContent = data.volLabel;
+      document.getElementById('volBar').style.width = `${data.volScore}%`;
+
+      document.getElementById('viscValueText').textContent = data.viscLabel;
+      document.getElementById('viscBar').style.width = `${data.viscScore}%`;
+
+      // Canvas Overlay Pills
+      const statePill = document.getElementById('statePill');
+      statePill.textContent = `State at ${state.temperature}°C: ${matterState}`;
+      if (matterState === 'GAS') {
+        statePill.className = 'px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-400/40 backdrop-blur-md';
+      } else if (matterState === 'LIQUID') {
+        statePill.className = 'px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40 backdrop-blur-md';
+      } else {
+        statePill.className = 'px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-400/40 backdrop-blur-md';
+      }
+
+      const imfPill = document.getElementById('imfStrengthPill');
+      const imfDesc = n <= 4 ? 'Weak (Few contact points)' : n <= 10 ? 'Moderate (Medium chains)' : n <= 30 ? 'Strong (Long chains)' : 'Very Strong (Many contact points)';
+      imfPill.textContent = `Intermolecular Forces: ${imfDesc}`;
+
+      // Temperature Readout
+      document.getElementById('tempReadout').textContent = `${state.temperature}°C`;
+
+      rebuildMolecules();
+    }
+
+    // ============================================================================
+    // HYDROCARBON CHAIN ENGINE & INTERMOLECULAR FORCES
+    // ============================================================================
+    let molecules = [];
+
+    function getVisualCarbonCount(n) {
+      // Scale cleanly so C1..C10 show exact carbons, and C20..C100 show long impressive chains that fit nicely on screen
+      if (n <= 10) return n;
+      if (n === 20) return 14;
+      if (n === 30) return 18;
+      if (n === 40) return 21;
+      if (n === 50) return 24;
+      if (n === 80) return 28;
+      return 32; // 100 carbons
+    }
+
+    function rebuildMolecules() {
+      const n = CARBON_SCALE[state.scaleIndex];
+      const data = ALKANE_DATA[n];
+      const visCarbons = getVisualCarbonCount(n);
+
+      // Fewer molecules when chains are huge so screen stays readable and fast
+      const count = n <= 4 ? 9 : n <= 10 ? 7 : n <= 30 ? 6 : 5;
+      const newMols = [];
+
+      const cols = Math.ceil(Math.sqrt(count * 1.3));
+      const rows = Math.ceil(count / cols);
+
+      for (let i = 0; i < count; i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        const homeX = ((col + 0.5) / cols) * (canvasW * 0.78) + canvasW * 0.11;
+        const homeY = ((row + 0.5) / rows) * (canvasH * 0.72) + canvasH * 0.16;
+
+        const prev = molecules[i];
+        newMols.push({
+          x: prev ? prev.x : homeX,
+          y: prev ? prev.y : homeY,
+          homeX,
+          homeY,
+          vx: prev ? prev.vx : (Math.random() - 0.5) * 90,
+          vy: prev ? prev.vy : (Math.random() - 0.5) * 90,
+          angle: prev ? prev.angle : (Math.random() - 0.5) * 0.5,
+          vAngle: prev ? prev.vAngle : (Math.random() - 0.5) * 0.8,
+          phase: Math.random() * Math.PI * 2,
+          visCarbons,
+          actualCarbons: n,
+          color: data.color,
+          atoms: [] // World coordinates of carbon atoms for dashed IMF lines
+        });
+      }
+      molecules = newMols;
+    }
+
+    function updateMolecules(dt) {
+      const n = CARBON_SCALE[state.scaleIndex];
+      const data = ALKANE_DATA[n];
+      const matterState = getMatterState(data, state.temperature);
+
+      // Thermal kinetic energy factor
+      const tempKelvin = Math.max(20, state.temperature + 273);
+      const thermalSpeed = Math.sqrt(tempKelvin / 293);
+
+      const bondStep = n <= 10 ? 15 : n <= 30 ? 12 : 10;
+      const zigAmp = n <= 10 ? 6.5 : 5.2;
+
+      for (let i = 0; i < molecules.length; i++) {
+        const m = molecules[i];
+
+        if (!state.isPaused) {
+          if (matterState === 'GAS') {
+            // Free rapid movement across entire container
+            const speedMult = 110 * thermalSpeed * (1 / Math.pow(n, 0.25));
+            m.x += m.vx * dt * (speedMult / 65);
+            m.y += m.vy * dt * (speedMult / 65);
+            m.angle += m.vAngle * dt * thermalSpeed;
+
+            const marginX = Math.min(130, (m.visCarbons * bondStep) * 0.45 + 30);
+            const marginY = 48;
+
+            if (m.x < marginX) { m.x = marginX; m.vx = Math.abs(m.vx); }
+            if (m.x > canvasW - marginX) { m.x = canvasW - marginX; m.vx = -Math.abs(m.vx); }
+            if (m.y < marginY + 25) { m.y = marginY + 25; m.vy = Math.abs(m.vy); }
+            if (m.y > canvasH - marginY) { m.y = canvasH - marginY; m.vy = -Math.abs(m.vy); }
+
+          } else if (matterState === 'LIQUID') {
+            // Molecules stay close together, sliding past one another
+            const cols = Math.ceil(Math.sqrt(molecules.length * 1.2));
+            const row = Math.floor(i / cols);
+            const col = i % cols;
+            const targetX = canvasW * 0.24 + (col / Math.max(1, cols - 1)) * (canvasW * 0.52) + Math.sin(state.time * 1.1 + m.phase) * 28;
+            const targetY = canvasH * 0.42 + row * 56 + Math.cos(state.time * 1.3 + m.phase) * 14;
+
+            m.x += (targetX - m.x) * Math.min(1, dt * 2.2);
+            m.y += (targetY - m.y) * Math.min(1, dt * 2.2);
+            const targetAngle = Math.sin(state.time * 0.9 + m.phase) * 0.16;
+            m.angle += (targetAngle - m.angle) * Math.min(1, dt * 3);
+
+          } else {
+            // SOLID: Packed closely in aligned layers, vibrating in place
+            const cols = n >= 20 ? 1 : 2;
+            const row = Math.floor(i / cols);
+            const col = i % cols;
+            const spacingY = n >= 20 ? 44 : 52;
+            const totalGridH = (Math.ceil(molecules.length / cols) - 1) * spacingY;
+            const startY = canvasH * 0.54 - totalGridH / 2;
+
+            const targetX = cols === 1
+              ? canvasW * 0.5 + Math.sin(state.time * 9 + m.phase) * 1.8
+              : canvasW * (col === 0 ? 0.34 : 0.66) + Math.sin(state.time * 9 + m.phase) * 1.8;
+            const targetY = startY + row * spacingY + Math.cos(state.time * 10 + m.phase) * 1.4;
+
+            m.x += (targetX - m.x) * Math.min(1, dt * 5);
+            m.y += (targetY - m.y) * Math.min(1, dt * 5);
+            const targetAngle = Math.sin(state.time * 7 + m.phase) * 0.025;
+            m.angle += (targetAngle - m.angle) * Math.min(1, dt * 6);
+          }
+        }
+
+        // Compute world coordinates of each carbon atom in this chain
+        const nodes = m.visCarbons;
+        const totalLen = (nodes - 1) * bondStep;
+        const startX = -totalLen / 2;
+        const cosA = Math.cos(m.angle);
+        const sinA = Math.sin(m.angle);
+
+        m.atoms = [];
+        for (let k = 0; k < nodes; k++) {
+          const lx = startX + k * bondStep;
+          const ly = (k % 2 === 0 ? -zigAmp : zigAmp);
+          const wx = m.x + lx * cosA - ly * sinA;
+          const wy = m.y + lx * sinA + ly * cosA;
+          m.atoms.push({ x: wx, y: wy, isUp: k % 2 === 0, lx, ly });
+        }
+      }
+    }
+
+    function drawIntermolecularForces() {
+      if (!state.showIMF) return;
+
+      const n = CARBON_SCALE[state.scaleIndex];
+      const data = ALKANE_DATA[n];
+      const matterState = getMatterState(data, state.temperature);
+
+      // Interaction distance depends on state
+      const maxDist = matterState === 'GAS' ? 145 : matterState === 'LIQUID' ? 130 : 115;
+      const maxDistSq = maxDist * maxDist;
+
+      ctx.save();
+      ctx.setLineDash([5, 5]);
+      ctx.lineDashOffset = -state.time * 18;
+
+      for (let i = 0; i < molecules.length; i++) {
+        for (let j = i + 1; j < molecules.length; j++) {
+          const m1 = molecules[i];
+          const m2 = molecules[j];
+
+          // Quick bounding check
+          if (Math.abs(m1.x - m2.x) > 360 || Math.abs(m1.y - m2.y) > 220) continue;
+
+          // Draw dashed attractive lines between nearby carbon segments of different molecules
+          const step = n >= 40 ? 2 : 1;
+          for (let a = 0; a < m1.atoms.length; a += step) {
+            const p1 = m1.atoms[a];
+            let bestDistSq = maxDistSq;
+            let bestP2 = null;
+
+            for (let b = 0; b < m2.atoms.length; b += step) {
+              const p2 = m2.atoms[b];
+              const dx = p1.x - p2.x;
+              const dy = p1.y - p2.y;
+              const dSq = dx * dx + dy * dy;
+              if (dSq < bestDistSq) {
+                bestDistSq = dSq;
+                bestP2 = p2;
+              }
+            }
+
+            if (bestP2) {
+              const strength = 1 - Math.sqrt(bestDistSq) / maxDist;
+              ctx.strokeStyle = `rgba(56, 189, 248, ${(0.22 + strength * 0.65).toFixed(2)})`;
+              ctx.lineWidth = 1.2 + strength * 1.4;
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(bestP2.x, bestP2.y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function drawMolecules() {
+      const n = CARBON_SCALE[state.scaleIndex];
+      const cRadius = n <= 10 ? 6.5 : n <= 30 ? 5.2 : 4.4;
+      const hRadius = n <= 10 ? 3.4 : n <= 30 ? 2.7 : 2.2;
+      const hDist = n <= 10 ? 12.5 : n <= 30 ? 10 : 8.5;
+
+      for (let i = 0; i < molecules.length; i++) {
+        const m = molecules[i];
+        const nodes = m.atoms.length;
+        if (nodes === 0) continue;
+
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.angle);
+
+        // 1. C–H Covalent Bonds & White Hydrogen Atoms
+        ctx.strokeStyle = 'rgba(203, 213, 225, 0.75)';
+        ctx.lineWidth = n <= 10 ? 1.8 : 1.3;
+        ctx.beginPath();
+
+        for (let k = 0; k < nodes; k++) {
+          const pt = m.atoms[k];
+          const dirY = pt.isUp ? -1 : 1;
+
+          // Top / Bottom Hydrogens
+          ctx.moveTo(pt.lx, pt.ly);
+          ctx.lineTo(pt.lx, pt.ly + dirY * hDist);
+
+          // Terminal Left Hydrogen (CH3 end)
+          if (k === 0) {
+            ctx.moveTo(pt.lx, pt.ly);
+            ctx.lineTo(pt.lx - hDist * 0.9, pt.ly - dirY * hDist * 0.35);
+          }
+          // Terminal Right Hydrogen (CH3 end)
+          if (k === nodes - 1) {
+            ctx.moveTo(pt.lx, pt.ly);
+            ctx.lineTo(pt.lx + hDist * 0.9, pt.ly - dirY * hDist * 0.35);
+          }
+        }
+        ctx.stroke();
+
+        // Draw Hydrogen Spheres
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        for (let k = 0; k < nodes; k++) {
+          const pt = m.atoms[k];
+          const dirY = pt.isUp ? -1 : 1;
+
+          ctx.moveTo(pt.lx + hRadius, pt.ly + dirY * hDist);
+          ctx.arc(pt.lx, pt.ly + dirY * hDist, hRadius, 0, Math.PI * 2);
+
+          if (k === 0) {
+            const hx = pt.lx - hDist * 0.9;
+            const hy = pt.ly - dirY * hDist * 0.35;
+            ctx.moveTo(hx + hRadius, hy);
+            ctx.arc(hx, hy, hRadius, 0, Math.PI * 2);
+          }
+          if (k === nodes - 1) {
+            const hx = pt.lx + hDist * 0.9;
+            const hy = pt.ly - dirY * hDist * 0.35;
+            ctx.moveTo(hx + hRadius, hy);
+            ctx.arc(hx, hy, hRadius, 0, Math.PI * 2);
+          }
+        }
+        ctx.fill();
+
+        // 2. C–C Covalent Backbone Bonds
+        if (nodes > 1) {
+          ctx.strokeStyle = m.color;
+          ctx.lineWidth = n <= 10 ? 3.2 : 2.4;
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          for (let k = 0; k < nodes; k++) {
+            const pt = m.atoms[k];
+            if (k === 0) ctx.moveTo(pt.lx, pt.ly);
+            else ctx.lineTo(pt.lx, pt.ly);
+          }
+          ctx.stroke();
+        }
+
+        // 3. Carbon Atoms (Dark Core + Fraction Coloured Ring)
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = m.color;
+        ctx.lineWidth = n <= 10 ? 2.0 : 1.5;
+        ctx.beginPath();
+        for (let k = 0; k < nodes; k++) {
+          const pt = m.atoms[k];
+          ctx.moveTo(pt.lx + cRadius, pt.ly);
+          ctx.arc(pt.lx, pt.ly, cRadius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    function drawCanvasAnnotations() {
+      const n = CARBON_SCALE[state.scaleIndex];
+      const data = ALKANE_DATA[n];
+
+      ctx.save();
+      // Subtle grid background
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)';
+      ctx.lineWidth = 1;
+      const gridStep = 40;
+      for (let x = 0; x < canvasW; x += gridStep) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvasH);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvasH; y += gridStep) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvasW, y);
+        ctx.stroke();
+      }
+
+      // Bottom-left informative note for classroom projection
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+      ctx.lineWidth = 1;
+      const boxW = Math.min(canvasW - 24, 460);
+      const boxH = 34;
+      const bx = 12;
+      const by = canvasH - boxH - 12;
+
+      ctx.beginPath();
+      ctx.roundRect(bx, by, boxW, boxH, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '600 11.5px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const noteText = n > 10
+        ? `Showing scaled ${n}-carbon chains (${data.name}) • ${state.showIMF ? 'Dashed lines = Intermolecular Forces' : 'IMF lines hidden'}`
+        : `Exact ${n}-carbon zig-zag model (${data.name}, ${getFormulaString(n)}) • ${state.showIMF ? 'Dashed lines = Intermolecular Forces' : 'IMF lines hidden'}`;
+      ctx.fillText(noteText, bx + 12, by + boxH / 2);
+
+      ctx.restore();
+    }
+
+    // ============================================================================
+    // MAIN ANIMATION LOOP
+    // ============================================================================
+    let lastTime = 0;
+
+    function animate(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTime) / 1000);
+      lastTime = timestamp;
+
+      if (!state.isPaused) {
+        state.time += dt;
+      }
+
+      ctx.clearRect(0, 0, canvasW, canvasH);
+
+      drawCanvasAnnotations();
+      updateMolecules(dt);
+      drawIntermolecularForces();
+      drawMolecules();
+
+      requestAnimationFrame(animate);
+    }
+
+    // ============================================================================
+    // QUIZ LOGIC
+    // ============================================================================
+    function renderQuizQuestion() {
+      const q = QUIZ_QUESTIONS[state.quizIndex];
+      document.getElementById('quizQuestionCounter').textContent = `Question ${state.quizIndex + 1} of ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quizLiveScore').textContent = `Score: ${state.quizScore} / ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quizQuestionText').textContent = q.q;
+
+      const optContainer = document.getElementById('quizOptionsContainer');
+      optContainer.innerHTML = '';
+
+      const feedbackBox = document.getElementById('quizFeedbackBox');
+      const nextBtn = document.getElementById('btnNextQuestion');
+      const answeredIdx = state.quizAnswered[state.quizIndex];
+
+      q.options.forEach((opt, oIdx) => {
+        const optBtn = document.createElement('button');
+        optBtn.className = 'w-full text-left p-2.5 rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer flex items-center justify-between';
+
+        if (answeredIdx !== null) {
+          if (oIdx === q.correct) {
+            optBtn.className += ' bg-emerald-500/20 border-emerald-400 text-emerald-200';
+          } else if (oIdx === answeredIdx) {
+            optBtn.className += ' bg-rose-500/20 border-rose-400 text-rose-200';
+          } else {
+            optBtn.className += ' bg-slate-900/60 border-slate-800 text-slate-400 opacity-60';
+          }
+          optBtn.disabled = true;
+        } else {
+          optBtn.className += ' bg-slate-800/80 border-slate-700 hover:border-sky-400 text-slate-200';
+          optBtn.addEventListener('click', () => handleQuizAnswer(oIdx));
+        }
+
+        optBtn.innerHTML = `<span>${opt}</span>`;
+        optContainer.appendChild(optBtn);
+      });
+
+      if (answeredIdx !== null) {
+        feedbackBox.className = answeredIdx === q.correct
+          ? 'rounded-xl p-3 text-xs sm:text-sm leading-relaxed border bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+          : 'rounded-xl p-3 text-xs sm:text-sm leading-relaxed border bg-rose-950/40 border-rose-500/40 text-rose-200';
+        feedbackBox.innerHTML = q.explanation;
+        feedbackBox.classList.remove('hidden');
+        nextBtn.disabled = false;
+        nextBtn.textContent = state.quizIndex === QUIZ_QUESTIONS.length - 1 ? 'Finish Quiz 🎉' : 'Next Question →';
+      } else {
+        feedbackBox.classList.add('hidden');
+        nextBtn.disabled = true;
+      }
+    }
+
+    function handleQuizAnswer(selectedOptIdx) {
+      const q = QUIZ_QUESTIONS[state.quizIndex];
+      state.quizAnswered[state.quizIndex] = selectedOptIdx;
+
+      if (selectedOptIdx === q.correct) {
+        state.quizScore++;
+        document.querySelectorAll('.quiz-badge-text').forEach(el => {
+          el.textContent = `${state.quizScore}/${QUIZ_QUESTIONS.length}`;
+        });
+      }
+      renderQuizQuestion();
+    }
+
+    // ============================================================================
+    // EVENT LISTENERS & INITIALISATION
+    // ============================================================================
+    function buildSliderTicks() {
+      const ticksEl = document.getElementById('sliderTicks');
+      ticksEl.innerHTML = '';
+      CARBON_SCALE.forEach((num, idx) => {
+        const span = document.createElement('button');
+        span.type = 'button';
+        span.className = 'tick-btn cursor-pointer hover:text-white transition text-center';
+        span.textContent = num;
+        span.addEventListener('click', () => {
+          state.scaleIndex = idx;
+          document.getElementById('carbonSlider').value = idx;
+          updateUI();
+        });
+        ticksEl.appendChild(span);
+      });
+    }
+
+    document.getElementById('carbonSlider').addEventListener('input', (e) => {
+      state.scaleIndex = parseInt(e.target.value, 10);
+      updateUI();
+    });
+
+    document.getElementById('btnStepDown').addEventListener('click', () => {
+      if (state.scaleIndex > 0) {
+        state.scaleIndex--;
+        document.getElementById('carbonSlider').value = state.scaleIndex;
+        updateUI();
+      }
+    });
+
+    document.getElementById('btnStepUp').addEventListener('click', () => {
+      if (state.scaleIndex < CARBON_SCALE.length - 1) {
+        state.scaleIndex++;
+        document.getElementById('carbonSlider').value = state.scaleIndex;
+        updateUI();
+      }
+    });
+
+    document.getElementById('btnToggleIMF').addEventListener('click', () => {
+      state.showIMF = !state.showIMF;
+      const btn = document.getElementById('btnToggleIMF');
+      const label = document.getElementById('imfStateLabel');
+      const dot = document.getElementById('imfDot');
+      const legend = document.getElementById('legendImfItem');
+
+      if (state.showIMF) {
+        label.textContent = 'ON';
+        btn.className = 'bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer shadow-md shadow-sky-500/10';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse';
+        legend.classList.remove('opacity-35');
+      } else {
+        label.textContent = 'OFF';
+        btn.className = 'glass-card-subtle hover:bg-slate-700/70 text-slate-300 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+        legend.classList.add('opacity-35');
+      }
+    });
+
+    document.getElementById('tempSlider').addEventListener('input', (e) => {
+      state.temperature = parseInt(e.target.value, 10);
+      updateUI();
+    });
+
+    document.getElementById('btnResetTemp').addEventListener('click', () => {
+      state.temperature = 20;
+      document.getElementById('tempSlider').value = 20;
+      updateUI();
+    });
+
+    document.getElementById('btnPlayPause').addEventListener('click', () => {
+      state.isPaused = !state.isPaused;
+      document.getElementById('playPauseIcon').textContent = state.isPaused ? '▶' : '⏸';
+      document.getElementById('playPauseLabel').textContent = state.isPaused ? 'Resume' : 'Pause';
+    });
+
+    const quizModal = document.getElementById('quizModal');
+    function openQuiz() {
+      quizModal.classList.remove('hidden');
+      quizModal.classList.add('flex');
+      renderQuizQuestion();
+    }
+
+    document.getElementById('btnOpenQuiz').addEventListener('click', openQuiz);
+    document.getElementById('btnOpenQuizMobile').addEventListener('click', openQuiz);
+
+    document.getElementById('btnCloseQuiz').addEventListener('click', () => {
+      quizModal.classList.add('hidden');
+      quizModal.classList.remove('flex');
+    });
+
+    document.getElementById('btnNextQuestion').addEventListener('click', () => {
+      if (state.quizIndex < QUIZ_QUESTIONS.length - 1) {
+        state.quizIndex++;
+        renderQuizQuestion();
+      } else {
+        quizModal.classList.add('hidden');
+        quizModal.classList.remove('flex');
+      }
+    });
+
+    document.getElementById('btnRestartQuiz').addEventListener('click', () => {
+      state.quizIndex = 0;
+      state.quizScore = 0;
+      state.quizAnswered = new Array(QUIZ_QUESTIONS.length).fill(null);
+      document.querySelectorAll('.quiz-badge-text').forEach(el => {
+        el.textContent = `0/${QUIZ_QUESTIONS.length}`;
+      });
+      renderQuizQuestion();
+    });
+
+    window.addEventListener('load', () => {
+      buildSliderTicks();
+      resizeCanvas();
+      updateUI();
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
