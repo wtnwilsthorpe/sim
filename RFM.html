@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relative Formula Mass (RFM) Explorer</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter & JetBrains Mono fonts for crisp classroom readability -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        .font-mono-math {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Smooth reveal animations */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.92) translateY(8px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop-in {
+            animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+        }
+        .animate-answer-glow {
+            animation: pulseGlow 2s infinite;
+        }
+        /* Custom dropdown arrow for large projector select */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.4em;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 flex flex-col justify-between h-screen w-screen overflow-hidden">
+
+    <!-- TOP CLASSROOM CONTROL BAR -->
+    <header class="bg-slate-950 border-b border-slate-800 px-4 sm:px-8 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 z-20 shadow-lg">
+        <!-- Brand / Title -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-md">
+                M<sub class="text-sm">r</sub>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight text-white leading-none">
+                    Relative Formula Mass <span class="text-indigo-400">Explorer</span>
+                </h1>
+                <p class="text-xs text-slate-400 font-medium hidden sm:block mt-0.5">Interactive Classroom Demonstration</p>
+            </div>
+        </div>
+
+        <!-- Compound Dropdown Selector & Controls -->
+        <div class="flex items-center gap-2 sm:gap-3 flex-1 sm:flex-initial justify-end">
+            <div class="relative flex-1 sm:flex-initial min-w-[230px] sm:min-w-[340px]">
+                <select id="compoundSelect" aria-label="Select Compound"
+                    class="w-full bg-slate-800 hover:bg-slate-750 text-white font-bold text-base sm:text-xl py-2.5 pl-4 pr-11 rounded-xl border-2 border-indigo-500/60 focus:border-indigo-400 focus:outline-none cursor-pointer transition shadow-inner">
+                    <!-- Populated via JS -->
+                </select>
+            </div>
+
+            <button id="resetBtn" title="Reset current compound (R)"
+                class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-sm sm:text-lg px-4 py-2.5 rounded-xl border border-slate-700 transition cursor-pointer flex items-center gap-1.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <span class="hidden md:inline">Reset</span>
+            </button>
+
+            <button id="nextBtn"
+                class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-extrabold text-sm sm:text-lg px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-950/50 transition cursor-pointer flex items-center gap-2">
+                <span id="nextBtnText">Reveal Formula</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN INTERACTIVE STAGE (Click anywhere on card to advance) -->
+    <main id="interactiveStage" class="flex-1 p-3 sm:p-5 flex flex-col justify-center items-center overflow-hidden cursor-pointer relative">
+        <div class="w-full max-w-7xl h-full bg-slate-800/90 border-2 border-slate-700/80 rounded-3xl shadow-2xl flex flex-col justify-between p-4 sm:p-6 relative overflow-hidden transition-colors hover:border-slate-600">
+            
+            <!-- TOP ROW: Compound Name + Difficulty Badge -->
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-3 shrink-0">
+                <div class="flex items-center gap-3">
+                    <span id="compoundNumberBadge" class="bg-slate-700 text-slate-200 font-black text-base sm:text-xl px-3.5 py-1 rounded-xl">
+                        #1
+                    </span>
+                    <h2 id="compoundName" class="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
+                        Water
+                    </h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="difficultyBadge" class="px-4 py-1.5 rounded-full text-sm sm:text-lg font-extrabold tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        Level 1 • Simple Molecule
+                    </span>
+                </div>
+            </div>
+
+            <!-- CENTER WORKSPACE GRID -->
+            <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 my-3 min-h-0 items-stretch">
+                
+                <!-- LEFT COLUMN (5 cols): Formula & Relative Atomic Masses (Stage 1) -->
+                <div class="lg:col-span-5 flex flex-col justify-between gap-3 min-h-0">
+                    
+                    <!-- STAGE 1A: CHEMICAL FORMULA BOX -->
+                    <div id="stage1FormulaBox" class="flex-1 bg-slate-900/90 rounded-2xl border-2 border-slate-700/80 p-4 flex flex-col items-center justify-center relative min-h-[110px]">
+                        <span class="absolute top-2.5 left-3.5 text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
+                            Chemical Formula
+                        </span>
+                        <div id="formulaPlaceholder" class="text-slate-500 font-bold text-lg sm:text-xl flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-indigo-500 animate-ping"></span>
+                            Click anywhere to reveal Formula &amp; A<sub>r</sub>
+                        </div>
+                        <div id="formulaDisplay" class="hidden text-4xl sm:text-6xl xl:text-7xl font-black tracking-wide animate-pop-in text-center leading-tight mt-2">
+                            <!-- Colored Formula HTML injected here -->
+                        </div>
+                    </div>
+
+                    <!-- STAGE 1B: ATOMIC MASSES (Ar) REFERENCE CARDS -->
+                    <div id="stage1ArBox" class="bg-slate-900/90 rounded-2xl border-2 border-slate-700/80 p-3.5 flex flex-col justify-center min-h-[115px]">
+                        <span class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400 mb-2 block">
+                            Relative Atomic Mass (A<sub>r</sub>) Values
+                        </span>
+                        <div id="arPlaceholder" class="text-slate-600 font-semibold text-base sm:text-lg italic py-2 text-center">
+                            Waiting for Stage 1...
+                        </div>
+                        <div id="arCardsContainer" class="hidden flex-wrap items-center justify-center gap-2.5 sm:gap-3 animate-pop-in">
+                            <!-- Element Ar badges injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN (7 cols): Bonded Particle Diagram (Stage 2) -->
+                <div id="stage2DiagramBox" class="lg:col-span-7 bg-slate-900/90 rounded-2xl border-2 border-slate-700/80 p-3 sm:p-4 flex flex-col relative min-h-[220px]">
+                    <div class="flex items-center justify-between w-full z-10">
+                        <span class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
+                            Bonded Particles (Numbers = A<sub>r</sub>)
+                        </span>
+                        <span id="diagramHintBadge" class="hidden text-xs sm:text-sm font-bold px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                            <!-- Optional structural note -->
+                        </span>
+                    </div>
+
+                    <div id="diagramPlaceholder" class="flex-1 flex flex-col items-center justify-center text-slate-600 font-semibold text-lg sm:text-xl text-center px-4">
+                        <span>Particle model appears in Stage 2</span>
+                    </div>
+
+                    <!-- SVG Container for Bonded Particles -->
+                    <div id="diagramSvgWrapper" class="hidden flex-1 w-full h-full flex items-center justify-center animate-pop-in overflow-hidden">
+                        <svg id="particleSvg" class="w-full h-full max-h-[340px]" preserveAspectRatio="xMidYMid meet"></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM ROW: Step-by-Step Calculation (Stage 3) & Final RFM Answer (Stage 4) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 shrink-0">
+                
+                <!-- STAGE 3: CALCULATION BREAKDOWN (8 cols) -->
+                <div id="stage3CalcBox" class="lg:col-span-8 bg-slate-900/95 rounded-2xl border-2 border-slate-700/80 px-4 py-3 flex flex-col justify-center min-h-[84px]">
+                    <span class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Step-by-Step Calculation
+                    </span>
+                    <div id="calcPlaceholder" class="text-slate-600 font-semibold text-base sm:text-lg">
+                        Calculation breakdown appears in Stage 3...
+                    </div>
+                    <div id="calcDisplay" class="hidden font-mono-math text-lg sm:text-2xl xl:text-3xl font-extrabold text-amber-300 animate-pop-in tracking-tight leading-snug">
+                        <!-- Calculation steps injected here -->
+                    </div>
+                </div>
+
+                <!-- STAGE 4: FINAL RFM ANSWER (4 cols) -->
+                <div id="stage4AnswerBox" class="lg:col-span-4 bg-slate-900/95 rounded-2xl border-2 border-slate-700/80 px-4 py-3 flex flex-col items-center justify-center min-h-[84px] transition-all">
+                    <div id="answerPlaceholder" class="text-slate-600 font-bold text-base sm:text-lg text-center">
+                        Final RFM (Stage 4)
+                    </div>
+                    <div id="answerDisplay" class="hidden flex items-center justify-center gap-3 animate-pop-in">
+                        <span class="text-lg sm:text-2xl font-extrabold text-emerald-300 uppercase tracking-wider">RFM =</span>
+                        <span id="answerValue" class="text-3xl sm:text-5xl font-black text-white font-mono-math">18</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- BOTTOM PROGRESS STEPPER BAR -->
+    <footer class="bg-slate-950 border-t border-slate-800 px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-2 shrink-0 z-20">
+        <!-- Interactive Stage Pills -->
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <button data-step="0" class="step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer">
+                Start
+            </button>
+            <span class="text-slate-600 font-bold">→</span>
+            <button data-step="1" class="step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer">
+                1. Formula &amp; A<sub>r</sub>
+            </button>
+            <span class="text-slate-600 font-bold">→</span>
+            <button data-step="2" class="step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer">
+                2. Bonded Particles
+            </button>
+            <span class="text-slate-600 font-bold">→</span>
+            <button data-step="3" class="step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer">
+                3. Calculation
+            </button>
+            <span class="text-slate-600 font-bold">→</span>
+            <button data-step="4" class="step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer">
+                4. Final Answer
+            </button>
+        </div>
+
+        <!-- Keyboard / Touch Tip & Prev/Next Compound Quick Nav -->
+        <div class="flex items-center gap-3">
+            <span class="hidden xl:inline text-xs text-slate-400 font-medium">
+                Tip: Click screen or press <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-200">Space</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-200">→</kbd> to advance
+            </span>
+            <div class="flex items-center gap-1.5">
+                <button id="prevCompoundBtn" title="Previous Compound" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold border border-slate-700 cursor-pointer transition">
+                    ◀ Prev
+                </button>
+                <button id="nextCompoundBtn" title="Next Compound" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold border border-slate-700 cursor-pointer transition">
+                    Next ▶
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * ELEMENT PALETTE & ATOMIC MASS DEFINITIONS
+         * High-contrast colors chosen specifically for classroom projectors.
+         */
+        const ELEMENTS = {
+            H:  { symbol: 'H',  name: 'Hydrogen',  ar: 1,    fill: '#f8fafc', stroke: '#94a3b8', text: '#0f172a', textClass: 'text-slate-100', badgeBg: 'bg-slate-100 text-slate-900 border-slate-300' },
+            C:  { symbol: 'C',  name: 'Carbon',    ar: 12,   fill: '#334155', stroke: '#94a3b8', text: '#ffffff', textClass: 'text-slate-300', badgeBg: 'bg-slate-700 text-white border-slate-500' },
+            N:  { symbol: 'N',  name: 'Nitrogen',  ar: 14,   fill: '#2563eb', stroke: '#93c5fd', text: '#ffffff', textClass: 'text-blue-400',  badgeBg: 'bg-blue-600 text-white border-blue-400' },
+            O:  { symbol: 'O',  name: 'Oxygen',    ar: 16,   fill: '#dc2626', stroke: '#fca5a5', text: '#ffffff', textClass: 'text-red-400',   badgeBg: 'bg-red-600 text-white border-red-400' },
+            Na: { symbol: 'Na', name: 'Sodium',    ar: 23,   fill: '#7c3aed', stroke: '#c4b5fd', text: '#ffffff', textClass: 'text-violet-400',badgeBg: 'bg-violet-600 text-white border-violet-400' },
+            Mg: { symbol: 'Mg', name: 'Magnesium', ar: 24,   fill: '#0d9488', stroke: '#5eead4', text: '#ffffff', textClass: 'text-teal-400',  badgeBg: 'bg-teal-600 text-white border-teal-400' },
+            Al: { symbol: 'Al', name: 'Aluminium', ar: 27,   fill: '#0284c7', stroke: '#7dd3fc', text: '#ffffff', textClass: 'text-sky-400',   badgeBg: 'bg-sky-600 text-white border-sky-400' },
+            S:  { symbol: 'S',  name: 'Sulfur',    ar: 32,   fill: '#eab308', stroke: '#fef08a', text: '#0f172a', textClass: 'text-yellow-400',badgeBg: 'bg-yellow-400 text-slate-950 border-yellow-200' },
+            Cl: { symbol: 'Cl', name: 'Chlorine',  ar: 35.5, fill: '#16a34a', stroke: '#86efac', text: '#ffffff', textClass: 'text-green-400', badgeBg: 'bg-green-600 text-white border-green-400' },
+            Ca: { symbol: 'Ca', name: 'Calcium',   ar: 40,   fill: '#ea580c', stroke: '#fdba74', text: '#ffffff', textClass: 'text-orange-400',badgeBg: 'bg-orange-600 text-white border-orange-400' },
+            Cu: { symbol: 'Cu', name: 'Copper',    ar: 63.5, fill: '#d97706', stroke: '#fcd34d', text: '#ffffff', textClass: 'text-amber-400', badgeBg: 'bg-amber-600 text-white border-amber-300' }
+        };
+
+        /**
+         * 15 PROGRESSIVE COMPOUNDS DATASET
+         * Ordered from simple diatomic/triatomic molecules up to brackets and water of crystallisation.
+         */
+        const COMPOUNDS = [
+            {
+                id: 1,
+                name: 'Water',
+                plainFormula: 'H₂O',
+                level: 'Level 1 • Simple Molecule',
+                levelColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                formulaTokens: [
+                    { el: 'H', sub: '2' }, { el: 'O' }
+                ],
+                elements: ['H', 'O'],
+                diagramHint: '2 Hydrogen + 1 Oxygen',
+                calculation: '(2 × 1) + 16 = 2 + 16',
+                rfm: 18,
+                diagram: {
+                    viewBox: '0 0 420 220',
+                    bonds: [[210, 90, 130, 145], [210, 90, 290, 145]],
+                    atoms: [
+                        { el: 'O', x: 210, y: 90, r: 38 },
+                        { el: 'H', x: 130, y: 145, r: 28 },
+                        { el: 'H', x: 290, y: 145, r: 28 }
+                    ]
+                }
+            },
+            {
+                id: 2,
+                name: 'Carbon Dioxide',
+                plainFormula: 'CO₂',
+                level: 'Level 2 • Simple Molecule',
+                levelColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                formulaTokens: [
+                    { el: 'C' }, { el: 'O', sub: '2' }
+                ],
+                elements: ['C', 'O'],
+                diagramHint: 'Linear molecule (O=C=O)',
+                calculation: '12 + (2 × 16) = 12 + 32',
+                rfm: 44,
+                diagram: {
+                    viewBox: '0 0 460 200',
+                    bonds: [[125, 100, 230, 100, true], [230, 100, 335, 100, true]],
+                    atoms: [
+                        { el: 'O', x: 125, y: 100, r: 36 },
+                        { el: 'C', x: 230, y: 100, r: 36 },
+                        { el: 'O', x: 335, y: 100, r: 36 }
+                    ]
+                }
+            },
+            {
+                id: 3,
+                name: 'Sodium Chloride',
+                plainFormula: 'NaCl',
+                level: 'Level 3 • Decimal Ar',
+                levelColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                formulaTokens: [
+                    { el: 'Na' }, { el: 'Cl' }
+                ],
+                elements: ['Na', 'Cl'],
+                diagramHint: '1:1 Ionic Formula Unit (Cl = 35.5)',
+                calculation: '23 + 35.5',
+                rfm: 58.5,
+                diagram: {
+                    viewBox: '0 0 420 200',
+                    bonds: [[165, 100, 255, 100]],
+                    atoms: [
+                        { el: 'Na', x: 165, y: 100, r: 40 },
+                        { el: 'Cl', x: 255, y: 100, r: 44 }
+                    ]
+                }
+            },
+            {
+                id: 4,
+                name: 'Methane',
+                plainFormula: 'CH₄',
+                level: 'Level 4 • Subscript 4',
+                levelColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                formulaTokens: [
+                    { el: 'C' }, { el: 'H', sub: '4' }
+                ],
+                elements: ['C', 'H'],
+                diagramHint: '1 Carbon bonded to 4 Hydrogens',
+                calculation: '12 + (4 × 1) = 12 + 4',
+                rfm: 16,
+                diagram: {
+                    viewBox: '0 0 420 240',
+                    bonds: [
+                        [210, 120, 210, 42],
+                        [210, 120, 210, 198],
+                        [210, 120, 125, 120],
+                        [210, 120, 295, 120]
+                    ],
+                    atoms: [
+                        { el: 'C', x: 210, y: 120, r: 36 },
+                        { el: 'H', x: 210, y: 42,  r: 26 },
+                        { el: 'H', x: 210, y: 198, r: 26 },
+                        { el: 'H', x: 125, y: 120, r: 26 },
+                        { el: 'H', x: 295, y: 120, r: 26 }
+                    ]
+                }
+            },
+            {
+                id: 5,
+                name: 'Magnesium Oxide',
+                plainFormula: 'MgO',
+                level: 'Level 5 • Ionic Compound',
+                levelColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+                formulaTokens: [
+                    { el: 'Mg' }, { el: 'O' }
+                ],
+                elements: ['Mg', 'O'],
+                diagramHint: '1 Magnesium + 1 Oxygen',
+                calculation: '24 + 16',
+                rfm: 40,
+                diagram: {
+                    viewBox: '0 0 420 200',
+                    bonds: [[168, 100, 252, 100]],
+                    atoms: [
+                        { el: 'Mg', x: 168, y: 100, r: 42 },
+                        { el: 'O',  x: 252, y: 100, r: 38 }
+                    ]
+                }
+            },
+            {
+                id: 6,
+                name: 'Ammonia',
+                plainFormula: 'NH₃',
+                level: 'Level 6 • Molecule',
+                levelColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+                formulaTokens: [
+                    { el: 'N' }, { el: 'H', sub: '3' }
+                ],
+                elements: ['N', 'H'],
+                diagramHint: '1 Nitrogen + 3 Hydrogens',
+                calculation: '14 + (3 × 1) = 14 + 3',
+                rfm: 17,
+                diagram: {
+                    viewBox: '0 0 420 220',
+                    bonds: [
+                        [210, 75, 135, 155],
+                        [210, 75, 210, 165],
+                        [210, 75, 285, 155]
+                    ],
+                    atoms: [
+                        { el: 'N', x: 210, y: 75,  r: 36 },
+                        { el: 'H', x: 135, y: 155, r: 26 },
+                        { el: 'H', x: 210, y: 165, r: 26 },
+                        { el: 'H', x: 285, y: 155, r: 26 }
+                    ]
+                }
+            },
+            {
+                id: 7,
+                name: 'Sulfuric Acid',
+                plainFormula: 'H₂SO₄',
+                level: 'Level 7 • 3 Elements',
+                levelColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+                formulaTokens: [
+                    { el: 'H', sub: '2' }, { el: 'S' }, { el: 'O', sub: '4' }
+                ],
+                elements: ['H', 'S', 'O'],
+                diagramHint: '2 H + 1 S + 4 O atoms',
+                calculation: '(2 × 1) + 32 + (4 × 16) = 2 + 32 + 64',
+                rfm: 98,
+                diagram: {
+                    viewBox: '0 0 500 240',
+                    bonds: [
+                        [250, 120, 250, 48, true],
+                        [250, 120, 250, 192, true],
+                        [250, 120, 155, 120],
+                        [250, 120, 345, 120],
+                        [155, 120, 80, 120],
+                        [345, 120, 420, 120]
+                    ],
+                    atoms: [
+                        { el: 'S', x: 250, y: 120, r: 38 },
+                        { el: 'O', x: 250, y: 48,  r: 28 },
+                        { el: 'O', x: 250, y: 192, r: 28 },
+                        { el: 'O', x: 155, y: 120, r: 30 },
+                        { el: 'O', x: 345, y: 120, r: 30 },
+                        { el: 'H', x: 80,  y: 120, r: 24 },
+                        { el: 'H', x: 420, y: 120, r: 24 }
+                    ]
+                }
+            },
+            {
+                id: 8,
+                name: 'Calcium Carbonate',
+                plainFormula: 'CaCO₃',
+                level: 'Level 8 • Carbonate Ion',
+                levelColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+                formulaTokens: [
+                    { el: 'Ca' }, { el: 'C' }, { el: 'O', sub: '3' }
+                ],
+                elements: ['Ca', 'C', 'O'],
+                diagramHint: 'Ca²⁺ ion + CO₃²⁻ carbonate group',
+                calculation: '40 + 12 + (3 × 16) = 40 + 12 + 48',
+                rfm: 100,
+                diagram: {
+                    viewBox: '0 0 480 230',
+                    groups: [
+                        { x: 230, y: 24, w: 215, h: 182, label: 'CO₃ group' }
+                    ],
+                    bonds: [
+                        [320, 115, 320, 55, true],
+                        [320, 115, 265, 162],
+                        [320, 115, 385, 162]
+                    ],
+                    atoms: [
+                        { el: 'Ca', x: 125, y: 115, r: 42 },
+                        { el: 'C',  x: 320, y: 115, r: 32 },
+                        { el: 'O',  x: 320, y: 55,  r: 27 },
+                        { el: 'O',  x: 265, y: 162, r: 27 },
+                        { el: 'O',  x: 385, y: 162, r: 27 }
+                    ]
+                }
+            },
+            {
+                id: 9,
+                name: 'Glucose',
+                plainFormula: 'C₆H₁₂O₆',
+                level: 'Level 9 • Large Molecule',
+                levelColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+                formulaTokens: [
+                    { el: 'C', sub: '6' }, { el: 'H', sub: '12' }, { el: 'O', sub: '6' }
+                ],
+                elements: ['C', 'H', 'O'],
+                diagramHint: '24 atoms total: 6 C + 12 H + 6 O',
+                calculation: '(6 × 12) + (12 × 1) + (6 × 16) = 72 + 12 + 96',
+                rfm: 180,
+                diagram: {
+                    viewBox: '0 0 560 240',
+                    groups: [
+                        { x: 15,  y: 25, w: 165, h: 190, label: '6 × Carbon' },
+                        { x: 195, y: 25, w: 170, h: 190, label: '12 × Hydrogen' },
+                        { x: 380, y: 25, w: 165, h: 190, label: '6 × Oxygen' }
+                    ],
+                    bonds: [],
+                    atoms: [
+                        // 6 Carbons
+                        { el: 'C', x: 65,  y: 75,  r: 23 }, { el: 'C', x: 130, y: 75,  r: 23 },
+                        { el: 'C', x: 65,  y: 125, r: 23 }, { el: 'C', x: 130, y: 125, r: 23 },
+                        { el: 'C', x: 65,  y: 175, r: 23 }, { el: 'C', x: 130, y: 175, r: 23 },
+                        // 12 Hydrogens
+                        { el: 'H', x: 225, y: 68,  r: 17 }, { el: 'H', x: 263, y: 68,  r: 17 }, { el: 'H', x: 301, y: 68,  r: 17 }, { el: 'H', x: 339, y: 68,  r: 17 },
+                        { el: 'H', x: 225, y: 122, r: 17 }, { el: 'H', x: 263, y: 122, r: 17 }, { el: 'H', x: 301, y: 122, r: 17 }, { el: 'H', x: 339, y: 122, r: 17 },
+                        { el: 'H', x: 225, y: 176, r: 17 }, { el: 'H', x: 263, y: 176, r: 17 }, { el: 'H', x: 301, y: 176, r: 17 }, { el: 'H', x: 339, y: 176, r: 17 },
+                        // 6 Oxygens
+                        { el: 'O', x: 430, y: 75,  r: 23 }, { el: 'O', x: 495, y: 75,  r: 23 },
+                        { el: 'O', x: 430, y: 125, r: 23 }, { el: 'O', x: 495, y: 125, r: 23 },
+                        { el: 'O', x: 430, y: 175, r: 23 }, { el: 'O', x: 495, y: 175, r: 23 }
+                    ]
+                }
+            },
+            {
+                id: 10,
+                name: 'Calcium Hydroxide',
+                plainFormula: 'Ca(OH)₂',
+                level: 'Level 10 • Brackets Introduced',
+                levelColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                formulaTokens: [
+                    { el: 'Ca' }, { text: '(' }, { el: 'O' }, { el: 'H' }, { text: ')', sub: '2' }
+                ],
+                elements: ['Ca', 'O', 'H'],
+                diagramHint: 'Brackets × 2 → Two (OH) groups!',
+                calculation: '40 + 2 × (16 + 1) = 40 + (2 × 17) = 40 + 34',
+                rfm: 74,
+                diagram: {
+                    viewBox: '0 0 520 220',
+                    groups: [
+                        { x: 25,  y: 45, w: 165, h: 130, label: '(OH) group 1' },
+                        { x: 330, y: 45, w: 165, h: 130, label: '(OH) group 2' }
+                    ],
+                    bonds: [
+                        [142, 118, 260, 118],
+                        [260, 118, 378, 118],
+                        [72, 118, 142, 118],
+                        [378, 118, 448, 118]
+                    ],
+                    atoms: [
+                        { el: 'H',  x: 72,  y: 118, r: 25 },
+                        { el: 'O',  x: 142, y: 118, r: 32 },
+                        { el: 'Ca', x: 260, y: 118, r: 40 },
+                        { el: 'O',  x: 378, y: 118, r: 32 },
+                        { el: 'H',  x: 448, y: 118, r: 25 }
+                    ]
+                }
+            },
+            {
+                id: 11,
+                name: 'Magnesium Nitrate',
+                plainFormula: 'Mg(NO₃)₂',
+                level: 'Level 11 • Brackets + Subscripts',
+                levelColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                formulaTokens: [
+                    { el: 'Mg' }, { text: '(' }, { el: 'N' }, { el: 'O', sub: '3' }, { text: ')', sub: '2' }
+                ],
+                elements: ['Mg', 'N', 'O'],
+                diagramHint: 'Two (NO₃) groups = 2 N + 6 O',
+                calculation: '24 + 2 × [14 + (3 × 16)] = 24 + (2 × 62) = 24 + 124',
+                rfm: 148,
+                diagram: {
+                    viewBox: '0 0 560 240',
+                    groups: [
+                        { x: 18,  y: 25, w: 195, h: 195, label: '(NO₃) group 1' },
+                        { x: 347, y: 25, w: 195, h: 195, label: '(NO₃) group 2' }
+                    ],
+                    bonds: [
+                        // Left NO3
+                        [115, 130, 115, 68, true],
+                        [115, 130, 62, 175],
+                        [115, 130, 168, 175],
+                        // Right NO3
+                        [445, 130, 445, 68, true],
+                        [445, 130, 392, 175],
+                        [445, 130, 498, 175]
+                    ],
+                    atoms: [
+                        { el: 'Mg', x: 280, y: 130, r: 38 },
+                        // Left NO3
+                        { el: 'N', x: 115, y: 130, r: 28 },
+                        { el: 'O', x: 115, y: 68,  r: 24 },
+                        { el: 'O', x: 62,  y: 175, r: 24 },
+                        { el: 'O', x: 168, y: 175, r: 24 },
+                        // Right NO3
+                        { el: 'N', x: 445, y: 130, r: 28 },
+                        { el: 'O', x: 445, y: 68,  r: 24 },
+                        { el: 'O', x: 392, y: 175, r: 24 },
+                        { el: 'O', x: 498, y: 175, r: 24 }
+                    ]
+                }
+            },
+            {
+                id: 12,
+                name: 'Ammonium Sulfate',
+                plainFormula: '(NH₄)₂SO₄',
+                level: 'Level 12 • Brackets on First Ion',
+                levelColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                formulaTokens: [
+                    { text: '(' }, { el: 'N' }, { el: 'H', sub: '4' }, { text: ')', sub: '2' }, { el: 'S' }, { el: 'O', sub: '4' }
+                ],
+                elements: ['N', 'H', 'S', 'O'],
+                diagramHint: 'Two (NH₄) groups + One SO₄ group',
+                calculation: '2 × [14 + (4 × 1)] + 32 + (4 × 16) = 36 + 32 + 64',
+                rfm: 132,
+                diagram: {
+                    viewBox: '0 0 580 245',
+                    groups: [
+                        { x: 14,  y: 22, w: 165, h: 202, label: '(NH₄) #1' },
+                        { x: 192, y: 22, w: 165, h: 202, label: '(NH₄) #2' },
+                        { x: 375, y: 22, w: 190, h: 202, label: 'SO₄ group' }
+                    ],
+                    bonds: [
+                        // NH4 #1
+                        [96, 130, 96, 72], [96, 130, 96, 188], [96, 130, 44, 130], [96, 130, 148, 130],
+                        // NH4 #2
+                        [274, 130, 274, 72], [274, 130, 274, 188], [274, 130, 222, 130], [274, 130, 326, 130],
+                        // SO4
+                        [470, 130, 470, 68, true], [470, 130, 470, 192, true], [470, 130, 412, 130], [470, 130, 528, 130]
+                    ],
+                    atoms: [
+                        // NH4 #1
+                        { el: 'N', x: 96,  y: 130, r: 26 },
+                        { el: 'H', x: 96,  y: 72,  r: 19 }, { el: 'H', x: 96,  y: 188, r: 19 },
+                        { el: 'H', x: 44,  y: 130, r: 19 }, { el: 'H', x: 148, y: 130, r: 19 },
+                        // NH4 #2
+                        { el: 'N', x: 274, y: 130, r: 26 },
+                        { el: 'H', x: 274, y: 72,  r: 19 }, { el: 'H', x: 274, y: 188, r: 19 },
+                        { el: 'H', x: 222, y: 130, r: 19 }, { el: 'H', x: 326, y: 130, r: 19 },
+                        // SO4
+                        { el: 'S', x: 470, y: 130, r: 29 },
+                        { el: 'O', x: 470, y: 68,  r: 22 }, { el: 'O', x: 470, y: 192, r: 22 },
+                        { el: 'O', x: 412, y: 130, r: 22 }, { el: 'O', x: 528, y: 130, r: 22 }
+                    ]
+                }
+            },
+            {
+                id: 13,
+                name: 'Aluminium Carbonate',
+                plainFormula: 'Al₂(CO₃)₃',
+                level: 'Level 13 • Complex Brackets',
+                levelColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                formulaTokens: [
+                    { el: 'Al', sub: '2' }, { text: '(' }, { el: 'C' }, { el: 'O', sub: '3' }, { text: ')', sub: '3' }
+                ],
+                elements: ['Al', 'C', 'O'],
+                diagramHint: '2 Al atoms + Three (CO₃) groups',
+                calculation: '(2 × 27) + 3 × [12 + (3 × 16)] = 54 + (3 × 60) = 54 + 180',
+                rfm: 234,
+                diagram: {
+                    viewBox: '0 0 600 245',
+                    groups: [
+                        { x: 12,  y: 25, w: 92,  h: 195, label: '2 × Al' },
+                        { x: 118, y: 25, w: 150, h: 195, label: '(CO₃) #1' },
+                        { x: 278, y: 25, w: 150, h: 195, label: '(CO₃) #2' },
+                        { x: 438, y: 25, w: 150, h: 195, label: '(CO₃) #3' }
+                    ],
+                    bonds: [
+                        // CO3 #1
+                        [193, 130, 193, 72, true], [193, 130, 150, 175], [193, 130, 236, 175],
+                        // CO3 #2
+                        [353, 130, 353, 72, true], [353, 130, 310, 175], [353, 130, 396, 175],
+                        // CO3 #3
+                        [513, 130, 513, 72, true], [513, 130, 470, 175], [513, 130, 556, 175]
+                    ],
+                    atoms: [
+                        // 2 Al
+                        { el: 'Al', x: 58, y: 88,  r: 28 },
+                        { el: 'Al', x: 58, y: 165, r: 28 },
+                        // CO3 #1
+                        { el: 'C', x: 193, y: 130, r: 24 },
+                        { el: 'O', x: 193, y: 72,  r: 21 }, { el: 'O', x: 150, y: 175, r: 21 }, { el: 'O', x: 236, y: 175, r: 21 },
+                        // CO3 #2
+                        { el: 'C', x: 353, y: 130, r: 24 },
+                        { el: 'O', x: 353, y: 72,  r: 21 }, { el: 'O', x: 310, y: 175, r: 21 }, { el: 'O', x: 396, y: 175, r: 21 },
+                        // CO3 #3
+                        { el: 'C', x: 513, y: 130, r: 24 },
+                        { el: 'O', x: 513, y: 72,  r: 21 }, { el: 'O', x: 470, y: 175, r: 21 }, { el: 'O', x: 556, y: 175, r: 21 }
+                    ]
+                }
+            },
+            {
+                id: 14,
+                name: 'Hydrated Copper(II) Sulfate',
+                plainFormula: 'CuSO₄·5H₂O',
+                level: 'Level 14 • Water of Crystallisation',
+                levelColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+                formulaTokens: [
+                    { el: 'Cu' }, { el: 'S' }, { el: 'O', sub: '4' }, { text: '·5' }, { el: 'H', sub: '2' }, { el: 'O' }
+                ],
+                elements: ['Cu', 'S', 'O', 'H'],
+                diagramHint: 'The dot (·) means ADD 5 water molecules!',
+                calculation: '63.5 + 32 + (4 × 16) + 5 × [(2 × 1) + 16] = 159.5 + (5 × 18) = 159.5 + 90',
+                rfm: 249.5,
+                diagram: {
+                    viewBox: '0 0 600 245',
+                    groups: [
+                        { x: 15,  y: 25, w: 235, h: 195, label: 'CuSO₄ (159.5)' },
+                        { x: 268, y: 25, w: 317, h: 195, label: '5 × H₂O molecules (5 × 18 = 90)' }
+                    ],
+                    bonds: [
+                        // CuSO4
+                        [170, 128, 170, 68, true], [170, 128, 170, 188, true],
+                        [170, 128, 115, 128], [170, 128, 222, 128],
+                        // 5 H2O mini-molecules
+                        [325, 82, 300, 108], [325, 82, 350, 108],
+                        [425, 82, 400, 108], [425, 82, 450, 108],
+                        [525, 82, 500, 108], [525, 82, 550, 108],
+                        [375, 162, 350, 188], [375, 162, 400, 188],
+                        [480, 162, 455, 188], [480, 162, 505, 188]
+                    ],
+                    atoms: [
+                        { el: 'Cu', x: 56,  y: 128, r: 30 },
+                        { el: 'S',  x: 170, y: 128, r: 26 },
+                        { el: 'O',  x: 170, y: 68,  r: 20 }, { el: 'O',  x: 170, y: 188, r: 20 },
+                        { el: 'O',  x: 115, y: 128, r: 20 }, { el: 'O',  x: 222, y: 128, r: 20 },
+                        // Water 1
+                        { el: 'O', x: 325, y: 82,  r: 18 }, { el: 'H', x: 300, y: 108, r: 13 }, { el: 'H', x: 350, y: 108, r: 13 },
+                        // Water 2
+                        { el: 'O', x: 425, y: 82,  r: 18 }, { el: 'H', x: 400, y: 108, r: 13 }, { el: 'H', x: 450, y: 108, r: 13 },
+                        // Water 3
+                        { el: 'O', x: 525, y: 82,  r: 18 }, { el: 'H', x: 500, y: 108, r: 13 }, { el: 'H', x: 550, y: 108, r: 13 },
+                        // Water 4
+                        { el: 'O', x: 375, y: 162, r: 18 }, { el: 'H', x: 350, y: 188, r: 13 }, { el: 'H', x: 400, y: 188, r: 13 },
+                        // Water 5
+                        { el: 'O', x: 480, y: 162, r: 18 }, { el: 'H', x: 455, y: 188, r: 13 }, { el: 'H', x: 505, y: 188, r: 13 }
+                    ]
+                }
+            },
+            {
+                id: 15,
+                name: 'Hydrated Sodium Carbonate',
+                plainFormula: 'Na₂CO₃·10H₂O',
+                level: 'Level 15 • Master Challenge',
+                levelColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+                formulaTokens: [
+                    { el: 'Na', sub: '2' }, { el: 'C' }, { el: 'O', sub: '3' }, { text: '·10' }, { el: 'H', sub: '2' }, { el: 'O' }
+                ],
+                elements: ['Na', 'C', 'O', 'H'],
+                diagramHint: 'Na₂CO₃ (106) + 10 × H₂O (180)',
+                calculation: '(2 × 23) + 12 + (3 × 16) + 10 × [(2 × 1) + 16] = 106 + (10 × 18) = 106 + 180',
+                rfm: 286,
+                diagram: {
+                    viewBox: '0 0 620 250',
+                    groups: [
+                        { x: 12,  y: 25, w: 225, h: 202, label: 'Na₂CO₃ (106)' },
+                        { x: 250, y: 25, w: 358, h: 202, label: '10 × H₂O molecules (10 × 18 = 180)' }
+                    ],
+                    bonds: [
+                        // CO3
+                        [168, 130, 168, 72, true], [168, 130, 125, 178], [168, 130, 211, 178],
+                        // 10 H2O bonds (2 rows of 5)
+                        [290, 82, 272, 104], [290, 82, 308, 104],
+                        [360, 82, 342, 104], [360, 82, 378, 104],
+                        [430, 82, 412, 104], [430, 82, 448, 104],
+                        [500, 82, 482, 104], [500, 82, 518, 104],
+                        [570, 82, 552, 104], [570, 82, 588, 104],
+
+                        [290, 166, 272, 188], [290, 166, 308, 188],
+                        [360, 166, 342, 188], [360, 166, 378, 188],
+                        [430, 166, 412, 188], [430, 166, 448, 188],
+                        [500, 166, 482, 188], [500, 166, 518, 188],
+                        [570, 166, 552, 188], [570, 166, 588, 188]
+                    ],
+                    atoms: [
+                        // 2 Na
+                        { el: 'Na', x: 54, y: 88,  r: 26 },
+                        { el: 'Na', x: 54, y: 168, r: 26 },
+                        // CO3
+                        { el: 'C', x: 168, y: 130, r: 24 },
+                        { el: 'O', x: 168, y: 72,  r: 20 },
+                        { el: 'O', x: 125, y: 178, r: 20 },
+                        { el: 'O', x: 211, y: 178, r: 20 },
+                        // Top 5 H2O
+                        { el: 'O', x: 290, y: 82, r: 15 }, { el: 'H', x: 272, y: 104, r: 11 }, { el: 'H', x: 308, y: 104, r: 11 },
+                        { el: 'O', x: 360, y: 82, r: 15 }, { el: 'H', x: 342, y: 104, r: 11 }, { el: 'H', x: 378, y: 104, r: 11 },
+                        { el: 'O', x: 430, y: 82, r: 15 }, { el: 'H', x: 412, y: 104, r: 11 }, { el: 'H', x: 448, y: 104, r: 11 },
+                        { el: 'O', x: 500, y: 82, r: 15 }, { el: 'H', x: 482, y: 104, r: 11 }, { el: 'H', x: 518, y: 104, r: 11 },
+                        { el: 'O', x: 570, y: 82, r: 15 }, { el: 'H', x: 552, y: 104, r: 11 }, { el: 'H', x: 588, y: 104, r: 11 },
+                        // Bottom 5 H2O
+                        { el: 'O', x: 290, y: 166, r: 15 }, { el: 'H', x: 272, y: 188, r: 11 }, { el: 'H', x: 308, y: 188, r: 11 },
+                        { el: 'O', x: 360, y: 166, r: 15 }, { el: 'H', x: 342, y: 188, r: 11 }, { el: 'H', x: 378, y: 188, r: 11 },
+                        { el: 'O', x: 430, y: 166, r: 15 }, { el: 'H', x: 412, y: 188, r: 11 }, { el: 'H', x: 448, y: 188, r: 11 },
+                        { el: 'O', x: 500, y: 166, r: 15 }, { el: 'H', x: 482, y: 188, r: 11 }, { el: 'H', x: 518, y: 188, r: 11 },
+                        { el: 'O', x: 570, y: 166, r: 15 }, { el: 'H', x: 552, y: 188, r: 11 }, { el: 'H', x: 588, y: 188, r: 11 }
+                    ]
+                }
+            }
+        ];
+
+        // APPLICATION STATE
+        let currentCompoundIndex = 0;
+        let currentStage = 0; // 0 = Title only, 1 = Formula & Ar, 2 = Bonded Particles, 3 = Calculation, 4 = Final Answer
+
+        // DOM REFERENCES
+        const compoundSelect = document.getElementById('compoundSelect');
+        const resetBtn = document.getElementById('resetBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const nextBtnText = document.getElementById('nextBtnText');
+        const interactiveStage = document.getElementById('interactiveStage');
+
+        const compoundNumberBadge = document.getElementById('compoundNumberBadge');
+        const compoundName = document.getElementById('compoundName');
+        const difficultyBadge = document.getElementById('difficultyBadge');
+
+        const formulaPlaceholder = document.getElementById('formulaPlaceholder');
+        const formulaDisplay = document.getElementById('formulaDisplay');
+        const arPlaceholder = document.getElementById('arPlaceholder');
+        const arCardsContainer = document.getElementById('arCardsContainer');
+
+        const diagramPlaceholder = document.getElementById('diagramPlaceholder');
+        const diagramSvgWrapper = document.getElementById('diagramSvgWrapper');
+        const particleSvg = document.getElementById('particleSvg');
+        const diagramHintBadge = document.getElementById('diagramHintBadge');
+
+        const calcPlaceholder = document.getElementById('calcPlaceholder');
+        const calcDisplay = document.getElementById('calcDisplay');
+
+        const stage4AnswerBox = document.getElementById('stage4AnswerBox');
+        const answerPlaceholder = document.getElementById('answerPlaceholder');
+        const answerDisplay = document.getElementById('answerDisplay');
+        const answerValue = document.getElementById('answerValue');
+
+        const stepPills = document.querySelectorAll('.step-pill');
+        const prevCompoundBtn = document.getElementById('prevCompoundBtn');
+        const nextCompoundBtn = document.getElementById('nextCompoundBtn');
+
+        /**
+         * Initialize dropdown options for all 15 compounds
+         */
+        function populateDropdown() {
+            compoundSelect.innerHTML = '';
+            COMPOUNDS.forEach((comp, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = `${comp.id}. ${comp.name} (${comp.plainFormula})`;
+                compoundSelect.appendChild(option);
+            });
+        }
+
+        /**
+         * Build color-coded HTML formula string with proper subscripts
+         */
+        function renderFormulaHTML(tokens) {
+            return tokens.map(token => {
+                if (token.text) {
+                    const subHTML = token.sub ? `<sub class="text-[0.62em] font-extrabold">${token.sub}</sub>` : '';
+                    return `<span class="text-slate-200">${token.text}${subHTML}</span>`;
+                }
+                const elData = ELEMENTS[token.el];
+                const subHTML = token.sub ? `<sub class="text-[0.62em] font-extrabold">${token.sub}</sub>` : '';
+                return `<span class="${elData.textClass}">${token.el}${subHTML}</span>`;
+            }).join('');
+        }
+
+        /**
+         * Build Relative Atomic Mass (Ar) reference cards
+         */
+        function renderArCards(elementSymbols) {
+            arCardsContainer.innerHTML = '';
+            elementSymbols.forEach(sym => {
+                const el = ELEMENTS[sym];
+                const card = document.createElement('div');
+                card.className = `px-3.5 py-2 rounded-xl border-2 font-extrabold text-lg sm:text-2xl shadow-md flex items-center gap-2 ${el.badgeBg}`;
+                card.innerHTML = `<span>${el.symbol}</span><span class="opacity-75">=</span><span class="font-mono-math">${el.ar}</span>`;
+                arCardsContainer.appendChild(card);
+            });
+        }
+
+        /**
+         * Render crisp SVG bonded particle diagram with Ar inside each atom circle
+         */
+        function renderParticleSVG(diagram) {
+            particleSvg.setAttribute('viewBox', diagram.viewBox);
+            particleSvg.innerHTML = '';
+            const ns = 'http://www.w3.org/2000/svg';
+
+            // 1. Render dashed grouping boxes (for brackets or water of crystallisation)
+            if (diagram.groups && diagram.groups.length > 0) {
+                diagram.groups.forEach(g => {
+                    const rect = document.createElementNS(ns, 'rect');
+                    rect.setAttribute('x', g.x);
+                    rect.setAttribute('y', g.y);
+                    rect.setAttribute('width', g.w);
+                    rect.setAttribute('height', g.h);
+                    rect.setAttribute('rx', 16);
+                    rect.setAttribute('fill', 'rgba(30, 41, 59, 0.55)');
+                    rect.setAttribute('stroke', '#64748b');
+                    rect.setAttribute('stroke-width', '2.5');
+                    rect.setAttribute('stroke-dasharray', '7 5');
+                    particleSvg.appendChild(rect);
+
+                    if (g.label) {
+                        const label = document.createElementNS(ns, 'text');
+                        label.setAttribute('x', g.x + g.w / 2);
+                        label.setAttribute('y', g.y + 18);
+                        label.setAttribute('text-anchor', 'middle');
+                        label.setAttribute('fill', '#cbd5e1');
+                        label.setAttribute('font-size', '13');
+                        label.setAttribute('font-weight', '800');
+                        label.textContent = g.label;
+                        particleSvg.appendChild(label);
+                    }
+                });
+            }
+
+            // 2. Render chemical bonds (single or double lines)
+            if (diagram.bonds && diagram.bonds.length > 0) {
+                diagram.bonds.forEach(b => {
+                    const [x1, y1, x2, y2, isDouble] = b;
+                    if (isDouble) {
+                        // Compute perpendicular offset for double bond
+                        const dx = x2 - x1;
+                        const dy = y2 - y1;
+                        const len = Math.hypot(dx, dy) || 1;
+                        const ox = (-dy / len) * 4.5;
+                        const oy = (dx / len) * 4.5;
+
+                        [1, -1].forEach(dir => {
+                            const line = document.createElementNS(ns, 'line');
+                            line.setAttribute('x1', x1 + ox * dir);
+                            line.setAttribute('y1', y1 + oy * dir);
+                            line.setAttribute('x2', x2 + ox * dir);
+                            line.setAttribute('y2', y2 + oy * dir);
+                            line.setAttribute('stroke', '#94a3b8');
+                            line.setAttribute('stroke-width', '4');
+                            line.setAttribute('stroke-linecap', 'round');
+                            particleSvg.appendChild(line);
+                        });
+                    } else {
+                        const line = document.createElementNS(ns, 'line');
+                        line.setAttribute('x1', x1);
+                        line.setAttribute('y1', y1);
+                        line.setAttribute('x2', x2);
+                        line.setAttribute('y2', y2);
+                        line.setAttribute('stroke', '#94a3b8');
+                        line.setAttribute('stroke-width', '5');
+                        line.setAttribute('stroke-linecap', 'round');
+                        particleSvg.appendChild(line);
+                    }
+                });
+            }
+
+            // 3. Render atom circles with Ar value prominently inside + tiny element symbol
+            diagram.atoms.forEach(atom => {
+                const elData = ELEMENTS[atom.el];
+                const g = document.createElementNS(ns, 'g');
+
+                const circle = document.createElementNS(ns, 'circle');
+                circle.setAttribute('cx', atom.x);
+                circle.setAttribute('cy', atom.y);
+                circle.setAttribute('r', atom.r);
+                circle.setAttribute('fill', elData.fill);
+                circle.setAttribute('stroke', elData.stroke);
+                circle.setAttribute('stroke-width', '3');
+                g.appendChild(circle);
+
+                // Atomic Mass (Ar) Number inside the circle
+                const arText = document.createElementNS(ns, 'text');
+                arText.setAttribute('x', atom.x);
+                arText.setAttribute('y', atom.r >= 22 ? atom.y + 3 : atom.y + 4);
+                arText.setAttribute('text-anchor', 'middle');
+                arText.setAttribute('dominant-baseline', 'middle');
+                arText.setAttribute('fill', elData.text);
+                arText.setAttribute('font-family', 'JetBrains Mono, monospace');
+                arText.setAttribute('font-weight', '800');
+                const fontSize = atom.r >= 34 ? (String(elData.ar).length > 2 ? 18 : 22)
+                               : atom.r >= 24 ? (String(elData.ar).length > 2 ? 14 : 17)
+                               : atom.r >= 17 ? 13
+                               : 10.5;
+                arText.setAttribute('font-size', fontSize);
+                arText.textContent = elData.ar;
+                g.appendChild(arText);
+
+                // Small element symbol tag at top of atom circle (if circle is medium/large)
+                if (atom.r >= 18) {
+                    const symText = document.createElementNS(ns, 'text');
+                    symText.setAttribute('x', atom.x);
+                    symText.setAttribute('y', atom.y - atom.r * 0.48);
+                    symText.setAttribute('text-anchor', 'middle');
+                    symText.setAttribute('dominant-baseline', 'middle');
+                    symText.setAttribute('fill', elData.text);
+                    symText.setAttribute('opacity', '0.85');
+                    symText.setAttribute('font-weight', '800');
+                    symText.setAttribute('font-size', atom.r >= 30 ? '11' : '9');
+                    symText.textContent = atom.el;
+                    g.appendChild(symText);
+                }
+
+                particleSvg.appendChild(g);
+            });
+        }
+
+        /**
+         * Synchronize the entire UI with the current compound & reveal stage
+         */
+        function updateUI() {
+            const comp = COMPOUNDS[currentCompoundIndex];
+
+            // Header & Top Card Metadata
+            compoundSelect.value = currentCompoundIndex;
+            compoundNumberBadge.textContent = `#${comp.id} / ${COMPOUNDS.length}`;
+            compoundName.textContent = comp.name;
+            difficultyBadge.textContent = comp.level;
+            difficultyBadge.className = `px-4 py-1.5 rounded-full text-xs sm:text-base font-extrabold tracking-wide uppercase border ${comp.levelColor}`;
+
+            // Stage 1: Formula & Ar
+            if (currentStage >= 1) {
+                formulaPlaceholder.classList.add('hidden');
+                formulaDisplay.classList.remove('hidden');
+                formulaDisplay.innerHTML = renderFormulaHTML(comp.formulaTokens);
+
+                arPlaceholder.classList.add('hidden');
+                arCardsContainer.classList.remove('hidden');
+                arCardsContainer.classList.add('flex');
+                renderArCards(comp.elements);
+            } else {
+                formulaPlaceholder.classList.remove('hidden');
+                formulaDisplay.classList.add('hidden');
+
+                arPlaceholder.classList.remove('hidden');
+                arCardsContainer.classList.add('hidden');
+                arCardsContainer.classList.remove('flex');
+            }
+
+            // Stage 2: Bonded Particles Diagram
+            if (currentStage >= 2) {
+                diagramPlaceholder.classList.add('hidden');
+                diagramSvgWrapper.classList.remove('hidden');
+                diagramHintBadge.classList.remove('hidden');
+                diagramHintBadge.textContent = comp.diagramHint;
+                renderParticleSVG(comp.diagram);
+            } else {
+                diagramPlaceholder.classList.remove('hidden');
+                diagramSvgWrapper.classList.add('hidden');
+                diagramHintBadge.classList.add('hidden');
+            }
+
+            // Stage 3: Step-by-Step Calculation
+            if (currentStage >= 3) {
+                calcPlaceholder.classList.add('hidden');
+                calcDisplay.classList.remove('hidden');
+                calcDisplay.textContent = comp.calculation;
+            } else {
+                calcPlaceholder.classList.remove('hidden');
+                calcDisplay.classList.add('hidden');
+            }
+
+            // Stage 4: Final Answer
+            if (currentStage >= 4) {
+                answerPlaceholder.classList.add('hidden');
+                answerDisplay.classList.remove('hidden');
+                answerValue.textContent = comp.rfm;
+                stage4AnswerBox.classList.remove('bg-slate-900/95', 'border-slate-700/80');
+                stage4AnswerBox.classList.add('bg-emerald-950/90', 'border-emerald-400', 'animate-answer-glow');
+            } else {
+                answerPlaceholder.classList.remove('hidden');
+                answerDisplay.classList.add('hidden');
+                stage4AnswerBox.classList.add('bg-slate-900/95', 'border-slate-700/80');
+                stage4AnswerBox.classList.remove('bg-emerald-950/90', 'border-emerald-400', 'animate-answer-glow');
+            }
+
+            // Update Next Button Label & Styling
+            const buttonLabels = [
+                '1. Reveal Formula & Ar',
+                '2. Show Bonded Particles',
+                '3. Show Calculation',
+                '4. Reveal RFM Answer',
+                'Next Compound →'
+            ];
+            nextBtnText.textContent = buttonLabels[currentStage];
+            if (currentStage === 4) {
+                nextBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                nextBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+            } else {
+                nextBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+                nextBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+            }
+
+            // Update Bottom Stepper Pills
+            stepPills.forEach(pill => {
+                const stepNum = parseInt(pill.dataset.step, 10);
+                if (stepNum === currentStage) {
+                    pill.className = 'step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-extrabold transition cursor-pointer bg-indigo-600 text-white shadow';
+                } else if (stepNum < currentStage) {
+                    pill.className = 'step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer bg-slate-800 text-emerald-400 border border-emerald-500/30';
+                } else {
+                    pill.className = 'step-pill px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer bg-slate-900 text-slate-500 hover:text-slate-300 border border-slate-800';
+                }
+            });
+        }
+
+        /**
+         * Advance one step (or move to next compound if already at Stage 4)
+         */
+        function advanceStep() {
+            if (currentStage < 4) {
+                currentStage++;
+            } else {
+                currentCompoundIndex = (currentCompoundIndex + 1) % COMPOUNDS.length;
+                currentStage = 0;
+            }
+            updateUI();
+        }
+
+        /**
+         * Select a specific compound by index and reset stage to 0
+         */
+        function selectCompound(index) {
+            currentCompoundIndex = (index + COMPOUNDS.length) % COMPOUNDS.length;
+            currentStage = 0;
+            updateUI();
+        }
+
+        // EVENT LISTENERS
+        compoundSelect.addEventListener('change', (e) => {
+            selectCompound(parseInt(e.target.value, 10));
+            compoundSelect.blur(); // Prevent spacebar from re-opening dropdown
+        });
+
+        interactiveStage.addEventListener('click', () => {
+            advanceStep();
+        });
+
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            advanceStep();
+        });
+
+        resetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentStage = 0;
+            updateUI();
+        });
+
+        prevCompoundBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectCompound(currentCompoundIndex - 1);
+        });
+
+        nextCompoundBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectCompound(currentCompoundIndex + 1);
+        });
+
+        stepPills.forEach(pill => {
+            pill.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentStage = parseInt(pill.dataset.step, 10);
+                updateUI();
+            });
+        });
+
+        // Keyboard Navigation for Classroom Clickers / Presenters
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement === compoundSelect) return;
+            if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'Enter') {
+                e.preventDefault();
+                advanceStep();
+            } else if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                if (currentStage > 0) {
+                    currentStage--;
+                    updateUI();
+                }
+            } else if (e.key === 'r' || e.key === 'R') {
+                currentStage = 0;
+                updateUI();
+            }
+        });
+
+        // INITIALIZE APP
+        populateDropdown();
+        updateUI();
+    </script>
+</body>
+</html>
