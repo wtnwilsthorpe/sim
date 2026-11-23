@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Powers of Ten: Inside a Block of Metal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #060911;
+      font-family: 'Inter', sans-serif;
+      color: #f1f5f9;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom range slider styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f59e0b;
+      border: 2px solid #fffbeb;
+      margin-top: -6px;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+      transition: transform 0.12s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.25);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f59e0b;
+      border: 2px solid #fffbeb;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+    }
+    .glass-panel {
+      background: rgba(13, 19, 33, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+    .stage-btn.active {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #090d16;
+      font-weight: 700;
+      border-color: #fbbf24;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+  <!-- Fullscreen Simulation Canvas -->
+  <canvas id="simCanvas"></canvas>
+
+  <!-- Top Bar: Title, Current Scale Readout & Thermal Slider -->
+  <header class="fixed top-3 left-3 right-3 z-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 pointer-events-none">
+    <!-- Title & Scale Indicator -->
+    <div class="glass-panel rounded-2xl px-4 py-2.5 flex items-center gap-4 pointer-events-auto shadow-xl">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+          <h1 class="text-sm sm:text-base font-bold tracking-tight text-white">Inside a Block of Metal</h1>
+        </div>
+        <p class="text-[11px] sm:text-xs text-slate-400">Scroll, pinch, or drag slider to zoom across 17 orders of magnitude</p>
+      </div>
+      <div class="h-8 w-px bg-slate-700/70 hidden sm:block"></div>
+      <div class="text-right">
+        <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Field of View</div>
+        <div id="scaleReadout" class="mono text-sm sm:text-base font-bold text-amber-400">1.0 × 10⁻¹ m</div>
+      </div>
+    </div>
+
+    <!-- Controls: Metal Type & Thermal Vibration -->
+    <div class="glass-panel rounded-2xl px-3.5 py-2 flex flex-wrap items-center gap-3 pointer-events-auto shadow-xl">
+      <!-- Metal Selector -->
+      <div class="flex items-center gap-1.5">
+        <span class="text-[11px] font-medium text-slate-400 hidden sm:inline">Metal:</span>
+        <button id="metalCu" class="metal-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/50 transition" data-metal="copper">Cu (Copper)</button>
+        <button id="metalAu" class="metal-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/70 text-slate-300 border border-slate-700 hover:border-slate-500 transition" data-metal="gold">Au (Gold)</button>
+        <button id="metalAg" class="metal-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/70 text-slate-300 border border-slate-700 hover:border-slate-500 transition" data-metal="silver">Ag (Silver)</button>
+      </div>
+
+      <div class="h-5 w-px bg-slate-700/70"></div>
+
+      <!-- Thermal Vibration Slider -->
+      <div class="flex items-center gap-2">
+        <label for="tempSlider" class="text-[11px] font-medium text-slate-300 whitespace-nowrap">
+          Temp: <span id="tempLabel" class="mono text-amber-300 font-semibold">300 K</span>
+        </label>
+        <input id="tempSlider" type="range" min="10" max="1200" value="300" class="w-20 sm:w-24" />
+      </div>
+    </div>
+  </header>
+
+  <!-- Educational Callout Card (Floating Left / Top-Left below header) -->
+  <aside id="infoCard" class="fixed top-28 sm:top-20 left-3 z-20 max-w-xs sm:max-w-sm glass-panel rounded-2xl p-3.5 sm:p-4 shadow-2xl transition-all duration-300 pointer-events-auto">
+    <div class="flex items-center justify-between gap-2 mb-1">
+      <span id="stageBadge" class="mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+        Stage 1 • Macroscopic
+      </span>
+      <span id="stageOrder" class="mono text-xs text-slate-400">~10⁻¹ m</span>
+    </div>
+    <h2 id="stageTitle" class="text-base sm:text-lg font-bold text-white mb-1">Shiny Metallic Block</h2>
+    <p id="stageDesc" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+      At the human scale, the metal appears smooth, solid, and lustrous. Light reflects off a sea of mobile electrons near the surface. Scroll down or zoom in to peer beneath the surface.
+    </p>
+    <div id="interactiveHint" class="mt-2.5 pt-2 border-t border-slate-700/60 text-[11px] text-amber-300/90 flex items-center gap-1.5">
+      <span>💡</span>
+      <span id="hintText">Tip: Use your mouse wheel, trackpad pinch, or the slider below to zoom in.</span>
+    </div>
+  </aside>
+
+  <!-- Bottom HUD: Logarithmic Scale Slider & Stage Quick-Jump Buttons -->
+  <footer class="fixed bottom-3 left-3 right-3 z-20 flex flex-col items-center gap-2 pointer-events-none">
+    <div class="glass-panel rounded-2xl p-3 w-full max-w-4xl pointer-events-auto shadow-2xl">
+      <!-- Stage Quick-Jump Buttons -->
+      <div class="grid grid-cols-5 gap-1.5 sm:gap-2 mb-3">
+        <button class="stage-btn active rounded-xl py-1.5 px-1 sm:px-2 text-[11px] sm:text-xs font-medium border border-slate-700/80 bg-slate-800/60 text-slate-200 hover:bg-slate-700/70 transition truncate" data-target="1.0">
+          1. Metal Block
+        </button>
+        <button class="stage-btn rounded-xl py-1.5 px-1 sm:px-2 text-[11px] sm:text-xs font-medium border border-slate-700/80 bg-slate-800/60 text-slate-200 hover:bg-slate-700/70 transition truncate" data-target="8.2">
+          2. Atomic Lattice
+        </button>
+        <button class="stage-btn rounded-xl py-1.5 px-1 sm:px-2 text-[11px] sm:text-xs font-medium border border-slate-700/80 bg-slate-800/60 text-slate-200 hover:bg-slate-700/70 transition truncate" data-target="10.3">
+          3. Atom & Electrons
+        </button>
+        <button class="stage-btn rounded-xl py-1.5 px-1 sm:px-2 text-[11px] sm:text-xs font-medium border border-slate-700/80 bg-slate-800/60 text-slate-200 hover:bg-slate-700/70 transition truncate" data-target="14.3">
+          4. Nucleus
+        </button>
+        <button class="stage-btn rounded-xl py-1.5 px-1 sm:px-2 text-[11px] sm:text-xs font-medium border border-slate-700/80 bg-slate-800/60 text-slate-200 hover:bg-slate-700/70 transition truncate" data-target="16.4">
+          5. Quarks
+        </button>
+      </div>
+
+      <!-- Logarithmic Zoom Slider + Ruler Ticks -->
+      <div class="flex items-center gap-3">
+        <button id="zoomOutBtn" aria-label="Zoom Out" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-base font-bold text-slate-200 shrink-0 transition">
+          −
+        </button>
+
+        <div class="flex-1 flex flex-col">
+          <input id="zoomSlider" type="range" min="0.5" max="17.2" step="0.01" value="1.0" class="w-full" />
+          <!-- Logarithmic Scale Ruler Ticks -->
+          <div class="flex justify-between text-[9px] sm:text-[10px] mono text-slate-400 mt-1 px-0.5">
+            <span>10⁻¹ m</span>
+            <span class="hidden sm:inline">10⁻⁴ m</span>
+            <span>10⁻⁸ m</span>
+            <span class="hidden sm:inline">10⁻¹⁰ m</span>
+            <span>10⁻¹⁴ m</span>
+            <span>10⁻¹⁸ m</span>
+          </div>
+        </div>
+
+        <button id="zoomInBtn" aria-label="Zoom In" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-base font-bold text-slate-200 shrink-0 transition">
+          +
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /**
+     * Powers of Ten: Inside a Block of Metal
+     * Smoothly interpolates across 5 physical regimes from 10^-1 m down to 10^-18 m.
+     *
+     * Zoom parameter `z` represents -log10(field_of_view_in_meters):
+     *   z = 1.0  -> 10^-1 m (10 cm, macroscopic metal block)
+     *   z = 6.5  -> 10^-6.5 m (grain boundaries & crystalline microstructure)
+     *   z = 8.2  -> 10^-8.2 m (atomic lattice of vibrating metal ions + sea of electrons)
+     *   z = 10.3 -> 10^-10.3 m (single atom: electron shells & probability cloud around tiny nucleus)
+     *   z = 14.3 -> 10^-14.3 m (atomic nucleus: protons & neutrons bound by strong nuclear force)
+     *   z = 16.4 -> 10^-16.4 m (inside a single proton or neutron: 3 quarks + wavy gluon flux tubes)
+     */
+
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Elements
+    const zoomSlider = document.getElementById('zoomSlider');
+    const scaleReadout = document.getElementById('scaleReadout');
+    const tempSlider = document.getElementById('tempSlider');
+    const tempLabel = document.getElementById('tempLabel');
+    const stageBadge = document.getElementById('stageBadge');
+    const stageOrder = document.getElementById('stageOrder');
+    const stageTitle = document.getElementById('stageTitle');
+    const stageDesc = document.getElementById('stageDesc');
+    const hintText = document.getElementById('hintText');
+    const stageBtns = document.querySelectorAll('.stage-btn');
+    const metalBtns = document.querySelectorAll('.metal-btn');
+
+    // Simulation State
+    let width = 0;
+    let height = 0;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    let zoomZ = 1.0;          // Current smoothed zoom (-log10 meters)
+    let targetZoomZ = 1.0;    // Target zoom for smooth interpolation
+    const MIN_Z = 0.5;
+    const MAX_Z = 17.2;
+
+    let temperatureK = 300;   // Kelvin (affects atomic vibration amplitude & speed)
+    let selectedMetal = 'copper';
+    let selectedNucleonType = 'proton'; // 'proton' (uud) or 'neutron' (udd)
+    let selectedNucleonIndex = 0;       // Which nucleon in the cluster is centered for quark zoom
+    let time = 0;
+
+    // Metal Palettes (realistic PBR-inspired color stops for specular metal rendering & ions)
+    const METALS = {
+      copper: {
+        name: 'Copper',
+        symbol: 'Cu',
+        atomicNumber: 29,
+        neutrons: 34,
+        baseDark: '#4a1d11',
+        baseMid: '#b85d3b',
+        baseBright: '#e8926b',
+        specular: '#ffd8c4',
+        ionCore: '#d9734e',
+        ionHighlight: '#ffbe9e',
+        shells: [2, 8, 18, 1]
+      },
+      gold: {
+        name: 'Gold',
+        symbol: 'Au',
+        atomicNumber: 79,
+        neutrons: 118,
+        baseDark: '#4d3608',
+        baseMid: '#c79726',
+        baseBright: '#f5ce5b',
+        specular: '#fff5cc',
+        ionCore: '#eab32e',
+        ionHighlight: '#ffe885',
+        shells: [2, 8, 18, 32, 18, 1]
+      },
+      silver: {
+        name: 'Silver',
+        symbol: 'Ag',
+        atomicNumber: 47,
+        neutrons: 61,
+        baseDark: '#333b48',
+        baseMid: '#8e9aaf',
+        baseBright: '#d4dce8',
+        specular: '#ffffff',
+        ionCore: '#a6b2c4',
+        ionHighlight: '#f1f5f9',
+        shells: [2, 8, 18, 18, 1]
+      }
+    };
+
+    // Pre-generate deterministic Voronoi-like crystal grain seeds for microstructure transition
+    const grainSeeds = [];
+    for (let i = 0; i < 42; i++) {
+      const angle = i * 2.39996; // Golden angle distribution
+      const rad = Math.sqrt(i / 42) * 0.95;
+      grainSeeds.push({
+        x: Math.cos(angle) * rad,
+        y: Math.sin(angle) * rad,
+        shade: (Math.sin(i * 17.3) * 0.5 + 0.5) * 0.22 - 0.11,
+        angle: (i * 1.1) % Math.PI
+      });
+    }
+
+    // Pre-generate delocalized "sea of electrons" particles for the metallic lattice
+    const freeElectrons = [];
+    for (let i = 0; i < 95; i++) {
+      freeElectrons.push({
+        x: (Math.random() - 0.5) * 2.2,
+        y: (Math.random() - 0.5) * 2.2,
+        vx: (Math.random() - 0.5) * 0.9,
+        vy: (Math.random() - 0.5) * 0.9,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+
+    // Pre-generate a 3D-like spherical cluster of protons & neutrons for the Nucleus stage
+    // Index 0 is a Proton (uud), Index 1 is a Neutron (udd) so either can be inspected cleanly
+    const nucleons = [];
+    (function buildNucleus() {
+      const count = 36; // Representative dense cluster of the nucleus
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      for (let i = 0; i < count; i++) {
+        // Place index 0 (proton) and index 1 (neutron) near the front-center
+        let x, y, z;
+        if (i === 0) {
+          x = -0.22; y = -0.05; z = 0.85;
+        } else if (i === 1) {
+          x = 0.24; y = 0.08; z = 0.82;
+        } else {
+          const t = i / (count - 1);
+          const r = Math.cbrt(t) * 1.05;
+          const yNorm = 1 - (i / (count - 1)) * 2;
+          const radiusAtY = Math.sqrt(Math.max(0, 1 - yNorm * yNorm));
+          const theta = goldenAngle * i;
+          x = Math.cos(theta) * radiusAtY * r;
+          y = yNorm * r;
+          z = Math.sin(theta) * radiusAtY * r;
+        }
+        nucleons.push({
+          id: i,
+          type: i % 2 === 0 ? 'proton' : 'neutron',
+          bx: x,
+          by: y,
+          bz: z,
+          phaseX: Math.random() * Math.PI * 2,
+          phaseY: Math.random() * Math.PI * 2,
+          phaseZ: Math.random() * Math.PI * 2,
+          screenX: 0,
+          screenY: 0,
+          screenR: 0
+        });
+      }
+    })();
+
+    // Resize handling
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Smooth helper functions
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function smoothstep(edge0, edge1, x) {
+      const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+      return t * t * (3 - 2 * t);
+    }
+
+    // Bandpass visibility weight for smooth cross-fades across logarithmic scales
+    function stageWeight(z, fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd) {
+      const a = smoothstep(fadeInStart, fadeInEnd, z);
+      const b = 1 - smoothstep(fadeOutStart, fadeOutEnd, z);
+      return a * b;
+    }
+
+    // Format scientific notation nicely (e.g., 1.0 × 10⁻¹ m)
+    const SUPERSCRIPTS = {
+      '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+      '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+    };
+    function toSuperscript(numStr) {
+      return numStr.split('').map(ch => SUPERSCRIPTS[ch] || ch).join('');
+    }
+    function formatScaleMeters(z) {
+      const exp = -z;
+      const expFloor = Math.floor(exp);
+      const mantissa = Math.pow(10, exp - expFloor);
+      return `${mantissa.toFixed(1)} × 10${toSuperscript(String(expFloor))} m`;
+    }
+
+    // Update educational callout & HUD state based on zoomZ
+    function updateHUD() {
+      scaleReadout.textContent = formatScaleMeters(zoomZ);
+      zoomSlider.value = zoomZ.toFixed(2);
+
+      const metal = METALS[selectedMetal];
+      let activeIdx = 0;
+
+      if (zoomZ < 7.2) {
+        activeIdx = 0;
+        stageBadge.textContent = 'Stage 1 • Macroscopic';
+        stageOrder.textContent = zoomZ < 4.5 ? '~10⁻¹ to 10⁻⁴ m' : '~10⁻⁵ to 10⁻⁷ m';
+        if (zoomZ < 4.8) {
+          stageTitle.textContent = `Shiny ${metal.name} Block (${metal.symbol})`;
+          stageDesc.textContent = `At the macroscopic scale, ${metal.name.toLowerCase()} looks like a continuous, lustrous solid. Keep zooming in to reveal microscopic crystal grain boundaries.`;
+          hintText.textContent = 'Scroll down or drag the zoom slider right to dive into the metal.';
+        } else {
+          stageTitle.textContent = 'Metallic Crystal Grains';
+          stageDesc.textContent = `Around 10⁻⁶ m, the smooth surface resolves into interlocking metallic crystal grains. Within each grain, atoms are arranged in a regular repeating lattice.`;
+          hintText.textContent = 'Keep zooming past 10⁻⁸ m to see individual vibrating metal atoms!';
+        }
+      } else if (zoomZ < 9.5) {
+        activeIdx = 1;
+        stageBadge.textContent = 'Stage 2 • Atomic Lattice';
+        stageOrder.textContent = '~10⁻⁸ to 10⁻¹⁰ m';
+        stageTitle.textContent = 'Vibrating Lattice & Electron Sea';
+        stageDesc.textContent = `Positive ${metal.symbol}⁺ ions sit in a tightly packed 3D crystal lattice, vibrating with thermal energy while delocalized valence electrons flow freely between them.`;
+        hintText.textContent = 'Try adjusting the Temp slider (top right) to see thermal vibration change!';
+      } else if (zoomZ < 13.0) {
+        activeIdx = 2;
+        stageBadge.textContent = 'Stage 3 • Atomic Scale';
+        stageOrder.textContent = '~10⁻¹⁰ to 10⁻¹³ m';
+        stageTitle.textContent = `${metal.name} Atom (${metal.atomicNumber} Electrons)`;
+        stageDesc.textContent = `Zooming into the central atom reveals concentric electron shells and probability clouds orbiting a tiny central nucleus. Almost all of the atom is empty space!`;
+        hintText.textContent = 'Keep zooming deep into the center—the nucleus is 100,000× smaller than the atom!';
+      } else if (zoomZ < 15.6) {
+        activeIdx = 3;
+        stageBadge.textContent = 'Stage 4 • Nuclear Scale';
+        stageOrder.textContent = '~10⁻¹⁴ to 10⁻¹⁵ m';
+        stageTitle.textContent = 'Protons & Neutrons in Nucleus';
+        stageDesc.textContent = `The dense core contains positively charged protons (+1) and neutral neutrons (0) bound together by the Strong Nuclear Force, overcoming electrostatic repulsion.`;
+        hintText.textContent = 'Click any Proton (+) or Neutron (0) to target it, or zoom in to see its quarks!';
+      } else {
+        activeIdx = 4;
+        stageBadge.textContent = 'Stage 5 • Subatomic Quarks';
+        stageOrder.textContent = '~10⁻¹⁶ to 10⁻¹⁸ m';
+        const isProton = selectedNucleonType === 'proton';
+        stageTitle.textContent = isProton ? 'Inside a Proton (u · u · d)' : 'Inside a Neutron (u · d · d)';
+        stageDesc.textContent = isProton
+          ? 'A proton consists of two Up quarks (+⅔) and one Down quark (−⅓), giving a total charge of +1. Wavy gluon flux tubes carry the strong force between them.'
+          : 'A neutron consists of one Up quark (+⅔) and two Down quarks (−⅓), giving a net charge of 0. Gluons constantly bind the three quarks inside.';
+        hintText.textContent = 'Click the toggle button on screen to switch between Proton (uud) and Neutron (udd).';
+      }
+
+      stageBtns.forEach((btn, i) => {
+        btn.classList.toggle('active', i === activeIdx);
+      });
+    }
+
+    // =========================================================================
+    // RENDER STAGE 1: MACROSCOPIC METAL BLOCK & GRAIN BOUNDARIES (z: 0.5 -> 7.8)
+    // =========================================================================
+    function renderMacroscopicMetal(cx, cy, minDim, alpha) {
+      if (alpha <= 0.005) return;
+      const metal = METALS[selectedMetal];
+
+      // Scale factor grows exponentially with zoomZ so we physically zoom into the block's center
+      const relScale = Math.pow(10, zoomZ - 1.0);
+      const baseSize = minDim * 0.44;
+      const blockSize = baseSize * relScale;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Ambient studio glow behind the metal block when zoomed out
+      if (relScale < 8) {
+        const bgGlow = ctx.createRadialGradient(cx, cy, blockSize * 0.1, cx, cy, Math.max(width, height) * 0.65);
+        bgGlow.addColorStop(0, 'rgba(245, 158, 11, 0.09)');
+        bgGlow.addColorStop(0.5, 'rgba(30, 41, 59, 0.08)');
+        bgGlow.addColorStop(1, 'rgba(6, 9, 17, 0)');
+        ctx.fillStyle = bgGlow;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      // Draw 3D beveled isometric-perspective ingot/block when block edges are still within or near viewport
+      const halfW = blockSize * 0.62;
+      const halfH = blockSize * 0.44;
+      const depthX = blockSize * 0.16;
+      const depthY = blockSize * 0.14;
+
+      if (halfW < width * 3.5) {
+        // Soft drop shadow beneath block
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.filter = `blur(${Math.min(35, 14 * Math.sqrt(relScale))}px)`;
+        ctx.beginPath();
+        ctx.ellipse(cx + depthX * 0.4, cy + halfH + depthY * 0.9, halfW * 1.05, halfH * 0.28, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Top beveled face
+        const topGrad = ctx.createLinearGradient(cx - halfW, cy - halfH - depthY, cx + halfW, cy - halfH);
+        topGrad.addColorStop(0, metal.baseBright);
+        topGrad.addColorStop(0.45, metal.specular);
+        topGrad.addColorStop(1, metal.baseMid);
+
+        ctx.beginPath();
+        ctx.moveTo(cx - halfW, cy - halfH);
+        ctx.lineTo(cx - halfW + depthX, cy - halfH - depthY);
+        ctx.lineTo(cx + halfW + depthX, cy - halfH - depthY);
+        ctx.lineTo(cx + halfW, cy - halfH);
+        ctx.closePath();
+        ctx.fillStyle = topGrad;
+        ctx.fill();
+
+        // Right side face
+        const sideGrad = ctx.createLinearGradient(cx + halfW, cy - halfH, cx + halfW + depthX, cy + halfH);
+        sideGrad.addColorStop(0, metal.baseMid);
+        sideGrad.addColorStop(0.5, metal.baseDark);
+        sideGrad.addColorStop(1, '#140c08');
+
+        ctx.beginPath();
+        ctx.moveTo(cx + halfW, cy - halfH);
+        ctx.lineTo(cx + halfW + depthX, cy - halfH - depthY);
+        ctx.lineTo(cx + halfW + depthX, cy + halfH - depthY);
+        ctx.lineTo(cx + halfW, cy + halfH);
+        ctx.closePath();
+        ctx.fillStyle = sideGrad;
+        ctx.fill();
+      }
+
+      // Front face (fills screen seamlessly as we zoom deep inside)
+      const faceLeft = Math.max(-20, cx - halfW);
+      const faceTop = Math.max(-20, cy - halfH);
+      const faceRight = Math.min(width + 20, cx + halfW);
+      const faceBottom = Math.min(height + 20, cy + halfH);
+      const faceW = faceRight - faceLeft;
+      const faceH = faceBottom - faceTop;
+
+      if (faceW > 0 && faceH > 0) {
+        // Metallic anisotropic brushed sheen gradient
+        const sheenShift = Math.sin(time * 0.6) * 0.04;
+        const frontGrad = ctx.createLinearGradient(
+          cx - Math.min(halfW, width * 0.8),
+          cy - Math.min(halfH, height * 0.8),
+          cx + Math.min(halfW, width * 0.8),
+          cy + Math.min(halfH, height * 0.8)
+        );
+        frontGrad.addColorStop(0, metal.baseDark);
+        frontGrad.addColorStop(clamp(0.28 + sheenShift, 0.1, 0.4), metal.baseMid);
+        frontGrad.addColorStop(clamp(0.48 + sheenShift, 0.35, 0.65), metal.specular);
+        frontGrad.addColorStop(clamp(0.68 + sheenShift, 0.55, 0.85), metal.baseBright);
+        frontGrad.addColorStop(1, metal.baseDark);
+
+        ctx.fillStyle = frontGrad;
+        ctx.fillRect(faceLeft, faceTop, faceW, faceH);
+
+        // Subtle brushed metal micro-striations
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(faceLeft, faceTop, faceW, faceH);
+        ctx.clip();
+
+        const lineAlpha = clamp(0.14 - (zoomZ - 1.0) * 0.02, 0.02, 0.14);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${lineAlpha})`;
+        ctx.lineWidth = 1;
+        const step = 7;
+        const offsetY = (cy % step);
+        ctx.beginPath();
+        for (let y = faceTop - step + offsetY; y < faceBottom + step; y += step) {
+          ctx.moveTo(faceLeft, y);
+          ctx.lineTo(faceRight, y);
+        }
+        ctx.stroke();
+
+        // Microscopic Crystalline Grain Boundaries emerge between z = 3.8 and z = 7.6
+        const grainAlpha = stageWeight(zoomZ, 3.6, 5.2, 6.8, 7.8);
+        if (grainAlpha > 0.01) {
+          const grainScale = minDim * 0.42 * Math.pow(10, (zoomZ - 5.5) * 0.55);
+          ctx.save();
+          ctx.globalAlpha = alpha * grainAlpha * 0.65;
+
+          // Draw crystalline facets around center
+          for (let i = 0; i < grainSeeds.length; i++) {
+            const g = grainSeeds[i];
+            const gx = cx + g.x * grainScale;
+            const gy = cy + g.y * grainScale;
+            const r = grainScale * 0.24;
+            if (gx + r < 0 || gx - r > width || gy + r < 0 || gy - r > height) continue;
+
+            ctx.beginPath();
+            const sides = 6;
+            for (let s = 0; s < sides; s++) {
+              const a = g.angle + (s * Math.PI * 2) / sides;
+              const radMod = r * (0.82 + 0.22 * Math.sin(i * 3 + s * 2));
+              const px = gx + Math.cos(a) * radMod;
+              const py = gy + Math.sin(a) * radMod;
+              if (s === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fillStyle = g.shade > 0
+              ? `rgba(255, 255, 255, ${g.shade})`
+              : `rgba(0, 0, 0, ${-g.shade * 1.4})`;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // Crisp specular rim border when block outline is visible
+        if (halfW < width * 2.5) {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(cx - halfW, cy - halfH, halfW * 2, halfH * 2);
+
+          // Engraved element stamp on the metal block at macroscopic zoom
+          if (zoomZ < 2.6) {
+            const stampAlpha = 1 - smoothstep(1.8, 2.6, zoomZ);
+            ctx.save();
+            ctx.globalAlpha = alpha * stampAlpha * 0.55;
+            ctx.fillStyle = metal.baseDark;
+            ctx.font = `700 ${Math.max(14, blockSize * 0.13)}px 'JetBrains Mono', monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(metal.symbol, cx - halfW * 0.52, cy + halfH * 0.45);
+            ctx.font = `600 ${Math.max(9, blockSize * 0.045)}px 'JetBrains Mono', monospace`;
+            ctx.fillText(`Z=${metal.atomicNumber} • PURE ${metal.name.toUpperCase()}`, cx - halfW * 0.52, cy + halfH * 0.64);
+            ctx.restore();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // RENDER STAGE 2: ATOMIC LATTICE & SEA OF ELECTRONS (z: 6.8 -> 10.6)
+    // =========================================================================
+    function renderAtomicLattice(cx, cy, minDim, alpha) {
+      if (alpha <= 0.005) return;
+      const metal = METALS[selectedMetal];
+
+      // Center atom grows continuously from tiny packed spheres to filling the viewport
+      // At z = 8.2, atom spacing is ~68 px; at z = 10.3, central atom radius is ~minDim * 0.36
+      const atomSpacing = minDim * 0.115 * Math.pow(10, (zoomZ - 8.2) * 0.62);
+      const atomRadius = atomSpacing * 0.39;
+
+      // Thermal vibration amplitude & frequency scale with Temperature (Kelvin)
+      const tempNorm = temperatureK / 300;
+      const vibAmp = atomSpacing * 0.055 * Math.sqrt(tempNorm);
+      const vibFreq = 4.5 + tempNorm * 8.5;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Dark metallic background tint for lattice contrast
+      ctx.fillStyle = `rgba(8, 12, 22, ${clamp(alpha * 0.92, 0, 1)})`;
+      ctx.fillRect(0, 0, width, height);
+
+      // Determine grid bounds so off-screen atoms are culled for high FPS
+      const cols = Math.min(18, Math.ceil(width / atomSpacing) + 2);
+      const rows = Math.min(14, Math.ceil(height / atomSpacing) + 2);
+      const halfCols = Math.ceil(cols / 2);
+      const halfRows = Math.ceil(rows / 2);
+
+      // Draw subtle metallic bond/grid lines between neighboring ions
+      if (atomSpacing > 18 && atomSpacing < width * 1.4) {
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let r = -halfRows; r <= halfRows; r++) {
+          const rowShift = (r % 2 !== 0) ? atomSpacing * 0.5 : 0;
+          const y = cy + r * atomSpacing * 0.866;
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          for (let c = -halfCols; c <= halfCols; c++) {
+            const x = cx + c * atomSpacing + rowShift;
+            if (r < halfRows) {
+              ctx.moveTo(x, y);
+              ctx.lineTo(x + atomSpacing * 0.5, y + atomSpacing * 0.866);
+              ctx.moveTo(x, y);
+              ctx.lineTo(x - atomSpacing * 0.5, y + atomSpacing * 0.866);
+            }
+          }
+        }
+        ctx.stroke();
+      }
+
+      // Draw delocalized "sea of electrons" glints drifting between ions
+      if (atomSpacing > 16 && atomSpacing < width * 1.8) {
+        const electronAlpha = clamp(alpha * (1 - smoothstep(9.3, 10.2, zoomZ)), 0, 0.85);
+        if (electronAlpha > 0.02) {
+          ctx.save();
+          ctx.globalAlpha = electronAlpha;
+          const speedScale = 0.25 + tempNorm * 0.45;
+          for (let i = 0; i < freeElectrons.length; i++) {
+            const e = freeElectrons[i];
+            const px = cx + (((e.x + time * e.vx * speedScale + 3) % 2.2) - 1.1) * width * 0.52;
+            const py = cy + (((e.y + time * e.vy * speedScale + 3) % 2.2) - 1.1) * height * 0.52;
+            const r = clamp(atomRadius * 0.11, 1.8, 5.5);
+
+            const glow = ctx.createRadialGradient(px, py, 0, px, py, r * 3.2);
+            glow.addColorStop(0, 'rgba(56, 189, 248, 0.95)');
+            glow.addColorStop(0.4, 'rgba(56, 189, 248, 0.35)');
+            glow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(px, py, r * 3.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      // Draw background deeper lattice layer (gives 3D crystal depth)
+      if (atomSpacing > 22 && atomSpacing < width * 1.2) {
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.28;
+        for (let r = -halfRows; r <= halfRows; r++) {
+          const rowShift = (r % 2 !== 0) ? atomSpacing * 0.5 : 0;
+          for (let c = -halfCols; c <= halfCols; c++) {
+            const bx = cx + c * atomSpacing + rowShift + atomSpacing * 0.25;
+            const by = cy + r * atomSpacing * 0.866 + atomSpacing * 0.28;
+            if (bx < -atomRadius || bx > width + atomRadius || by < -atomRadius || by > height + atomRadius) continue;
+
+            const seed = (r * 31 + c * 17) + 100;
+            const dx = Math.sin(time * vibFreq + seed) * vibAmp * 0.7;
+            const dy = Math.cos(time * vibFreq * 1.13 + seed * 1.7) * vibAmp * 0.7;
+
+            ctx.fillStyle = metal.baseDark;
+            ctx.beginPath();
+            ctx.arc(bx + dx, by + dy, atomRadius * 0.84, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+
+      // Draw primary hexagonal close-packed (HCP/FCC) plane of vibrating metal ions
+      // Note: Center atom (r=0, c=0) smoothly dissolves into the orbital view as zoomZ > 9.3
+      const centerDissolve = 1 - smoothstep(9.2, 10.2, zoomZ);
+
+      for (let r = -halfRows; r <= halfRows; r++) {
+        const rowShift = (r % 2 !== 0) ? atomSpacing * 0.5 : 0;
+        for (let c = -halfCols; c <= halfCols; c++) {
+          const isCenter = (r === 0 && c === 0);
+          const localAlpha = isCenter ? alpha * centerDissolve : alpha;
+          if (localAlpha <= 0.01) continue;
+
+          const baseX = cx + c * atomSpacing + rowShift;
+          const baseY = cy + r * atomSpacing * 0.866;
+
+          if (baseX < -atomRadius * 1.5 || baseX > width + atomRadius * 1.5 ||
+              baseY < -atomRadius * 1.5 || baseY > height + atomRadius * 1.5) {
+            continue;
+          }
+
+          // Thermal vibration offset (damped for center atom when zooming into its orbitals)
+          const seed = r * 53 + c * 97;
+          const damp = isCenter ? centerDissolve : 1.0;
+          const dx = Math.sin(time * vibFreq + seed) * vibAmp * damp;
+          const dy = Math.cos(time * vibFreq * 1.09 + seed * 1.3) * vibAmp * damp;
+
+          const ax = baseX + dx;
+          const ay = baseY + dy;
+
+          ctx.save();
+          ctx.globalAlpha = localAlpha;
+
+          // 3D shaded metallic ion sphere
+          const sphereGrad = ctx.createRadialGradient(
+            ax - atomRadius * 0.32,
+            ay - atomRadius * 0.32,
+            atomRadius * 0.08,
+            ax,
+            ay,
+            atomRadius
+          );
+          sphereGrad.addColorStop(0, metal.ionHighlight);
+          sphereGrad.addColorStop(0.45, metal.ionCore);
+          sphereGrad.addColorStop(1, metal.baseDark);
+
+          ctx.fillStyle = sphereGrad;
+          ctx.beginPath();
+          ctx.arc(ax, ay, atomRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Subtle rim highlight
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = Math.max(0.8, atomRadius * 0.03);
+          ctx.stroke();
+
+          // Ion symbol label when atoms are large enough to read cleanly
+          if (atomRadius > 18 && atomRadius < 140) {
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+            ctx.font = `700 ${Math.floor(atomRadius * 0.44)}px 'JetBrains Mono', monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${metal.symbol}⁺`, ax, ay);
+          }
+
+          ctx.restore();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // RENDER STAGE 3: ATOMIC ORBITALS & EMPTY SPACE (z: 9.2 -> 13.8)
+    // =========================================================================
+    function renderAtomAndOrbitals(cx, cy, minDim, alpha) {
+      if (alpha <= 0.005) return;
+      const metal = METALS[selectedMetal];
+
+      // Outer atomic radius scales exponentially as we dive toward the nucleus
+      // At z = 10.3, outer radius is ~minDim * 0.38
+      const outerRadius = minDim * 0.38 * Math.pow(10, (zoomZ - 10.3) * 0.82);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Quantum probability cloud aura
+      if (outerRadius < Math.max(width, height) * 4) {
+        const cloudGrad = ctx.createRadialGradient(cx, cy, outerRadius * 0.02, cx, cy, outerRadius * 1.15);
+        cloudGrad.addColorStop(0, 'rgba(56, 189, 248, 0.22)');
+        cloudGrad.addColorStop(0.45, 'rgba(14, 165, 233, 0.11)');
+        cloudGrad.addColorStop(0.82, 'rgba(56, 189, 248, 0.04)');
+        cloudGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = cloudGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, outerRadius * 1.15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw concentric electron shells & orbiting electrons
+      const shells = metal.shells;
+      const numShells = shells.length;
+
+      for (let s = 0; s < numShells; s++) {
+        // Inner shells sit closer to the nucleus
+        const frac = (s + 1) / numShells;
+        const shellR = outerRadius * Math.pow(frac, 1.18);
+
+        if (shellR < 6 || shellR > Math.max(width, height) * 2.5) continue;
+
+        // Subtle orbital ring
+        ctx.strokeStyle = s === numShells - 1
+          ? 'rgba(251, 191, 36, 0.32)' // Valence shell highlighted in warm gold
+          : 'rgba(56, 189, 248, 0.24)';
+        ctx.lineWidth = s === numShells - 1 ? 1.6 : 1.1;
+        ctx.setLineDash(s === numShells - 1 ? [6, 4] : []);
+        ctx.beginPath();
+        ctx.arc(cx, cy, shellR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw electrons on this shell (cap rendered dots on dense inner shells for visual clarity)
+        const eCount = shells[s];
+        const visibleElectrons = Math.min(eCount, s === numShells - 1 ? eCount : 12);
+        const angularSpeed = (1.6 - frac * 0.95) * (s % 2 === 0 ? 1 : -1);
+
+        for (let e = 0; e < visibleElectrons; e++) {
+          const angle = time * angularSpeed + (e * Math.PI * 2) / visibleElectrons + s * 0.7;
+          const ex = cx + Math.cos(angle) * shellR;
+          const ey = cy + Math.sin(angle) * shellR;
+
+          if (ex < -30 || ex > width + 30 || ey < -30 || ey > height + 30) continue;
+
+          const eRadius = clamp(shellR * 0.032, 2.5, 6.5);
+
+          // Glowing electron halo
+          const eGlow = ctx.createRadialGradient(ex, ey, 0, ex, ey, eRadius * 3.2);
+          if (s === numShells - 1) {
+            eGlow.addColorStop(0, '#fef08a');
+            eGlow.addColorStop(0.4, 'rgba(245, 158, 11, 0.6)');
+            eGlow.addColorStop(1, 'rgba(245, 158, 11, 0)');
+          } else {
+            eGlow.addColorStop(0, '#e0f2fe');
+            eGlow.addColorStop(0.4, 'rgba(56, 189, 248, 0.65)');
+            eGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+          }
+          ctx.fillStyle = eGlow;
+          ctx.beginPath();
+          ctx.arc(ex, ey, eRadius * 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Bright electron core
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(ex, ey, eRadius * 0.65, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Scale callout showing "Mostly Empty Space" between outer shell and tiny central nucleus
+      if (zoomZ > 9.9 && zoomZ < 12.2 && outerRadius > 90 && outerRadius < minDim * 0.85) {
+        const noteAlpha = stageWeight(zoomZ, 9.9, 10.3, 11.6, 12.2);
+        ctx.save();
+        ctx.globalAlpha = alpha * noteAlpha * 0.85;
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(cx + 8, cy);
+        ctx.lineTo(cx + outerRadius * 0.96, cy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = `500 11px 'Inter', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('99.9999999999999% empty space', cx + outerRadius * 0.52, cy - 8);
+        ctx.restore();
+      }
+
+      // Tiny bright pinpoint nucleus at the center (grows smoothly into Stage 4)
+      const nucPinRadius = clamp(outerRadius * 0.018, 3.0, 26);
+      const nucGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, nucPinRadius * 3.5);
+      nucGlow.addColorStop(0, '#ffffff');
+      nucGlow.addColorStop(0.3, '#fb923c');
+      nucGlow.addColorStop(0.7, 'rgba(239, 68, 68, 0.4)');
+      nucGlow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+      ctx.fillStyle = nucGlow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, nucPinRadius * 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // RENDER STAGE 4: ATOMIC NUCLEUS (PROTONS & NEUTRONS) (z: 12.6 -> 16.0)
+    // =========================================================================
+    function renderNucleus(cx, cy, minDim, alpha) {
+      if (alpha <= 0.005) return;
+
+      // At z = 14.3, cluster radius is ~minDim * 0.25
+      const clusterRadius = minDim * 0.25 * Math.pow(10, (zoomZ - 14.3) * 0.85);
+      const nucleonR = clusterRadius * 0.28;
+
+      // Target offset so zooming past z = 14.8 centers smoothly on the selected proton/neutron
+      const targetNuc = nucleons[selectedNucleonIndex] || nucleons[0];
+      const focusBlend = smoothstep(14.6, 15.6, zoomZ);
+
+      // Compute animated 3D positions & depth-sort back-to-front
+      const projected = nucleons.map(n => {
+        const jiggle = nucleonR * 0.045;
+        const jx = Math.sin(time * 9.5 + n.phaseX) * jiggle;
+        const jy = Math.cos(time * 10.2 + n.phaseY) * jiggle;
+        const jz = Math.sin(time * 8.8 + n.phaseZ) * 0.04;
+
+        // Slow majestic 3D rotation (damped when zooming into a specific nucleon)
+        const rotAngle = time * 0.22 * (1 - focusBlend);
+        const cosA = Math.cos(rotAngle);
+        const sinA = Math.sin(rotAngle);
+
+        const rx = n.bx * cosA - n.bz * sinA;
+        const rz = n.bx * sinA + n.bz * cosA + jz;
+        const ry = n.by;
+
+        return {
+          ref: n,
+          rx,
+          ry,
+          rz,
+          jx,
+          jy
+        };
+      });
+
+      // Find target nucleon's offset so we can pan it cleanly to (cx, cy) during quark zoom
+      const targetProj = projected.find(p => p.ref.id === targetNuc.id) || projected[0];
+      const offsetX = targetProj.rx * clusterRadius * focusBlend;
+      const offsetY = targetProj.ry * clusterRadius * focusBlend;
+
+      // Sort back-to-front by Z coordinate
+      projected.sort((a, b) => a.rz - b.rz);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Strong nuclear force binding glow around the nucleus
+      if (clusterRadius < Math.max(width, height) * 2.5) {
+        const forceGlow = ctx.createRadialGradient(
+          cx - offsetX, cy - offsetY, clusterRadius * 0.2,
+          cx - offsetX, cy - offsetY, clusterRadius * 1.45
+        );
+        forceGlow.addColorStop(0, 'rgba(251, 146, 60, 0.24)');
+        forceGlow.addColorStop(0.6, 'rgba(239, 68, 68, 0.08)');
+        forceGlow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+        ctx.fillStyle = forceGlow;
+        ctx.beginPath();
+        ctx.arc(cx - offsetX, cy - offsetY, clusterRadius * 1.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Fade out neighboring nucleons as we dive inside the target proton/neutron
+      const neighborFade = 1 - smoothstep(15.2, 16.0, zoomZ);
+
+      for (let i = 0; i < projected.length; i++) {
+        const p = projected[i];
+        const n = p.ref;
+        const isTarget = n.id === targetNuc.id;
+
+        const depthScale = 0.86 + (p.rz + 1.1) * 0.13;
+        const r = nucleonR * depthScale;
+        const sx = cx + p.rx * clusterRadius - offsetX + p.jx * (isTarget ? neighborFade : 1);
+        const sy = cy + p.ry * clusterRadius - offsetY + p.jy * (isTarget ? neighborFade : 1);
+
+        // Store screen coords for interactive click-to-select
+        n.screenX = sx;
+        n.screenY = sy;
+        n.screenR = r;
+
+        if (sx < -r * 1.5 || sx > width + r * 1.5 || sy < -r * 1.5 || sy > height + r * 1.5) continue;
+
+        const localAlpha = isTarget ? alpha : alpha * neighborFade;
+        if (localAlpha <= 0.01) continue;
+
+        ctx.save();
+        ctx.globalAlpha = localAlpha;
+
+        const isProton = n.type === 'proton';
+        const grad = ctx.createRadialGradient(
+          sx - r * 0.32, sy - r * 0.32, r * 0.1,
+          sx, sy, r
+        );
+
+        if (isProton) {
+          // Warm crimson/orange Proton
+          grad.addColorStop(0, '#fed7aa');
+          grad.addColorStop(0.38, '#f97316');
+          grad.addColorStop(0.82, '#b91c1c');
+          grad.addColorStop(1, '#450a0a');
+        } else {
+          // Cool slate/blue Neutron
+          grad.addColorStop(0, '#e2e8f0');
+          grad.addColorStop(0.38, '#64748b');
+          grad.addColorStop(0.82, '#334155');
+          grad.addColorStop(1, '#0f172a');
+        }
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Highlight ring on the currently targeted nucleon
+        if (isTarget && zoomZ > 13.6 && zoomZ < 15.6) {
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath();
+          ctx.arc(sx, sy, r + 3, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        // Charge label ('+' for proton, '0' for neutron)
+        if (r > 13 && r < 150) {
+          ctx.fillStyle = isProton ? '#fff7ed' : '#f1f5f9';
+          ctx.font = `700 ${Math.floor(r * 0.58)}px 'JetBrains Mono', monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(isProton ? '+' : '0', sx, sy + 1);
+        }
+
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // RENDER STAGE 5: QUARKS & GLUON FLUX TUBES (z: 15.2 -> 17.2)
+    // =========================================================================
+    function drawGluonSpring(x1, y1, x2, y2, timeOffset, color1, color2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 1) return;
+
+      const nx = -dy / dist;
+      const ny = dx / dist;
+      const coils = 14;
+      const amp = Math.min(11, dist * 0.065);
+
+      const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+      grad.addColorStop(0, color1);
+      grad.addColorStop(0.5, '#facc15');
+      grad.addColorStop(1, color2);
+
+      ctx.save();
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = 'rgba(250, 204, 21, 0.6)';
+      ctx.shadowBlur = 10;
+
+      ctx.beginPath();
+      const steps = 64;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const envelope = Math.sin(t * Math.PI); // Taper at quark endpoints
+        const wave = Math.sin(t * coils * Math.PI * 2 - time * 11 + timeOffset) * amp * envelope;
+        const px = x1 + dx * t + nx * wave;
+        const py = y1 + dy * t + ny * wave;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function renderQuarks(cx, cy, minDim, alpha) {
+      if (alpha <= 0.005) return;
+
+      const isProton = selectedNucleonType === 'proton';
+      const boundaryR = minDim * 0.34 * Math.pow(10, (zoomZ - 16.4) * 0.65);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      // Nucleon confinement bag / boundary halo
+      const bagGrad = ctx.createRadialGradient(cx, cy, boundaryR * 0.1, cx, cy, boundaryR * 1.15);
+      if (isProton) {
+        bagGrad.addColorStop(0, 'rgba(249, 115, 22, 0.14)');
+        bagGrad.addColorStop(0.75, 'rgba(185, 28, 28, 0.18)');
+        bagGrad.addColorStop(1, 'rgba(185, 28, 28, 0)');
+      } else {
+        bagGrad.addColorStop(0, 'rgba(100, 116, 139, 0.14)');
+        bagGrad.addColorStop(0.75, 'rgba(51, 65, 85, 0.22)');
+        bagGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      }
+      ctx.fillStyle = bagGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, boundaryR * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dashed confinement boundary circle
+      ctx.strokeStyle = isProton ? 'rgba(251, 146, 60, 0.4)' : 'rgba(148, 163, 184, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, boundaryR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Quark definitions: Proton = u, u, d | Neutron = u, d, d
+      // Also assigned Quantum Chromodynamics (QCD) color charges (Red, Green, Blue)
+      const quarkSpecs = isProton
+        ? [
+            { flavor: 'u', name: 'Up Quark', charge: '+⅔', qcdColor: '#ef4444', qcdLight: '#fecaca' },
+            { flavor: 'u', name: 'Up Quark', charge: '+⅔', qcdColor: '#22c55e', qcdLight: '#bbf7d0' },
+            { flavor: 'd', name: 'Down Quark', charge: '−⅓', qcdColor: '#3b82f6', qcdLight: '#bfdbfe' }
+          ]
+        : [
+            { flavor: 'u', name: 'Up Quark', charge: '+⅔', qcdColor: '#ef4444', qcdLight: '#fecaca' },
+            { flavor: 'd', name: 'Down Quark', charge: '−⅓', qcdColor: '#22c55e', qcdLight: '#bbf7d0' },
+            { flavor: 'd', name: 'Down Quark', charge: '−⅓', qcdColor: '#3b82f6', qcdLight: '#bfdbfe' }
+          ];
+
+      // Dynamic triangular orbit with lively quantum jitter inside the confinement bag
+      const orbitR = boundaryR * 0.48;
+      const qPositions = quarkSpecs.map((q, idx) => {
+        const baseAngle = time * 0.75 + (idx * Math.PI * 2) / 3 - Math.PI / 2;
+        const wobbleR = orbitR + Math.sin(time * 5.2 + idx * 2.1) * (boundaryR * 0.05);
+        const wobbleA = baseAngle + Math.cos(time * 4.3 + idx * 1.7) * 0.08;
+        return {
+          ...q,
+          x: cx + Math.cos(wobbleA) * wobbleR,
+          y: cy + Math.sin(wobbleA) * wobbleR
+        };
+      });
+
+      // Draw wavy gluon flux tubes connecting all three quarks
+      drawGluonSpring(qPositions[0].x, qPositions[0].y, qPositions[1].x, qPositions[1].y, 0.0, qPositions[0].qcdColor, qPositions[1].qcdColor);
+      drawGluonSpring(qPositions[1].x, qPositions[1].y, qPositions[2].x, qPositions[2].y, 2.1, qPositions[1].qcdColor, qPositions[2].qcdColor);
+      drawGluonSpring(qPositions[2].x, qPositions[2].y, qPositions[0].x, qPositions[0].y, 4.2, qPositions[2].qcdColor, qPositions[0].qcdColor);
+
+      // Label one of the gluon springs
+      const midGX = (qPositions[0].x + qPositions[1].x) * 0.5;
+      const midGY = (qPositions[0].y + qPositions[1].y) * 0.5;
+      ctx.fillStyle = '#fde047';
+      ctx.font = `600 11px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText('gluon (g)', midGX, midGY - 12);
+
+      // Draw each Quark sphere with flavor ('u' / 'd') and fractional charge ('+2/3' / '-1/3')
+      const qRadius = clamp(boundaryR * 0.16, 20, 42);
+      qPositions.forEach(q => {
+        // Outer QCD color glow
+        const qGlow = ctx.createRadialGradient(q.x, q.y, qRadius * 0.2, q.x, q.y, qRadius * 2.2);
+        qGlow.addColorStop(0, q.qcdColor);
+        qGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = qGlow;
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, qRadius * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3D Quark sphere
+        const sphere = ctx.createRadialGradient(q.x - qRadius * 0.3, q.y - qRadius * 0.3, qRadius * 0.1, q.x, q.y, qRadius);
+        sphere.addColorStop(0, '#ffffff');
+        sphere.addColorStop(0.35, q.qcdLight);
+        sphere.addColorStop(0.75, q.qcdColor);
+        sphere.addColorStop(1, '#090d16');
+
+        ctx.fillStyle = sphere;
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, qRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Flavor letter ('u' or 'd')
+        ctx.fillStyle = '#090d16';
+        ctx.font = `700 ${Math.floor(qRadius * 0.85)}px 'JetBrains Mono', monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(q.flavor, q.x, q.y - 1);
+
+        // Charge pill badge below each quark
+        const badgeW = 68;
+        const badgeH = 22;
+        const bx = q.x - badgeW / 2;
+        const by = q.y + qRadius + 8;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.strokeStyle = q.qcdColor;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, badgeW, badgeH, 7);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = `700 11px 'JetBrains Mono', monospace`;
+        ctx.fillText(`${q.flavor === 'u' ? 'Up' : 'Down'} ${q.charge}`, q.x, by + badgeH / 2 + 0.5);
+      });
+
+      // Top-center nucleon summary badge (clickable to toggle Proton <-> Neutron)
+      const pillW = 250;
+      const pillH = 34;
+      const px = cx - pillW / 2;
+      const py = cy + boundaryR + 18;
+      if (py + pillH < height - 95) {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.strokeStyle = isProton ? '#f97316' : '#64748b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(px, py, pillW, pillH, 999);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = `600 12px 'Inter', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          isProton
+            ? 'PROTON (uud) • Net Charge: +1  ⇄'
+            : 'NEUTRON (udd) • Net Charge: 0  ⇄',
+          cx,
+          py + pillH / 2
+        );
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // MAIN ANIMATION LOOP
+    // =========================================================================
+    let lastTimestamp = 0;
+    function animate(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.05);
+      lastTimestamp = timestamp;
+      time += dt;
+
+      // Smoothly ease current zoom toward targetZoomZ
+      const prevZ = zoomZ;
+      zoomZ += (targetZoomZ - zoomZ) * Math.min(1, dt * 10);
+      if (Math.abs(targetZoomZ - zoomZ) < 0.0005) {
+        zoomZ = targetZoomZ;
+      }
+      if (Math.abs(zoomZ - prevZ) > 0.0002) {
+        updateHUD();
+      }
+
+      // Clear background
+      ctx.fillStyle = '#060911';
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width * 0.5;
+      const cy = height * 0.48;
+      const minDim = Math.min(width, height);
+
+      // Compute overlapping alpha weights for seamless logarithmic cross-fades
+      const wMacro   = 1 - smoothstep(6.8, 7.8, zoomZ);
+      const wLattice = stageWeight(zoomZ, 6.6, 7.6, 9.4, 10.3);
+      const wAtom    = stageWeight(zoomZ, 9.2, 10.1, 13.0, 13.9);
+      const wNucleus = stageWeight(zoomZ, 12.6, 13.6, 15.3, 16.1);
+      const wQuarks  = smoothstep(15.2, 16.0, zoomZ);
+
+      renderMacroscopicMetal(cx, cy, minDim, wMacro);
+      renderAtomicLattice(cx, cy, minDim, wLattice);
+      renderAtomAndOrbitals(cx, cy, minDim, wAtom);
+      renderNucleus(cx, cy, minDim, wNucleus);
+      renderQuarks(cx, cy, minDim, wQuarks);
+
+      requestAnimationFrame(animate);
+    }
+
+    // =========================================================================
+    // INTERACTION HANDLERS (Wheel, Pinch, Drag, Click, Buttons)
+    // =========================================================================
+
+    // Mouse wheel / trackpad scroll zoom
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      // Normalize wheel delta across mice & trackpads
+      const delta = clamp(e.deltaY, -120, 120);
+      targetZoomZ = clamp(targetZoomZ + delta * 0.0045, MIN_Z, MAX_Z);
+    }, { passive: false });
+
+    // Touch pinch-to-zoom & vertical drag support
+    let lastTouchDist = null;
+    let lastTouchY = null;
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastTouchDist = Math.hypot(dx, dy);
+      } else if (e.touches.length === 1) {
+        lastTouchY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 2 && lastTouchDist !== null) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const diff = dist - lastTouchDist;
+        targetZoomZ = clamp(targetZoomZ + diff * 0.018, MIN_Z, MAX_Z);
+        lastTouchDist = dist;
+      } else if (e.touches.length === 1 && lastTouchY !== null) {
+        const dy = lastTouchY - e.touches[0].clientY;
+        targetZoomZ = clamp(targetZoomZ + dy * 0.014, MIN_Z, MAX_Z);
+        lastTouchY = e.touches[0].clientY;
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', () => {
+      lastTouchDist = null;
+      lastTouchY = null;
+    });
+
+    // Click handler:
+    // - At Nucleus scale (13.0 - 15.8), clicking a Proton or Neutron selects it & zooms into its quarks
+    // - At Quark scale (> 15.8), clicking toggles between Proton (uud) and Neutron (udd)
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      if (zoomZ >= 13.0 && zoomZ <= 15.8) {
+        // Check closest nucleon under cursor (front-most first)
+        let best = null;
+        let bestDist = Infinity;
+        for (let i = 0; i < nucleons.length; i++) {
+          const n = nucleons[i];
+          const d = Math.hypot(mx - n.screenX, my - n.screenY);
+          if (d <= n.screenR * 1.15 && d < bestDist) {
+            bestDist = d;
+            best = n;
+          }
+        }
+        if (best) {
+          selectedNucleonIndex = best.id;
+          selectedNucleonType = best.type;
+          targetZoomZ = 16.4;
+          updateHUD();
+        }
+      } else if (zoomZ > 15.8) {
+        // Toggle Proton <-> Neutron at quark level
+        selectedNucleonType = selectedNucleonType === 'proton' ? 'neutron' : 'proton';
+        selectedNucleonIndex = selectedNucleonType === 'proton' ? 0 : 1;
+        updateHUD();
+      }
+    });
+
+    // Slider input
+    zoomSlider.addEventListener('input', (e) => {
+      targetZoomZ = parseFloat(e.target.value);
+      zoomZ = targetZoomZ;
+      updateHUD();
+    });
+
+    // + / - Zoom buttons
+    document.getElementById('zoomInBtn').addEventListener('click', () => {
+      targetZoomZ = clamp(targetZoomZ + 0.9, MIN_Z, MAX_Z);
+    });
+    document.getElementById('zoomOutBtn').addEventListener('click', () => {
+      targetZoomZ = clamp(targetZoomZ - 0.9, MIN_Z, MAX_Z);
+    });
+
+    // Stage quick-jump buttons
+    stageBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        targetZoomZ = parseFloat(btn.dataset.target);
+      });
+    });
+
+    // Metal selector buttons (Copper, Gold, Silver)
+    metalBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedMetal = btn.dataset.metal;
+        metalBtns.forEach(b => {
+          const active = b.dataset.metal === selectedMetal;
+          b.className = active
+            ? 'metal-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/50 transition'
+            : 'metal-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800/70 text-slate-300 border border-slate-700 hover:border-slate-500 transition';
+        });
+        updateHUD();
+      });
+    });
+
+    // Temperature slider (controls thermal vibration speed & amplitude in the lattice)
+    tempSlider.addEventListener('input', (e) => {
+      temperatureK = parseInt(e.target.value, 10);
+      tempLabel.textContent = `${temperatureK} K`;
+    });
+
+    // Initialize HUD and start animation loop on window load
+    window.onload = function () {
+      updateHUD();
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>
