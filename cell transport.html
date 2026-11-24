@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cellular Membrane Transport — Classroom Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #060b19;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    @media (min-width: 1024px) {
+      body {
+        height: 100vh;
+        overflow: hidden;
+      }
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* High-visibility classroom range sliders */
+    input[type="range"].sim-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 11px;
+      border-radius: 999px;
+      background: #1e293b;
+      outline: none;
+      border: 2px solid #334155;
+      cursor: pointer;
+    }
+    input[type="range"].sim-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--thumb-color, #38bdf8);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 0 12px var(--thumb-glow, rgba(56, 189, 248, 0.75));
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    input[type="range"].sim-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.12);
+    }
+    input[type="range"].sim-slider::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--thumb-color, #38bdf8);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 0 12px var(--thumb-glow, rgba(56, 189, 248, 0.75));
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    @keyframes pulseDanger {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(239, 68, 68, 0.55); }
+      50% { transform: scale(1.02); box-shadow: 0 0 28px rgba(239, 68, 68, 0.9); }
+    }
+    .denatured-pulse {
+      animation: pulseDanger 1.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="flex flex-col bg-[#060b19] text-slate-100">
+
+  <!-- COMPACT TOP NAVIGATION BAR: 3 GCSE MODES + GO / RESET -->
+  <header class="bg-[#0b132b] border-b border-slate-800 px-3 py-2 lg:px-5 shadow-lg shrink-0 z-20">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2">
+      
+      <!-- Brand / GCSE Title -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow border border-cyan-300/40">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+            <circle cx="8" cy="8" r="2.5" fill="currentColor"/>
+            <circle cx="16" cy="16" r="2.5" fill="currentColor"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M8 15l8-6"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-sm md:text-base font-black tracking-tight text-white leading-none">GCSE Cell Transport</h1>
+          <span class="text-[11px] font-bold text-cyan-300 uppercase tracking-wider">Cell Membrane Simulation</span>
+        </div>
+      </div>
+
+      <!-- 3 SCREEN TABS -->
+      <nav aria-label="Simulation Modes" class="grid grid-cols-3 gap-1.5 bg-[#060b19] p-1 rounded-xl border border-slate-800 order-3 lg:order-2 w-full lg:w-auto">
+        <button id="tab-diffusion" data-mode="diffusion" class="mode-tab px-3 md:px-5 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide transition-all flex items-center justify-center gap-1.5 bg-cyan-500 text-slate-950 shadow">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-950 inline-block"></span>
+          <span>1. DIFFUSION</span>
+        </button>
+        <button id="tab-osmosis" data-mode="osmosis" class="mode-tab px-3 md:px-5 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide transition-all flex items-center justify-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800/80">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block"></span>
+          <span>2. OSMOSIS</span>
+        </button>
+        <button id="tab-active" data-mode="active" class="mode-tab px-3 md:px-5 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide transition-all flex items-center justify-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800/80">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <span>3. ACTIVE TRANSPORT</span>
+        </button>
+      </nav>
+
+      <!-- GO/Pause, Energy Toggle & Reset -->
+      <div class="flex items-center gap-2 order-2 lg:order-3">
+        <button id="btnToggleATP" class="hidden px-3 py-1.5 rounded-lg font-black text-xs tracking-wide bg-amber-400 hover:bg-amber-300 text-slate-950 shadow border border-amber-200 transition flex items-center gap-1.5">
+          <span id="atpStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-700 animate-ping"></span>
+          <span id="btnToggleATPText">ENERGY (ATP): ON</span>
+        </button>
+
+        <button id="btnPlayPause" class="px-4 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow border border-emerald-200 transition flex items-center gap-1.5">
+          <span id="playPauseIcon">▶</span>
+          <span id="playPauseLabel">GO</span>
+        </button>
+
+        <button id="btnReset" class="px-3 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 transition">
+          ↺ RESET
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN SINGLE-SCREEN WORKSPACE -->
+  <main class="flex-1 min-h-0 max-w-[1600px] w-full mx-auto px-3 py-2 lg:px-5 lg:py-2.5 flex flex-col gap-2">
+
+    <!-- COMPACT GCSE CONCEPT BAR -->
+    <section class="bg-[#0e1730] border border-slate-800 rounded-xl px-3.5 py-2 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 shrink-0">
+      <div class="flex-1 min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="modeBadge" class="px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+            PASSIVE • NO ENERGY NEEDED
+          </span>
+          <span id="stateHighlightBadge" class="px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-200 border border-indigo-400/40">
+            HIGH → LOW CONCENTRATION
+          </span>
+          <span id="modeDescription" class="text-xs md:text-sm font-semibold text-slate-200 truncate md:whitespace-normal">
+            Particles move from an area of high concentration to an area of low concentration (down a concentration gradient).
+          </span>
+        </div>
+      </div>
+
+      <!-- Live Legend Pills -->
+      <div id="legendContainer" class="flex flex-wrap items-center gap-2.5 bg-[#070d1f] px-2.5 py-1 rounded-lg border border-slate-700/80 shrink-0">
+        <!-- Populated dynamically per mode -->
+      </div>
+    </section>
+
+    <!-- CENTER STAGE: BILAYER CANVAS + TELEMETRY PANEL -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 flex-1 min-h-0">
+      
+      <!-- SIMULATION CANVAS CONTAINER (9 cols on lg) -->
+      <div class="lg:col-span-9 relative rounded-xl overflow-hidden border border-slate-700 bg-[#050914] shadow-xl flex flex-col min-h-[290px]">
+        
+        <!-- Top Environment Headers Overlay -->
+        <div class="grid grid-cols-2 pointer-events-none z-10 border-b border-slate-800/90 bg-slate-950/85 shrink-0">
+          <div class="px-3.5 py-1.5 border-r border-slate-800 flex items-center justify-between">
+            <div>
+              <div class="text-xs md:text-sm font-black tracking-wider text-cyan-300 uppercase">Outside Cell (External)</div>
+            </div>
+            <div class="flex items-baseline gap-1.5">
+              <span id="extLiveCount" class="font-mono-num text-lg md:text-xl font-black text-white">0</span>
+              <span id="extUnitLabel" class="text-[10px] font-bold text-slate-400 uppercase">Particles</span>
+            </div>
+          </div>
+          <div class="px-3.5 py-1.5 flex items-center justify-between">
+            <div>
+              <div class="text-xs md:text-sm font-black tracking-wider text-emerald-300 uppercase">Inside Cell (Internal)</div>
+            </div>
+            <div class="flex items-baseline gap-1.5">
+              <span id="intLiveCount" class="font-mono-num text-lg md:text-xl font-black text-white">0</span>
+              <span id="intUnitLabel" class="text-[10px] font-bold text-slate-400 uppercase">Particles</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HTML5 Canvas -->
+        <div id="canvasWrapper" class="relative flex-1 w-full h-full min-h-0">
+          <canvas id="simCanvas" class="block w-full h-full"></canvas>
+
+          <!-- READY / PAUSED PROMPT OVERLAY (Shown before pressing GO) -->
+          <div id="readyOverlay" class="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 bg-slate-950/90 border border-emerald-400/80 text-white px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2.5 backdrop-blur-md">
+            <span class="text-base">🧪</span>
+            <div class="text-xs font-bold text-slate-200 whitespace-nowrap">
+              Set concentrations below, then press
+            </div>
+            <button id="btnOverlayGo" class="px-3.5 py-1 rounded-lg font-black text-xs md:text-sm bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow transition cursor-pointer shrink-0">
+              ▶ GO
+            </button>
+          </div>
+
+          <!-- DENATURATION ALERT BANNER (Hidden until temp >= 48°C) -->
+          <div id="denatureAlert" class="hidden absolute top-2.5 left-1/2 -translate-x-1/2 z-20 denatured-pulse bg-red-600/95 border border-red-200 text-white px-4 py-1.5 rounded-xl shadow-2xl flex items-center gap-2.5 max-w-[92%]">
+            <span class="text-xl">⚠️</span>
+            <div>
+              <div id="denatureTitle" class="font-black text-xs md:text-sm tracking-wide uppercase leading-tight">
+                PROTEINS DENATURED! (&gt; 48°C)
+              </div>
+              <div id="denatureSubtitle" class="text-[11px] font-semibold text-red-100">
+                Active site &amp; protein shape changed — transport stopped!
+              </div>
+            </div>
+          </div>
+
+          <!-- GCSE Osmosis Concentration Comparison Strip -->
+          <div id="osmosisBar" class="hidden absolute top-2 left-2.5 right-2.5 z-10 pointer-events-none flex flex-wrap items-center justify-between gap-2 bg-slate-950/85 border border-slate-700/90 backdrop-blur-md px-3 py-1 rounded-lg">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[11px] font-extrabold text-sky-300 uppercase">Outside Water Conc:</span>
+              <span id="extWaterPotential" class="font-mono-num text-xs font-black text-white">HIGH</span>
+            </div>
+            <div id="tonicityBadge" class="px-2.5 py-0.5 rounded font-black text-[11px] tracking-wider uppercase bg-blue-500/25 text-blue-200 border border-blue-400/50">
+              DILUTE OUTSIDE → WATER MOVES IN
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[11px] font-extrabold text-sky-300 uppercase">Inside Water Conc:</span>
+              <span id="intWaterPotential" class="font-mono-num text-xs font-black text-white">LOW</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT TELEMETRY PANEL: NET FLOW DIRECTION & RATE OF FLOW GAUGE (3 cols on lg) -->
+      <aside class="lg:col-span-3 bg-[#0e1730] border border-slate-800 rounded-xl p-3 flex flex-col justify-between gap-2.5 min-h-0">
+        
+        <!-- 1. Net Flow Direction Card -->
+        <div class="bg-[#070d1f] border border-slate-800 rounded-lg p-2.5 text-center">
+          <div class="text-[11px] font-black tracking-wider text-slate-400 uppercase mb-1">
+            Net Direction of Flow
+          </div>
+          <div id="netDirectionVisual" class="h-11 rounded-lg bg-slate-900/90 border border-slate-700 flex items-center justify-center px-2 mb-1">
+            <span id="netArrowBig" class="text-xl md:text-2xl font-black text-emerald-400 tracking-wide">
+              ⏸ READY
+            </span>
+          </div>
+          <div id="netDirectionText" class="text-xs md:text-sm font-black text-white uppercase tracking-wide">
+            PRESS GO TO START
+          </div>
+          <div id="netSubText" class="text-[11px] font-semibold text-slate-400">
+            Set concentrations first
+          </div>
+        </div>
+
+        <!-- 2. Rate of Flow Gauge & Digital Readout -->
+        <div class="bg-[#070d1f] border border-slate-800 rounded-lg p-2.5 flex-1 flex flex-col justify-center items-center text-center min-h-0">
+          <div class="text-[11px] font-black tracking-wider text-slate-400 uppercase">
+            Net Rate of Flow
+          </div>
+
+          <!-- SVG Semicircular Speedometer Gauge -->
+          <div class="relative w-full max-w-[175px] aspect-[2/1.12] flex items-end justify-center my-0.5">
+            <svg viewBox="0 0 220 125" class="w-full h-full overflow-visible">
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#38bdf8" />
+                  <stop offset="50%" stop-color="#34d399" />
+                  <stop offset="80%" stop-color="#fbbf24" />
+                  <stop offset="100%" stop-color="#f43f5e" />
+                </linearGradient>
+              </defs>
+              <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#1e293b" stroke-width="18" stroke-linecap="round" />
+              <path id="gaugeArc" d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="18" stroke-linecap="round" stroke-dasharray="282.74" stroke-dashoffset="282.74" />
+              <g id="gaugeNeedle" transform="translate(110, 110) rotate(-90)">
+                <polygon points="-4,0 0,-76 4,0" fill="#ffffff" />
+                <circle cx="0" cy="0" r="9" fill="#38bdf8" stroke="#ffffff" stroke-width="3" />
+              </g>
+            </svg>
+          </div>
+
+          <div>
+            <span id="flowRateValue" class="font-mono-num text-2xl md:text-3xl font-black text-white">0.0</span>
+            <span class="text-[11px] font-extrabold text-cyan-300 uppercase ml-1">particles / s</span>
+          </div>
+
+          <!-- Bidirectional Crossing Breakdown -->
+          <div class="w-full grid grid-cols-2 gap-1.5 mt-2 pt-2 border-t border-slate-800 text-[11px]">
+            <div class="bg-slate-900/90 rounded p-1.5 border border-slate-800">
+              <div class="text-slate-400 font-bold">MOVING IN (➔)</div>
+              <div id="influxRate" class="font-mono-num text-xs md:text-sm font-black text-emerald-400">0.0 /s</div>
+            </div>
+            <div class="bg-slate-900/90 rounded p-1.5 border border-slate-800">
+              <div class="text-slate-400 font-bold">MOVING OUT (⬅)</div>
+              <div id="effluxRate" class="font-mono-num text-xs md:text-sm font-black text-amber-400">0.0 /s</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Energy Status Mini-Box -->
+        <div id="energyTelemetryBox" class="bg-[#070d1f] border border-slate-800 rounded-lg px-3 py-2 flex items-center justify-between shrink-0">
+          <div>
+            <div class="text-[10px] font-black uppercase text-slate-400">Energy (Respiration)</div>
+            <div id="energyModeText" class="text-xs md:text-sm font-black text-emerald-400">PASSIVE (NO ENERGY)</div>
+          </div>
+          <div id="atpCounterBadge" class="font-mono-num text-xs font-black px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+            ATP: 0
+          </div>
+        </div>
+
+      </aside>
+    </section>
+
+    <!-- COMPACT BOTTOM CONTROL DECK: 3 CLASSROOM SLIDERS -->
+    <section class="bg-[#0e1730] border border-slate-800 rounded-xl p-2.5 md:p-3 shrink-0">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-4">
+        
+        <!-- SLIDER 1: EXTERNAL CONCENTRATION -->
+        <div class="bg-[#070d1f] border border-slate-800 rounded-lg px-3.5 py-2 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <label for="sliderExtConc" class="text-xs md:text-sm font-black uppercase tracking-wide text-cyan-300">
+              <span id="lblExtTitle">External Concentration</span>
+            </label>
+            <span id="valExtConc" class="font-mono-num text-base md:text-lg font-black text-white bg-cyan-950/80 border border-cyan-500/40 px-2.5 py-0.2 rounded">
+              85%
+            </span>
+          </div>
+          <input id="sliderExtConc" type="range" min="0" max="100" value="85" class="sim-slider my-1.5" style="--thumb-color: #22d3ee; --thumb-glow: rgba(34,211,238,0.8);" />
+          <div class="flex justify-between text-[11px] font-bold text-slate-400">
+            <span>0% (Low)</span>
+            <span id="subExtHint" class="text-cyan-200/80">Outside Cell</span>
+            <span>100% (High)</span>
+          </div>
+        </div>
+
+        <!-- SLIDER 2: INTERNAL CONCENTRATION -->
+        <div class="bg-[#070d1f] border border-slate-800 rounded-lg px-3.5 py-2 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <label for="sliderIntConc" class="text-xs md:text-sm font-black uppercase tracking-wide text-emerald-300">
+              <span id="lblIntTitle">Internal Concentration</span>
+            </label>
+            <span id="valIntConc" class="font-mono-num text-base md:text-lg font-black text-white bg-emerald-950/80 border border-emerald-500/40 px-2.5 py-0.2 rounded">
+              15%
+            </span>
+          </div>
+          <input id="sliderIntConc" type="range" min="0" max="100" value="15" class="sim-slider my-1.5" style="--thumb-color: #34d399; --thumb-glow: rgba(52,211,153,0.8);" />
+          <div class="flex justify-between text-[11px] font-bold text-slate-400">
+            <span>0% (Low)</span>
+            <span id="subIntHint" class="text-emerald-200/80">Inside Cell</span>
+            <span>100% (High)</span>
+          </div>
+        </div>
+
+        <!-- SLIDER 3: TEMPERATURE (WITH DENATURATION ZONE) -->
+        <div id="tempCard" class="bg-[#070d1f] border border-slate-800 rounded-lg px-3.5 py-2 flex flex-col justify-between transition-colors">
+          <div class="flex items-center justify-between">
+            <label for="sliderTemp" class="text-xs md:text-sm font-black uppercase tracking-wide text-amber-300 flex items-center gap-1.5">
+              <span>Temperature</span>
+              <span id="tempStatusPill" class="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                OPTIMAL
+              </span>
+            </label>
+            <span id="valTemp" class="font-mono-num text-base md:text-lg font-black text-white bg-amber-950/80 border border-amber-500/40 px-2.5 py-0.2 rounded">
+              37°C
+            </span>
+          </div>
+          <div class="relative my-1.5">
+            <input id="sliderTemp" type="range" min="0" max="80" value="37" class="sim-slider" style="--thumb-color: #fbbf24; --thumb-glow: rgba(251,191,36,0.8);" />
+            <!-- Denaturation threshold marker at 48°C (48/80 = 60%) -->
+            <div class="absolute top-1/2 -translate-y-1/2 left-[60%] w-1 h-5 bg-red-500 rounded pointer-events-none shadow-[0_0_8px_#ef4444]" title="Denaturing Threshold (48°C)"></div>
+          </div>
+          <div class="flex justify-between text-[11px] font-bold text-slate-400">
+            <span>0°C (Slow)</span>
+            <span class="text-red-400 font-extrabold">48°C Denatures</span>
+            <span>80°C</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    /**
+     * GCSE CELLULAR MEMBRANE TRANSPORT SIMULATION (PHOSPHOLIPID BILAYER EDITION)
+     * Modes:
+     *  1. 'diffusion' -> Simple Diffusion across phospholipid bilayer (High -> Low)
+     *  2. 'osmosis'   -> Osmosis of water across partially permeable membrane (High water conc -> Low water conc)
+     *  3. 'active'    -> Active Transport via carrier protein pumps INTO the cell (External -> Internal, Low -> High, uses ATP)
+     */
+
+    const DENATURE_TEMP = 48; // °C threshold where membrane carrier proteins denature
+    const MAX_DIFFUSION_PARTICLES = 240;
+    const MAX_SOLUTE_PARTICLES = 90;
+    const TOTAL_WATER_OSMOSIS = 220;
+    const MAX_ACTIVE_IONS = 200;
+
+    // Application State — starts PAUSED until teacher presses GO
+    const state = {
+      mode: 'diffusion', // 'diffusion' | 'osmosis' | 'active'
+      extConc: 85,       // 0 - 100
+      intConc: 15,       // 0 - 100
+      temp: 37,          // 0 - 80 °C
+      paused: true,
+      hasStarted: false,
+      atpSupply: true,
+      atpUsedCount: 0,
+      particles: [],
+      atpEffects: [],     // Visual ATP energy bursts
+      crossingEvents: [], // { time, dir: 1 (ext->int, INTO cell) | -1 (int->ext, OUT of cell) }
+      smoothedNetRate: 0,
+      smoothedInflux: 0,
+      smoothedEfflux: 0,
+      bilayerWobble: 0,
+      channels: []        // Vertical Y positions & states of protein channels / carrier pumps
+    };
+
+    // DOM References
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+    const readyOverlay = document.getElementById('readyOverlay');
+
+    const sliderExt = document.getElementById('sliderExtConc');
+    const sliderInt = document.getElementById('sliderIntConc');
+    const sliderTemp = document.getElementById('sliderTemp');
+
+    const valExt = document.getElementById('valExtConc');
+    const valInt = document.getElementById('valIntConc');
+    const valTemp = document.getElementById('valTemp');
+
+    const lblExtTitle = document.getElementById('lblExtTitle');
+    const lblIntTitle = document.getElementById('lblIntTitle');
+    const subExtHint = document.getElementById('subExtHint');
+    const subIntHint = document.getElementById('subIntHint');
+
+    const modeBadge = document.getElementById('modeBadge');
+    const stateHighlightBadge = document.getElementById('stateHighlightBadge');
+    const modeDescription = document.getElementById('modeDescription');
+    const legendContainer = document.getElementById('legendContainer');
+
+    const extLiveCount = document.getElementById('extLiveCount');
+    const intLiveCount = document.getElementById('intLiveCount');
+    const extUnitLabel = document.getElementById('extUnitLabel');
+    const intUnitLabel = document.getElementById('intUnitLabel');
+
+    const denatureAlert = document.getElementById('denatureAlert');
+    const denatureTitle = document.getElementById('denatureTitle');
+    const denatureSubtitle = document.getElementById('denatureSubtitle');
+    const tempStatusPill = document.getElementById('tempStatusPill');
+    const tempCard = document.getElementById('tempCard');
+
+    const osmosisBar = document.getElementById('osmosisBar');
+    const extWaterPotential = document.getElementById('extWaterPotential');
+    const intWaterPotential = document.getElementById('intWaterPotential');
+    const tonicityBadge = document.getElementById('tonicityBadge');
+
+    const netArrowBig = document.getElementById('netArrowBig');
+    const netDirectionText = document.getElementById('netDirectionText');
+    const netSubText = document.getElementById('netSubText');
+
+    const gaugeArc = document.getElementById('gaugeArc');
+    const gaugeNeedle = document.getElementById('gaugeNeedle');
+    const flowRateValue = document.getElementById('flowRateValue');
+    const influxRateEl = document.getElementById('influxRate');
+    const effluxRateEl = document.getElementById('effluxRate');
+
+    const energyModeText = document.getElementById('energyModeText');
+    const atpCounterBadge = document.getElementById('atpCounterBadge');
+
+    const btnToggleATP = document.getElementById('btnToggleATP');
+    const btnToggleATPText = document.getElementById('btnToggleATPText');
+    const atpStatusDot = document.getElementById('atpStatusDot');
+
+    // Canvas Sizing & Phospholipid Bilayer Geometry
+    let width = 800;
+    let height = 400;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function getBilayerGeometry() {
+      const memX = width * 0.5;
+      const memWidth = 44; // Total width of phospholipid bilayer
+      return {
+        memX,
+        memWidth,
+        leftEdge: memX - memWidth * 0.5,
+        rightEdge: memX + memWidth * 0.5
+      };
+    }
+
+    function resizeCanvas() {
+      const rect = canvasWrapper.getBoundingClientRect();
+      width = Math.max(320, rect.width);
+      height = Math.max(240, rect.height);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      layoutChannels();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Place 4 Protein Channels / Carrier Pumps evenly along the vertical phospholipid bilayer
+    function layoutChannels() {
+      const count = 4;
+      const oldChannels = state.channels;
+      state.channels = [];
+      const topPad = 48;
+      const usableH = Math.max(120, height - topPad * 2);
+      for (let i = 0; i < count; i++) {
+        const y = topPad + (usableH * (i + 0.5)) / count;
+        const existing = oldChannels[i];
+        state.channels.push({
+          y,
+          height: 36,
+          pumpPhase: existing ? existing.pumpPhase : 0, // 0 = open outside (left), 1 = moving, 2 = open inside (right)
+          pumpTimer: existing ? existing.pumpTimer : 0,
+          occupiedParticle: existing ? existing.occupiedParticle : null
+        });
+      }
+    }
+
+    // Speed multiplier from temperature (0°C -> 0.15x, 37°C -> 1.0x, 80°C -> 2.1x)
+    function getTempSpeedFactor() {
+      return 0.15 + (state.temp / 37) * 0.85;
+    }
+
+    function isDenatured() {
+      return state.temp >= DENATURE_TEMP;
+    }
+
+    // Set simulation to PAUSED / READY state (before GO is pressed)
+    function setPausedState(shouldPause, isInitialReady = false) {
+      state.paused = shouldPause;
+      if (!shouldPause) {
+        state.hasStarted = true;
+      }
+
+      const playPauseLabel = document.getElementById('playPauseLabel');
+      const playPauseIcon = document.getElementById('playPauseIcon');
+      const btnPlayPause = document.getElementById('btnPlayPause');
+
+      if (shouldPause) {
+        playPauseLabel.textContent = 'GO';
+        playPauseIcon.textContent = '▶';
+        btnPlayPause.className = 'px-4 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow border border-emerald-200 transition flex items-center gap-1.5';
+        if (isInitialReady && !state.hasStarted) {
+          readyOverlay.classList.remove('hidden');
+        }
+      } else {
+        playPauseLabel.textContent = 'PAUSE';
+        playPauseIcon.textContent = '⏸';
+        btnPlayPause.className = 'px-4 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide bg-amber-400 hover:bg-amber-300 text-slate-950 shadow border border-amber-200 transition flex items-center gap-1.5';
+        readyOverlay.classList.add('hidden');
+      }
+    }
+
+    // Configure GCSE UI text & defaults when switching modes
+    function setMode(newMode) {
+      state.mode = newMode;
+      state.atpUsedCount = 0;
+      state.crossingEvents = [];
+      state.atpEffects = [];
+      state.smoothedNetRate = 0;
+      state.smoothedInflux = 0;
+      state.smoothedEfflux = 0;
+      state.hasStarted = false;
+
+      // Update Tab Styling
+      document.querySelectorAll('.mode-tab').forEach(btn => {
+        const isSelected = btn.dataset.mode === newMode;
+        if (isSelected) {
+          btn.className = 'mode-tab px-3 md:px-5 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide transition-all flex items-center justify-center gap-1.5 bg-cyan-500 text-slate-950 shadow';
+        } else {
+          btn.className = 'mode-tab px-3 md:px-5 py-1.5 rounded-lg font-black text-xs md:text-sm tracking-wide transition-all flex items-center justify-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800/80';
+        }
+      });
+
+      if (newMode === 'diffusion') {
+        state.extConc = 85;
+        state.intConc = 15;
+        modeBadge.textContent = 'PASSIVE • SIMPLE DIFFUSION';
+        modeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40';
+        stateHighlightBadge.textContent = 'HIGH → LOW CONCENTRATION (NO ENERGY)';
+        modeDescription.textContent = 'Net movement of particles from an area of higher concentration to an area of lower concentration across the cell membrane.';
+        lblExtTitle.textContent = 'External Concentration';
+        lblIntTitle.textContent = 'Internal Concentration';
+        subExtHint.textContent = 'Outside Cell';
+        subIntHint.textContent = 'Inside Cell';
+        extUnitLabel.textContent = 'Particles';
+        intUnitLabel.textContent = 'Particles';
+        osmosisBar.classList.add('hidden');
+        btnToggleATP.classList.add('hidden');
+        energyModeText.textContent = 'PASSIVE (NO ENERGY)';
+        energyModeText.className = 'text-xs md:text-sm font-black text-emerald-400';
+
+        legendContainer.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] inline-block border border-white"></span>
+            <span class="text-xs font-extrabold text-slate-100">Diffusing Particle (e.g. O₂, CO₂)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded-full bg-amber-400 inline-block border border-amber-200"></span>
+            <span class="text-xs font-extrabold text-slate-100">Phospholipid Bilayer</span>
+          </div>
+        `;
+      } else if (newMode === 'osmosis') {
+        state.extConc = 15; // Dilute outside -> High water concentration
+        state.intConc = 85; // Concentrated inside -> Low water concentration
+        modeBadge.textContent = 'PASSIVE • OSMOSIS';
+        modeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/40';
+        stateHighlightBadge.textContent = 'WATER: DILUTE → CONCENTRATED SOLUTION';
+        modeDescription.textContent = 'Diffusion of water molecules from a dilute solution (high water concentration) to a concentrated solution (low water concentration) across a partially permeable membrane.';
+        lblExtTitle.textContent = 'External Solute (Sugar/Salt)';
+        lblIntTitle.textContent = 'Internal Solute (Sugar/Salt)';
+        subExtHint.textContent = 'Outside Solute %';
+        subIntHint.textContent = 'Inside Solute %';
+        extUnitLabel.textContent = 'Water / Solute';
+        intUnitLabel.textContent = 'Water / Solute';
+        osmosisBar.classList.remove('hidden');
+        btnToggleATP.classList.add('hidden');
+        energyModeText.textContent = 'PASSIVE (NO ENERGY)';
+        energyModeText.className = 'text-xs md:text-sm font-black text-emerald-400';
+
+        legendContainer.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8] inline-block border border-white"></span>
+            <span class="text-xs font-extrabold text-slate-100">Water Molecule</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded-full bg-fuchsia-500 inline-block border border-fuchsia-200"></span>
+            <span class="text-xs font-extrabold text-slate-100">Solute (Too Large to Cross)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded bg-teal-400 inline-block border border-white"></span>
+            <span class="text-xs font-extrabold text-slate-100">Membrane Channel</span>
+          </div>
+        `;
+      } else if (newMode === 'active') {
+        state.extConc = 20; // Low outside
+        state.intConc = 80; // High inside -> Carrier proteins pump FROM EXTERNAL TO INTERNAL (against gradient)
+        state.atpSupply = true;
+        updateATPButtonUI();
+        modeBadge.textContent = 'ACTIVE TRANSPORT • USES ENERGY';
+        modeBadge.className = 'px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40';
+        stateHighlightBadge.textContent = 'EXTERNAL → INTERNAL (LOW → HIGH) • USES ENERGY';
+        modeDescription.textContent = 'Movement of substances into the cell from a more dilute solution to a more concentrated solution (against a concentration gradient). Requires energy from respiration.';
+        lblExtTitle.textContent = 'External Concentration';
+        lblIntTitle.textContent = 'Internal Concentration';
+        subExtHint.textContent = 'Outside Cell';
+        subIntHint.textContent = 'Inside Cell';
+        extUnitLabel.textContent = 'Particles';
+        intUnitLabel.textContent = 'Particles';
+        osmosisBar.classList.add('hidden');
+        btnToggleATP.classList.remove('hidden');
+        energyModeText.textContent = 'ACTIVE (USES ATP ENERGY)';
+        energyModeText.className = 'text-xs md:text-sm font-black text-amber-400';
+
+        legendContainer.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded-full bg-lime-400 shadow-[0_0_8px_#a3e635] inline-block border border-white"></span>
+            <span class="text-xs font-extrabold text-slate-100">Mineral Ion / Glucose</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 rounded bg-violet-500 inline-block border border-violet-200"></span>
+            <span class="text-xs font-extrabold text-slate-100">Carrier Protein</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-black text-[10px]">ATP</span>
+            <span class="text-xs font-extrabold text-slate-100">Energy from Respiration</span>
+          </div>
+        `;
+      }
+
+      sliderExt.value = state.extConc;
+      sliderInt.value = state.intConc;
+      valExt.textContent = state.extConc + '%';
+      valInt.textContent = state.intConc + '%';
+
+      layoutChannels();
+      rebuildParticles();
+      setPausedState(true, true);
+      updateTelemetryUI();
+    }
+
+    // Spawn a particle either 'ext' (left of bilayer) or 'int' (right of bilayer)
+    function spawnParticle(side, type) {
+      const { leftEdge, rightEdge } = getBilayerGeometry();
+      const radius = type === 'solute' ? 10.5 : (type === 'water' ? 5 : 6);
+      const pad = 12;
+
+      let x;
+      if (side === 'ext') {
+        const maxX = Math.max(pad + 20, leftEdge - radius - 6);
+        x = pad + Math.random() * (maxX - pad);
+      } else {
+        const minX = rightEdge + radius + 6;
+        const maxX = Math.max(minX + 20, width - pad);
+        x = minX + Math.random() * (maxX - minX);
+      }
+
+      const y = pad + Math.random() * Math.max(40, height - pad * 2);
+      const angle = Math.random() * Math.PI * 2;
+      const baseSpeed = type === 'solute' ? 42 : 108;
+
+      return {
+        x,
+        y,
+        vx: Math.cos(angle) * baseSpeed,
+        vy: Math.sin(angle) * baseSpeed,
+        side, // 'ext' | 'int'
+        type, // 'diffusing' | 'water' | 'solute' | 'ion'
+        radius,
+        inChannel: false,
+        channelIdx: -1
+      };
+    }
+
+    // Rebuild all particles cleanly
+    function rebuildParticles() {
+      state.particles = [];
+      if (state.mode === 'diffusion') {
+        const extTarget = Math.round((state.extConc / 100) * (MAX_DIFFUSION_PARTICLES / 2));
+        const intTarget = Math.round((state.intConc / 100) * (MAX_DIFFUSION_PARTICLES / 2));
+        for (let i = 0; i < extTarget; i++) state.particles.push(spawnParticle('ext', 'diffusing'));
+        for (let i = 0; i < intTarget; i++) state.particles.push(spawnParticle('int', 'diffusing'));
+      } else if (state.mode === 'osmosis') {
+        const extSoluteTarget = Math.round((state.extConc / 100) * (MAX_SOLUTE_PARTICLES / 2));
+        const intSoluteTarget = Math.round((state.intConc / 100) * (MAX_SOLUTE_PARTICLES / 2));
+        for (let i = 0; i < extSoluteTarget; i++) state.particles.push(spawnParticle('ext', 'solute'));
+        for (let i = 0; i < intSoluteTarget; i++) state.particles.push(spawnParticle('int', 'solute'));
+
+        const extWaterRatio = (100 - state.extConc + 15) / ((100 - state.extConc + 15) + (100 - state.intConc + 15));
+        const extWaterTarget = Math.round(TOTAL_WATER_OSMOSIS * extWaterRatio);
+        const intWaterTarget = TOTAL_WATER_OSMOSIS - extWaterTarget;
+        for (let i = 0; i < extWaterTarget; i++) state.particles.push(spawnParticle('ext', 'water'));
+        for (let i = 0; i < intWaterTarget; i++) state.particles.push(spawnParticle('int', 'water'));
+      } else if (state.mode === 'active') {
+        const extTarget = Math.round((state.extConc / 100) * (MAX_ACTIVE_IONS / 2));
+        const intTarget = Math.round((state.intConc / 100) * (MAX_ACTIVE_IONS / 2));
+        for (let i = 0; i < extTarget; i++) state.particles.push(spawnParticle('ext', 'ion'));
+        for (let i = 0; i < intTarget; i++) state.particles.push(spawnParticle('int', 'ion'));
+      }
+    }
+
+    // Dynamically add/remove particles when sliders move
+    function reconcileParticleCounts() {
+      if (state.mode === 'diffusion') {
+        const extTarget = Math.round((state.extConc / 100) * (MAX_DIFFUSION_PARTICLES / 2));
+        const intTarget = Math.round((state.intConc / 100) * (MAX_DIFFUSION_PARTICLES / 2));
+        adjustPool('ext', 'diffusing', extTarget);
+        adjustPool('int', 'diffusing', intTarget);
+      } else if (state.mode === 'osmosis') {
+        const extSoluteTarget = Math.round((state.extConc / 100) * (MAX_SOLUTE_PARTICLES / 2));
+        const intSoluteTarget = Math.round((state.intConc / 100) * (MAX_SOLUTE_PARTICLES / 2));
+        adjustPool('ext', 'solute', extSoluteTarget);
+        adjustPool('int', 'solute', intSoluteTarget);
+
+        if (!state.hasStarted) {
+          const extWaterRatio = (100 - state.extConc + 15) / ((100 - state.extConc + 15) + (100 - state.intConc + 15));
+          const extWaterTarget = Math.round(TOTAL_WATER_OSMOSIS * extWaterRatio);
+          const intWaterTarget = TOTAL_WATER_OSMOSIS - extWaterTarget;
+          adjustPool('ext', 'water', extWaterTarget);
+          adjustPool('int', 'water', intWaterTarget);
+        }
+      } else if (state.mode === 'active') {
+        const extTarget = Math.round((state.extConc / 100) * (MAX_ACTIVE_IONS / 2));
+        const intTarget = Math.round((state.intConc / 100) * (MAX_ACTIVE_IONS / 2));
+        adjustPool('ext', 'ion', extTarget);
+        adjustPool('int', 'ion', intTarget);
+      }
+    }
+
+    function adjustPool(side, type, targetCount) {
+      const matching = state.particles.filter(p => p.side === side && p.type === type && !p.inChannel);
+      const diff = targetCount - matching.length;
+      if (diff > 0) {
+        for (let i = 0; i < diff; i++) {
+          state.particles.push(spawnParticle(side, type));
+        }
+      } else if (diff < 0) {
+        let toRemove = -diff;
+        for (let i = state.particles.length - 1; i >= 0 && toRemove > 0; i--) {
+          const p = state.particles[i];
+          if (p.side === side && p.type === type && !p.inChannel) {
+            state.particles.splice(i, 1);
+            toRemove--;
+          }
+        }
+      }
+    }
+
+    // Sync sliders back to reflect dynamic movement when particles cross naturally
+    function syncSlidersFromParticles() {
+      if (state.mode === 'diffusion') {
+        const extCount = state.particles.filter(p => p.side === 'ext').length;
+        const intCount = state.particles.filter(p => p.side === 'int').length;
+        const extPct = Math.min(100, Math.round((extCount / (MAX_DIFFUSION_PARTICLES / 2)) * 100));
+        const intPct = Math.min(100, Math.round((intCount / (MAX_DIFFUSION_PARTICLES / 2)) * 100));
+        state.extConc = extPct;
+        state.intConc = intPct;
+        sliderExt.value = extPct;
+        sliderInt.value = intPct;
+        valExt.textContent = extPct + '%';
+        valInt.textContent = intPct + '%';
+      } else if (state.mode === 'active') {
+        const extCount = state.particles.filter(p => p.side === 'ext').length;
+        const intCount = state.particles.filter(p => p.side === 'int').length;
+        const extPct = Math.min(100, Math.round((extCount / (MAX_ACTIVE_IONS / 2)) * 100));
+        const intPct = Math.min(100, Math.round((intCount / (MAX_ACTIVE_IONS / 2)) * 100));
+        state.extConc = extPct;
+        state.intConc = intPct;
+        sliderExt.value = extPct;
+        sliderInt.value = intPct;
+        valExt.textContent = extPct + '%';
+        valInt.textContent = intPct + '%';
+      }
+    }
+
+    // Record a membrane crossing event (dir: 1 = External -> Internal, -1 = Internal -> External)
+    function recordCrossing(dir, x, y) {
+      const now = performance.now();
+      state.crossingEvents.push({ time: now, dir });
+      if (state.mode === 'active' && dir === 1) {
+        state.atpUsedCount++;
+        state.atpEffects.push({
+          x,
+          y,
+          age: 0,
+          maxAge: 1.0
+        });
+      }
+    }
+
+    // Physics Step
+    function updateSimulation(dt) {
+      if (state.paused) return;
+
+      const speedFactor = getTempSpeedFactor();
+      const denatured = isDenatured();
+      const { memX, leftEdge, rightEdge, memWidth } = getBilayerGeometry();
+
+      state.bilayerWobble += dt * (2 + speedFactor * 6);
+
+      // Update ATP energy burst effects
+      for (let i = state.atpEffects.length - 1; i >= 0; i--) {
+        state.atpEffects[i].age += dt;
+        if (state.atpEffects[i].age >= state.atpEffects[i].maxAge) {
+          state.atpEffects.splice(i, 1);
+        }
+      }
+
+      // Update Active Transport Carrier Proteins (Pumping FROM EXTERNAL [left] TO INTERNAL [right])
+      if (state.mode === 'active') {
+        state.channels.forEach((ch) => {
+          if (denatured || !state.atpSupply) {
+            if (ch.occupiedParticle) {
+              ch.occupiedParticle.inChannel = false;
+              ch.occupiedParticle.channelIdx = -1;
+              ch.occupiedParticle.side = 'ext';
+              ch.occupiedParticle.x = leftEdge - 12;
+              ch.occupiedParticle = null;
+            }
+            ch.pumpPhase = 0;
+            ch.pumpTimer = 0;
+            return;
+          }
+
+          if (ch.occupiedParticle) {
+            ch.pumpTimer += dt * Math.max(0.6, speedFactor);
+            const p = ch.occupiedParticle;
+            const progress = Math.min(1, ch.pumpTimer / 0.36);
+            // Move Left (External) -> Right (Internal) through carrier protein
+            p.x = (leftEdge - 4) + progress * (memWidth + 14);
+            p.y = ch.y;
+            ch.pumpPhase = progress < 0.5 ? 1 : 2;
+
+            if (progress >= 1) {
+              p.inChannel = false;
+              p.channelIdx = -1;
+              p.side = 'int';
+              p.x = rightEdge + p.radius + 7;
+              p.vx = 90 + Math.random() * 40;
+              p.vy = (Math.random() - 0.5) * 70;
+              ch.occupiedParticle = null;
+              ch.pumpPhase = 0;
+              ch.pumpTimer = 0;
+
+              recordCrossing(1, rightEdge + 26, ch.y);
+              syncSlidersFromParticles();
+            }
+          }
+        });
+      }
+
+      // Update each particle
+      for (let i = 0; i < state.particles.length; i++) {
+        const p = state.particles[i];
+        if (p.inChannel) continue;
+
+        // Thermal Brownian motion
+        const jitter = 140 * speedFactor * dt;
+        p.vx += (Math.random() - 0.5) * jitter;
+        p.vy += (Math.random() - 0.5) * jitter;
+
+        const targetSpeed = (p.type === 'solute' ? 42 : 112) * speedFactor;
+        const currentSpeed = Math.hypot(p.vx, p.vy) || 1;
+        p.vx = (p.vx / currentSpeed) * targetSpeed;
+        p.vy = (p.vy / currentSpeed) * targetSpeed;
+
+        // Osmotic pull across partially permeable membrane toward higher solute side
+        if (state.mode === 'osmosis' && p.type === 'water' && !denatured) {
+          const soluteDiff = state.intConc - state.extConc; // + => more solute inside => water moves right
+          if (Math.abs(soluteDiff) > 3 && Math.abs(p.x - memX) < 110) {
+            p.vx += (soluteDiff / 100) * 34 * speedFactor;
+          }
+        }
+
+        let nextX = p.x + p.vx * dt;
+        let nextY = p.y + p.vy * dt;
+
+        // Outer Canvas Wall Collisions
+        if (nextX - p.radius < 6) {
+          nextX = 6 + p.radius;
+          p.vx = Math.abs(p.vx);
+        } else if (nextX + p.radius > width - 6) {
+          nextX = width - 6 - p.radius;
+          p.vx = -Math.abs(p.vx);
+        }
+        if (nextY - p.radius < 6) {
+          nextY = 6 + p.radius;
+          p.vy = Math.abs(p.vy);
+        } else if (nextY + p.radius > height - 6) {
+          nextY = height - 6 - p.radius;
+          p.vy = -Math.abs(p.vy);
+        }
+
+        // Phospholipid Bilayer Interactions at memX
+        if (state.mode === 'diffusion') {
+          // Small molecules pass directly through the phospholipid bilayer in both directions
+          if (p.side === 'ext' && nextX > memX) {
+            p.side = 'int';
+            recordCrossing(1, memX, nextY);
+            syncSlidersFromParticles();
+          } else if (p.side === 'int' && nextX < memX) {
+            p.side = 'ext';
+            recordCrossing(-1, memX, nextY);
+            syncSlidersFromParticles();
+          }
+          p.x = nextX;
+          p.y = nextY;
+
+        } else if (state.mode === 'osmosis') {
+          if (p.type === 'solute') {
+            // Large solute molecules cannot pass through the partially permeable membrane
+            if (p.side === 'ext' && nextX + p.radius > leftEdge) {
+              nextX = leftEdge - p.radius;
+              p.vx = -Math.abs(p.vx);
+            } else if (p.side === 'int' && nextX - p.radius < rightEdge) {
+              nextX = rightEdge + p.radius;
+              p.vx = Math.abs(p.vx);
+            }
+            p.x = nextX;
+            p.y = nextY;
+          } else {
+            // Water molecules pass through membrane channels if not denatured
+            const channel = !denatured
+              ? state.channels.find(ch => Math.abs(nextY - ch.y) < ch.height * 0.42)
+              : null;
+
+            if (channel) {
+              if (p.side === 'ext' && nextX > memX) {
+                p.side = 'int';
+                recordCrossing(1, memX, nextY);
+              } else if (p.side === 'int' && nextX < memX) {
+                p.side = 'ext';
+                recordCrossing(-1, memX, nextY);
+              }
+              p.x = nextX;
+              p.y = nextY;
+            } else {
+              if (p.side === 'ext' && nextX + p.radius > leftEdge) {
+                nextX = leftEdge - p.radius;
+                p.vx = -Math.abs(p.vx);
+              } else if (p.side === 'int' && nextX - p.radius < rightEdge) {
+                nextX = rightEdge + p.radius;
+                p.vx = Math.abs(p.vx);
+              }
+              p.x = nextX;
+              p.y = nextY;
+            }
+          }
+
+        } else if (state.mode === 'active') {
+          // Internal particles ('int') bounce off rightEdge (cannot leak back out)
+          if (p.side === 'int') {
+            if (nextX - p.radius < rightEdge) {
+              nextX = rightEdge + p.radius;
+              p.vx = Math.abs(p.vx);
+            }
+            p.x = nextX;
+            p.y = nextY;
+          } else {
+            // External particles ('ext'): check if hitting an available Carrier Protein on leftEdge
+            if (nextX + p.radius >= leftEdge) {
+              let captured = false;
+              if (!denatured && state.atpSupply) {
+                for (let c = 0; c < state.channels.length; c++) {
+                  const ch = state.channels[c];
+                  if (!ch.occupiedParticle && Math.abs(nextY - ch.y) < ch.height * 0.48) {
+                    ch.occupiedParticle = p;
+                    ch.pumpTimer = 0;
+                    p.inChannel = true;
+                    p.channelIdx = c;
+                    captured = true;
+                    break;
+                  }
+                }
+              }
+              if (!captured) {
+                nextX = leftEdge - p.radius;
+                p.vx = -Math.abs(p.vx);
+              }
+            }
+            p.x = nextX;
+            p.y = nextY;
+          }
+        }
+      }
+    }
+
+    // Calculate live rates over rolling 2.2s window & update GCSE telemetry
+    function updateTelemetryUI() {
+      const now = performance.now();
+      const windowMs = 2200;
+      state.crossingEvents = state.crossingEvents.filter(e => now - e.time <= windowMs);
+
+      let inCount = 0;
+      let outCount = 0;
+      for (const e of state.crossingEvents) {
+        if (e.dir === 1) inCount++;
+        else outCount++;
+      }
+
+      const rawInflux = inCount / (windowMs / 1000);
+      const rawEfflux = outCount / (windowMs / 1000);
+      const rawNet = rawInflux - rawEfflux; // + means External -> Internal (INTO cell)
+
+      const alpha = state.paused ? 0 : 0.14;
+      state.smoothedInflux += (rawInflux - state.smoothedInflux) * alpha;
+      state.smoothedEfflux += (rawEfflux - state.smoothedEfflux) * alpha;
+      state.smoothedNetRate += (rawNet - state.smoothedNetRate) * alpha;
+
+      const absNet = Math.abs(state.smoothedNetRate);
+      flowRateValue.textContent = absNet.toFixed(1);
+      influxRateEl.textContent = state.smoothedInflux.toFixed(1) + ' /s';
+      effluxRateEl.textContent = state.smoothedEfflux.toFixed(1) + ' /s';
+      atpCounterBadge.textContent = `ATP: ${state.atpUsedCount}`;
+
+      // Gauge arc & needle (max scale ~ 24 particles/sec for denser particle pool)
+      const maxGauge = 24;
+      const ratio = Math.min(1, absNet / maxGauge);
+      const totalArcLen = 282.74;
+      gaugeArc.setAttribute('stroke-dashoffset', (totalArcLen * (1 - ratio)).toFixed(1));
+      const angleDeg = -90 + ratio * 180;
+      gaugeNeedle.setAttribute('transform', `translate(110, 110) rotate(${angleDeg.toFixed(1)})`);
+
+      // Live Particle Counts in Header
+      if (state.mode === 'osmosis') {
+        const extW = state.particles.filter(p => p.side === 'ext' && p.type === 'water').length;
+        const intW = state.particles.filter(p => p.side === 'int' && p.type === 'water').length;
+        const extS = state.particles.filter(p => p.side === 'ext' && p.type === 'solute').length;
+        const intS = state.particles.filter(p => p.side === 'int' && p.type === 'solute').length;
+        extLiveCount.textContent = `${extW} Water / ${extS} Solute`;
+        intLiveCount.textContent = `${intW} Water / ${intS} Solute`;
+
+        const diff = state.intConc - state.extConc;
+        if (Math.abs(diff) <= 5) {
+          extWaterPotential.textContent = 'EQUAL';
+          intWaterPotential.textContent = 'EQUAL';
+          tonicityBadge.textContent = 'EQUAL CONCENTRATION • NO NET WATER FLOW';
+          tonicityBadge.className = 'px-2.5 py-0.5 rounded font-black text-[11px] tracking-wider uppercase bg-emerald-500/25 text-emerald-200 border border-emerald-400/50';
+        } else if (diff > 5) {
+          extWaterPotential.textContent = 'HIGH (DILUTE)';
+          intWaterPotential.textContent = 'LOW (CONC.)';
+          tonicityBadge.textContent = 'DILUTE OUTSIDE → WATER MOVES IN';
+          tonicityBadge.className = 'px-2.5 py-0.5 rounded font-black text-[11px] tracking-wider uppercase bg-cyan-500/25 text-cyan-200 border border-cyan-400/50';
+        } else {
+          extWaterPotential.textContent = 'LOW (CONC.)';
+          intWaterPotential.textContent = 'HIGH (DILUTE)';
+          tonicityBadge.textContent = 'CONCENTRATED OUTSIDE → WATER MOVES OUT';
+          tonicityBadge.className = 'px-2.5 py-0.5 rounded font-black text-[11px] tracking-wider uppercase bg-amber-500/25 text-amber-200 border border-amber-400/50';
+        }
+      } else {
+        const extP = state.particles.filter(p => p.side === 'ext').length;
+        const intP = state.particles.filter(p => p.side === 'int').length;
+        extLiveCount.textContent = extP;
+        intLiveCount.textContent = intP;
+      }
+
+      // Denaturation UI Warnings
+      const denatured = isDenatured();
+      if (denatured) {
+        denatureAlert.classList.remove('hidden');
+        tempStatusPill.textContent = 'DENATURED!';
+        tempStatusPill.className = 'text-[10px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white border border-red-300 animate-pulse';
+        tempCard.classList.add('border-red-500/80', 'bg-red-950/25');
+        tempCard.classList.remove('border-slate-800');
+
+        if (state.mode === 'diffusion') {
+          denatureTitle.textContent = `HIGH TEMP (${state.temp}°C) — FAST PARTICLE MOVEMENT`;
+          denatureSubtitle.textContent = 'Particles have more kinetic energy; membrane proteins would denature.';
+        } else if (state.mode === 'osmosis') {
+          denatureTitle.textContent = `MEMBRANE PROTEINS DENATURED! (${state.temp}°C)`;
+          denatureSubtitle.textContent = 'Protein channels changed shape and closed — osmosis stopped!';
+        } else {
+          denatureTitle.textContent = `CARRIER PROTEINS DENATURED! (${state.temp}°C)`;
+          denatureSubtitle.textContent = 'Active site changed shape — active transport stopped!';
+        }
+      } else {
+        denatureAlert.classList.add('hidden');
+        tempCard.classList.remove('border-red-500/80', 'bg-red-950/25');
+        tempCard.classList.add('border-slate-800');
+        if (state.temp < 15) {
+          tempStatusPill.textContent = 'SLOW';
+          tempStatusPill.className = 'text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/40';
+        } else {
+          tempStatusPill.textContent = 'OPTIMAL';
+          tempStatusPill.className = 'text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        }
+      }
+
+      // Net Direction Card Readout (No arrows shown until GO is pressed!)
+      if (!state.hasStarted) {
+        netArrowBig.textContent = '⏸ READY';
+        netArrowBig.className = 'text-xl md:text-2xl font-black text-emerald-400 tracking-wide';
+        netDirectionText.textContent = 'PRESS GO TO START';
+        netSubText.textContent = 'Set concentrations first';
+      } else if (denatured && state.mode !== 'diffusion') {
+        netArrowBig.textContent = '⛔ STOPPED';
+        netArrowBig.className = 'text-xl md:text-2xl font-black text-red-400 tracking-wide';
+        netDirectionText.textContent = 'PROTEIN DENATURED';
+        netSubText.textContent = 'Lower temp below 48°C';
+      } else if (state.mode === 'active' && !state.atpSupply) {
+        netArrowBig.textContent = '🔋 NO ENERGY';
+        netArrowBig.className = 'text-xl md:text-2xl font-black text-amber-400 tracking-wide';
+        netDirectionText.textContent = 'TRANSPORT STOPPED';
+        netSubText.textContent = 'Turn Energy (ATP) ON';
+      } else if (absNet < 0.45) {
+        netArrowBig.textContent = '⇄ EQUILIBRIUM';
+        netArrowBig.className = 'text-lg md:text-xl font-black text-emerald-400 tracking-wide';
+        netDirectionText.textContent = 'NO NET MOVEMENT';
+        netSubText.textContent = 'Equal movement both ways';
+      } else if (state.smoothedNetRate > 0) {
+        const arrows = absNet > 7 ? '➔➔➔' : (absNet > 3 ? '➔➔' : '➔');
+        netArrowBig.textContent = arrows;
+        netArrowBig.className = 'text-2xl md:text-3xl font-black text-cyan-400 tracking-widest';
+        netDirectionText.textContent = 'INTO CELL (EXTERNAL ➔ INTERNAL)';
+        netSubText.textContent = 'Net movement into cell';
+      } else {
+        const arrows = absNet > 7 ? '⬅⬅⬅' : (absNet > 3 ? '⬅⬅' : '⬅');
+        netArrowBig.textContent = arrows;
+        netArrowBig.className = 'text-2xl md:text-3xl font-black text-amber-400 tracking-widest';
+        netDirectionText.textContent = 'OUT OF CELL (INTERNAL ➔ EXTERNAL)';
+        netSubText.textContent = 'Net movement out of cell';
+      }
+    }
+
+    // RENDER PHOSPHOLIPID BILAYER, CHANNELS & PARTICLES
+    function drawSimulation() {
+      ctx.clearRect(0, 0, width, height);
+
+      const { memX, leftEdge, rightEdge, memWidth } = getBilayerGeometry();
+      const denatured = isDenatured();
+
+      // 1. Split Background: External (Left) vs Internal (Right)
+      const extGrad = ctx.createLinearGradient(0, 0, memX, 0);
+      extGrad.addColorStop(0, '#071329');
+      extGrad.addColorStop(1, '#0b1d3d');
+      ctx.fillStyle = extGrad;
+      ctx.fillRect(0, 0, memX, height);
+
+      const intGrad = ctx.createLinearGradient(memX, 0, width, 0);
+      intGrad.addColorStop(0, '#09242e');
+      intGrad.addColorStop(1, '#061821');
+      ctx.fillStyle = intGrad;
+      ctx.fillRect(memX, 0, width - memX, height);
+
+      // Subtle background watermarks
+      ctx.save();
+      ctx.fillStyle = 'rgba(103, 232, 249, 0.14)';
+      ctx.font = '900 13px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('EXTERNAL (OUTSIDE)', 14, height - 12);
+      ctx.fillStyle = 'rgba(110, 231, 183, 0.14)';
+      ctx.textAlign = 'right';
+      ctx.fillText('INTERNAL (INSIDE CELL)', width - 14, height - 12);
+      ctx.restore();
+
+      // 2. Phospholipid Bilayer Hydrophobic Core Strip
+      ctx.fillStyle = denatured ? 'rgba(239, 68, 68, 0.14)' : 'rgba(251, 191, 36, 0.09)';
+      ctx.fillRect(leftEdge, 0, memWidth, height);
+
+      // 3. Draw Phospholipid Heads & Fatty Acid Tails
+      drawPhospholipidBilayer(leftEdge, rightEdge, memX, denatured);
+
+      // 4. Draw Protein Channels (Osmosis) or Carrier Proteins (Active Transport)
+      if (state.mode === 'osmosis') {
+        drawBilayerChannels(memX, memWidth, denatured);
+      } else if (state.mode === 'active') {
+        drawBilayerCarrierPumps(memX, memWidth, denatured);
+      }
+
+      // 5. Animated Net Flow Arrows across Bilayer (ONLY shown once GO has been clicked!)
+      if (state.hasStarted) {
+        drawBilayerNetFlowArrows(memX);
+      }
+
+      // 6. Draw All Particles
+      for (let i = 0; i < state.particles.length; i++) {
+        drawParticle(state.particles[i]);
+      }
+
+      // 7. Draw ATP Energy Bursts inside Cell
+      for (let i = 0; i < state.atpEffects.length; i++) {
+        drawATPEffect(state.atpEffects[i]);
+      }
+
+      // 8. Top Cell Membrane Label Pill
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.strokeStyle = denatured ? '#ef4444' : '#fbbf24';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(memX - 66, 8, 132, 22, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = denatured ? '#fca5a5' : '#fde68a';
+      ctx.font = '800 10px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('CELL MEMBRANE', memX, 19);
+      ctx.restore();
+    }
+
+    function drawPhospholipidBilayer(leftEdge, rightEdge, memX, denatured) {
+      const headRadius = 6.2;
+      const spacing = headRadius * 2.25;
+      const headColor = denatured ? '#f87171' : '#fbbf24';
+      const headBorder = denatured ? '#fee2e2' : '#fef3c7';
+      const tailColor = denatured ? 'rgba(248, 113, 113, 0.45)' : 'rgba(253, 224, 71, 0.35)';
+
+      for (let y = spacing * 0.5; y < height; y += spacing) {
+        // Skip drawing phospholipid heads directly over protein channels/pumps
+        if (state.mode !== 'diffusion') {
+          const overChannel = state.channels.some(ch => Math.abs(y - ch.y) < ch.height * 0.52);
+          if (overChannel) continue;
+        }
+
+        const wobble = denatured ? Math.sin(state.bilayerWobble * 2.2 + y * 0.1) * 3 : Math.sin(state.bilayerWobble + y * 0.05) * 0.8;
+        const lx = leftEdge + wobble;
+        const rx = rightEdge - wobble;
+
+        // Hydrophobic tails pointing inward toward memX
+        ctx.strokeStyle = tailColor;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(lx + headRadius, y - 2);
+        ctx.lineTo(memX - 2, y - 2);
+        ctx.moveTo(lx + headRadius, y + 2);
+        ctx.lineTo(memX - 2, y + 2);
+
+        ctx.moveTo(rx - headRadius, y - 2);
+        ctx.lineTo(memX + 2, y - 2);
+        ctx.moveTo(rx - headRadius, y + 2);
+        ctx.lineTo(memX + 2, y + 2);
+        ctx.stroke();
+
+        // Left hydrophilic head
+        ctx.fillStyle = headColor;
+        ctx.strokeStyle = headBorder;
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.arc(lx, y, headRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Right hydrophilic head
+        ctx.beginPath();
+        ctx.arc(rx, y, headRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    function drawBilayerChannels(memX, memWidth, denatured) {
+      const boxW = memWidth + 12;
+      state.channels.forEach(ch => {
+        ctx.save();
+        if (denatured) {
+          ctx.fillStyle = '#475569';
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(memX - boxW / 2, ch.y - ch.height / 2 + 2, boxW, ch.height - 4, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = '#fca5a5';
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.moveTo(memX - 6, ch.y - 6);
+          ctx.lineTo(memX + 6, ch.y + 6);
+          ctx.moveTo(memX + 6, ch.y - 6);
+          ctx.lineTo(memX - 6, ch.y + 6);
+          ctx.stroke();
+        } else {
+          const poreHalf = 7.5;
+          ctx.fillStyle = '#0d9488';
+          ctx.strokeStyle = '#5eead4';
+          ctx.lineWidth = 1.8;
+
+          // Top & bottom channel walls
+          ctx.beginPath();
+          ctx.roundRect(memX - boxW / 2, ch.y - ch.height / 2, boxW, ch.height / 2 - poreHalf, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.roundRect(memX - boxW / 2, ch.y + poreHalf, boxW, ch.height / 2 - poreHalf, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          // Open pore tint
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+          ctx.fillRect(memX - boxW / 2 + 1, ch.y - poreHalf, boxW - 2, poreHalf * 2);
+        }
+        ctx.restore();
+      });
+    }
+
+    function drawBilayerCarrierPumps(memX, memWidth, denatured) {
+      const boxW = memWidth + 14;
+      state.channels.forEach(ch => {
+        ctx.save();
+        if (denatured) {
+          ctx.fillStyle = '#475569';
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(memX - boxW / 2, ch.y - ch.height / 2 + 2, boxW, ch.height - 4, 10);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          const isPumping = ch.occupiedParticle !== null;
+          ctx.fillStyle = isPumping ? '#7c3aed' : '#5b21b6';
+          ctx.strokeStyle = isPumping ? '#fde047' : '#c4b5fd';
+          ctx.lineWidth = isPumping ? 2.4 : 1.8;
+
+          // Top & bottom carrier protein walls
+          ctx.beginPath();
+          ctx.roundRect(memX - boxW / 2, ch.y - ch.height / 2, boxW, 9, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.roundRect(memX - boxW / 2, ch.y + ch.height / 2 - 9, boxW, 9, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          // Conformational Gates (Pumps from Left/External -> Right/Internal):
+          // Idle: Open to External (Left), Closed to Internal (Right)
+          // Pumping: Closed to External (Left), Open to Internal (Right)
+          ctx.fillStyle = '#a78bfa';
+          if (ch.pumpPhase < 1.5) {
+            ctx.fillRect(memX + boxW / 2 - 7, ch.y - 9, 5, 18);
+          } else {
+            ctx.fillRect(memX - boxW / 2 + 2, ch.y - 9, 5, 18);
+          }
+
+          // Energy (ATP) binding dot on Internal (right) side
+          ctx.fillStyle = state.atpSupply ? '#fbbf24' : '#334155';
+          ctx.beginPath();
+          ctx.arc(memX + boxW / 2 - 4, ch.y + ch.height / 2 - 3, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+    }
+
+    // Draw bold horizontal arrows across the bilayer ONLY after GO is clicked
+    function drawBilayerNetFlowArrows(memX) {
+      if ((isDenatured() && state.mode !== 'diffusion') || (state.mode === 'active' && !state.atpSupply)) {
+        return;
+      }
+
+      const net = state.smoothedNetRate;
+      const absNet = Math.abs(net);
+      if (absNet < 0.45) return;
+
+      const dir = net > 0 ? 1 : -1; // 1 = Right (External -> Internal), -1 = Left (Internal -> External)
+      const intensity = Math.min(1.25, 0.78 + absNet / 18);
+      const pulse = state.paused ? 0 : Math.sin(performance.now() * 0.006) * 8 * dir;
+
+      const yPositions = [height * 0.3, height * 0.7];
+      yPositions.forEach(ay => {
+        ctx.save();
+        ctx.translate(memX + pulse, ay);
+        if (dir === -1) ctx.scale(-1, 1);
+        ctx.scale(intensity, intensity);
+
+        ctx.shadowColor = dir === 1 ? '#22d3ee' : '#fbbf24';
+        ctx.shadowBlur = 16;
+        ctx.fillStyle = dir === 1 ? 'rgba(34, 211, 238, 0.34)' : 'rgba(251, 191, 36, 0.36)';
+        ctx.strokeStyle = dir === 1 ? '#67e8f9' : '#fde047';
+        ctx.lineWidth = 2.4;
+
+        ctx.beginPath();
+        ctx.moveTo(-48, -11);
+        ctx.lineTo(14, -11);
+        ctx.lineTo(14, -22);
+        ctx.lineTo(50, 0);
+        ctx.lineTo(14, 22);
+        ctx.lineTo(14, 11);
+        ctx.lineTo(-48, 11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    function drawParticle(p) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+
+      if (p.type === 'diffusing') {
+        ctx.fillStyle = '#22d3ee';
+        ctx.shadowColor = '#22d3ee';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+      } else if (p.type === 'water') {
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#e0f2fe';
+        ctx.stroke();
+      } else if (p.type === 'solute') {
+        ctx.fillStyle = '#d946ef';
+        ctx.shadowColor = '#d946ef';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = '#f5d0fe';
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('S', p.x, p.y + 0.5);
+      } else if (p.type === 'ion') {
+        ctx.fillStyle = '#a3e635';
+        ctx.shadowColor = '#a3e635';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '900 9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('+', p.x, p.y + 0.5);
+      }
+
+      ctx.restore();
+    }
+
+    // Draw GCSE Energy (ATP) burst inside cell
+    function drawATPEffect(eff) {
+      const progress = eff.age / eff.maxAge;
+      const alpha = Math.max(0, 1 - progress);
+      const radius = 8 + progress * 20;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      ctx.beginPath();
+      ctx.arc(eff.x, eff.y, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      const floatY = eff.y - progress * 18;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.roundRect(eff.x - 28, floatY - 10, 56, 20, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#fde047';
+      ctx.font = '900 10px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ATP ⚡', eff.x, floatY + 0.5);
+
+      ctx.restore();
+    }
+
+    function updateATPButtonUI() {
+      if (state.atpSupply) {
+        btnToggleATP.className = 'px-3 py-1.5 rounded-lg font-black text-xs tracking-wide bg-amber-400 hover:bg-amber-300 text-slate-950 shadow border border-amber-200 transition flex items-center gap-1.5';
+        btnToggleATPText.textContent = 'ENERGY (ATP): ON';
+        atpStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-700 animate-ping';
+      } else {
+        btnToggleATP.className = 'px-3 py-1.5 rounded-lg font-black text-xs tracking-wide bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 transition flex items-center gap-1.5';
+        btnToggleATPText.textContent = 'ENERGY (ATP): OFF';
+        atpStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500';
+      }
+    }
+
+    function toggleATP() {
+      state.atpSupply = !state.atpSupply;
+      updateATPButtonUI();
+      updateTelemetryUI();
+    }
+
+    function togglePlayPause() {
+      setPausedState(!state.paused, false);
+    }
+
+    function resetCurrentMode() {
+      state.temp = 37;
+      sliderTemp.value = 37;
+      valTemp.textContent = '37°C';
+      setMode(state.mode);
+    }
+
+    // Event Listeners
+    document.querySelectorAll('.mode-tab').forEach(btn => {
+      btn.addEventListener('click', () => setMode(btn.dataset.mode));
+    });
+
+    sliderExt.addEventListener('input', (e) => {
+      state.extConc = parseInt(e.target.value, 10);
+      valExt.textContent = state.extConc + '%';
+      reconcileParticleCounts();
+      updateTelemetryUI();
+    });
+
+    sliderInt.addEventListener('input', (e) => {
+      state.intConc = parseInt(e.target.value, 10);
+      valInt.textContent = state.intConc + '%';
+      reconcileParticleCounts();
+      updateTelemetryUI();
+    });
+
+    sliderTemp.addEventListener('input', (e) => {
+      state.temp = parseInt(e.target.value, 10);
+      valTemp.textContent = state.temp + '°C';
+      updateTelemetryUI();
+    });
+
+    document.getElementById('btnPlayPause').addEventListener('click', togglePlayPause);
+    document.getElementById('btnOverlayGo').addEventListener('click', () => setPausedState(false, false));
+    document.getElementById('btnReset').addEventListener('click', resetCurrentMode);
+    btnToggleATP.addEventListener('click', toggleATP);
+
+    // Main 60FPS Animation Loop
+    let lastTimestamp = 0;
+    function mainLoop(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      updateSimulation(dt);
+      drawSimulation();
+      updateTelemetryUI();
+
+      requestAnimationFrame(mainLoop);
+    }
+
+    // Initialize on Window Load
+    window.onload = function () {
+      resizeCanvas();
+      setMode('diffusion');
+      requestAnimationFrame(mainLoop);
+    };
+  </script>
+</body>
+</html>
