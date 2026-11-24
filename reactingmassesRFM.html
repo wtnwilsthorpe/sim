@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reacting Masses &amp; Fixed Proportions — Classroom Display</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-canvas: #090e1a;
+      --bg-panel: #111827;
+      --bg-card: #182234;
+      --border-subtle: rgba(148, 163, 184, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      max-height: 100dvh;
+      background-color: var(--bg-canvas);
+      color: #f8fafc;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+      font-family: 'JetBrains Mono', 'Inter', monospace;
+    }
+
+    /* High-visibility classroom range slider */
+    input[type="range"].mass-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: clamp(10px, 1.5vh, 14px);
+      border-radius: 999px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+
+    input[type="range"].mass-slider:hover,
+    input[type="range"].mass-slider:focus {
+      border-color: #38bdf8;
+    }
+
+    input[type="range"].mass-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: clamp(20px, 3vh, 26px);
+      height: clamp(20px, 3vh, 26px);
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35), 0 4px 10px rgba(0, 0, 0, 0.5);
+      cursor: grab;
+      transition: transform 0.12s ease, background-color 0.15s ease;
+    }
+
+    input[type="range"].mass-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.14);
+      background: #fbbf24;
+    }
+
+    input[type="range"].mass-slider::-moz-range-thumb {
+      width: clamp(20px, 3vh, 26px);
+      height: clamp(20px, 3vh, 26px);
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35), 0 4px 10px rgba(0, 0, 0, 0.5);
+      cursor: grab;
+      transition: transform 0.12s ease, background-color 0.15s ease;
+    }
+
+    input[type="range"].mass-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.14);
+      background: #fbbf24;
+    }
+
+    input[type="range"].mass-slider::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35), 0 4px 10px rgba(0, 0, 0, 0.5);
+      cursor: grab;
+      transition: transform 0.12s ease, background-color 0.15s ease;
+    }
+
+    /* Active driver styling */
+    .driver-card {
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.25), 0 18px 36px -12px rgba(0, 0, 0, 0.7);
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.11) 0%, #162033 100%) !important;
+    }
+
+    .driver-card input[type="range"].mass-slider::-webkit-slider-thumb {
+      background: #fbbf24;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.35), 0 4px 10px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Number input clean appearance */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      opacity: 1;
+      height: 32px;
+    }
+
+    /* Smooth bar transitions */
+    .mass-fill-bar {
+      transition: width 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Subtle grid background */
+    .lab-grid {
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.10), transparent 60%),
+        linear-gradient(to right, rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 36px 36px, 36px 36px;
+    }
+
+    /* Viewport-scaled fluid classroom display sizes */
+    .fluid-formula {
+      font-size: clamp(2rem, 5.2vh, 4rem);
+    }
+    .fluid-formula-compact {
+      font-size: clamp(1.55rem, 4vh, 2.9rem);
+    }
+    .fluid-mr {
+      font-size: clamp(2rem, 5vh, 3.6rem);
+    }
+    .fluid-mr-compact {
+      font-size: clamp(1.55rem, 3.8vh, 2.75rem);
+    }
+    .fluid-mass-input {
+      font-size: clamp(2.1rem, 5.2vh, 3.75rem);
+    }
+    .fluid-mass-input-compact {
+      font-size: clamp(1.6rem, 4vh, 2.85rem);
+    }
+  </style>
+</head>
+<body class="lab-grid flex flex-col justify-between h-[100dvh] max-h-[100dvh] overflow-hidden select-none">
+
+  <!-- TOP CLASSROOM HEADER & REACTION SELECTOR -->
+  <header class="w-full shrink-0 bg-slate-900/95 border-b border-slate-700/80 px-4 sm:px-6 lg:px-8 py-2 shadow-xl">
+    <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-2.5">
+      <!-- Title & Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
+          <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M5 8l7-3 7 3M5 8l-2 6h4l-2-6zm14 0l-2 6h4l-2-6zM8 21h8" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+              GCSE Chemistry
+            </span>
+            <span id="difficultyBadge" class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">
+              Level 1 • 1:1 Ratio
+            </span>
+          </div>
+          <h1 class="text-lg sm:text-xl lg:text-2xl font-black tracking-tight text-white leading-tight">
+            Reacting Masses &amp; Fixed Proportions
+          </h1>
+        </div>
+      </div>
+
+      <!-- Reaction Dropdown & Quick Scale Controls -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="min-w-[270px] sm:min-w-[370px] lg:min-w-[430px]">
+          <label for="reactionSelect" class="sr-only">Select Chemical Reaction</label>
+          <div class="relative">
+            <select id="reactionSelect"
+              class="w-full appearance-none bg-slate-800 hover:bg-slate-750 text-white font-bold text-sm sm:text-base pl-3.5 pr-10 py-2 rounded-xl border-2 border-cyan-400/60 focus:border-amber-400 focus:outline-none shadow-lg cursor-pointer transition">
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-cyan-300">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Scale Buttons -->
+        <div class="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
+          <button type="button" onclick="applyMultiplier(0.5)"
+            class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-cyan-600 text-white font-extrabold text-xs sm:text-sm transition cursor-pointer"
+            title="Halve all masses">
+            &times;0.5
+          </button>
+          <button type="button" onclick="applyMultiplier(2)"
+            class="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-cyan-600 text-white font-extrabold text-xs sm:text-sm transition cursor-pointer"
+            title="Double all masses">
+            &times;2
+          </button>
+          <button type="button" onclick="resetToStandardMoles()"
+            class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs sm:text-sm transition cursor-pointer shadow"
+            title="Reset to 1 standard stoichiometric molar ratio">
+            Reset (1&times;)
+          </button>
+        </div>
+
+        <!-- Step-by-Step Working Modal Trigger -->
+        <button type="button" id="toggleWorkingBtn" onclick="toggleWorkingDrawer(true)"
+          class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm transition cursor-pointer shadow-lg shadow-amber-500/20 flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <span id="toggleWorkingLabel">Show GCSE Working</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN COLUMNAR SIMULATION WORKSPACE (Locked to remaining viewport height) -->
+  <main class="flex-1 min-h-0 w-full max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex flex-col justify-between gap-2.5 overflow-hidden">
+
+    <!-- ALIGNED ROW-LABEL + SPECIES COLUMNS GRID -->
+    <section aria-label="Stoichiometric Reacting Mass Columns" class="flex-1 min-h-0 w-full overflow-x-auto overflow-y-hidden flex items-stretch">
+      <div class="w-full min-w-[780px] h-full flex items-stretch justify-center gap-2.5 sm:gap-3.5">
+
+        <!-- SINGLE LEFT-HAND ROW LABELS COLUMN -->
+        <div class="w-36 sm:w-44 lg:w-52 shrink-0 h-full bg-slate-900/90 border-2 border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-col justify-between text-right select-none">
+          <!-- Row 1 Label -->
+          <div class="flex-1 flex flex-col justify-center border-b border-slate-800 pb-2">
+            <div class="text-xs sm:text-sm font-black uppercase tracking-wider text-cyan-400">
+              Balanced Equation
+            </div>
+            <div class="text-[11px] sm:text-xs font-semibold text-slate-400 mt-0.5">
+              Species &amp; Ratio
+            </div>
+          </div>
+
+          <!-- Row 2 Label -->
+          <div class="flex-1 flex flex-col justify-center border-b border-slate-800 py-2">
+            <div class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-200">
+              Total RFM
+            </div>
+            <div id="arReferenceText" class="text-[11px] font-semibold text-slate-400 mt-0.5 leading-snug">
+              Mg = 24, S = 32
+            </div>
+          </div>
+
+          <!-- Row 3 Label -->
+          <div class="flex-[1.25] flex flex-col justify-center pt-2">
+            <div class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400">
+              Actual Mass (g)
+            </div>
+            <div class="text-[11px] sm:text-xs font-semibold text-slate-400 mt-0.5">
+              Drag or type any value
+            </div>
+          </div>
+        </div>
+
+        <!-- DYNAMIC SPECIES COLUMNS + OPERATORS -->
+        <div id="columnsContainer" class="flex-1 h-full flex items-stretch justify-center gap-2 sm:gap-3">
+          <!-- Dynamically populated aligned species columns + operator columns -->
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CENTERED MODAL OVERLAY FOR 3-STEP GCSE WORKING (Never pushes layout height) -->
+  <div id="workingModalBackdrop" onclick="handleBackdropClick(event)"
+    class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <section id="workingDrawer" role="dialog" aria-modal="true" aria-labelledby="workingTitle"
+      class="w-full max-w-4xl bg-slate-900 border-2 border-amber-400/80 rounded-2xl p-5 sm:p-6 shadow-2xl">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 mb-4 border-b border-slate-800">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <span class="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider">
+            3-Step GCSE Method
+          </span>
+          <h2 id="workingTitle" class="text-base sm:text-xl font-extrabold text-white">
+            Calculating all masses from known mass of Mg
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <label for="targetSpeciesSelect" class="text-xs sm:text-sm font-bold text-slate-300">Target:</label>
+          <select id="targetSpeciesSelect" onchange="renderWorkingDrawer()"
+            class="bg-slate-800 text-cyan-300 font-bold text-sm px-3 py-1.5 rounded-lg border border-slate-600 focus:border-amber-400 focus:outline-none cursor-pointer">
+          </select>
+          <button type="button" onclick="toggleWorkingDrawer(false)"
+            class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition cursor-pointer"
+            title="Close Working Window" aria-label="Close Working Window">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="workingStepsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 3-Step GCSE cards injected here -->
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+        <span>Tip: Change any mass slider or input in the background, then open this guide to inspect the exact calculation.</span>
+        <button type="button" onclick="toggleWorkingDrawer(false)"
+          class="px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm cursor-pointer transition">
+          Done
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- BOTTOM CONSERVATION OF MASS & FIXED PROPORTION PROOF BAR -->
+  <footer class="w-full shrink-0 bg-slate-900/95 border-t-2 border-slate-700/90 px-4 sm:px-6 lg:px-8 py-2 shadow-2xl">
+    <div class="max-w-[1680px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-center">
+
+      <!-- Law of Conservation of Mass Live Equation -->
+      <div class="lg:col-span-7 bg-slate-950/90 border border-emerald-500/40 rounded-xl px-3.5 py-1.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 leading-tight">
+              Law of Conservation of Mass
+            </div>
+            <div class="text-xs sm:text-sm font-bold text-slate-200 leading-tight">
+              Total Reactants = Total Products
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 text-base sm:text-xl font-black tabular-nums">
+          <div class="px-2.5 py-0.5 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">
+            <span id="totalReactantsMass">56.0</span><span class="text-xs font-bold ml-0.5">g</span>
+          </div>
+          <span class="text-emerald-400">=</span>
+          <div class="px-2.5 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
+            <span id="totalProductsMass">56.0</span><span class="text-xs font-bold ml-0.5">g</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Proportion Ratio & Scale Factor Proof -->
+      <div class="lg:col-span-5 bg-slate-950/90 border border-amber-500/35 rounded-xl px-3.5 py-1.5 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 leading-tight">
+            Fixed Stoichiometric Mass Ratio
+          </div>
+          <div id="fixedRatioText" class="text-xs sm:text-sm font-extrabold text-white tabular-nums leading-tight mt-0.5">
+            24g : 32g &rarr; 56g
+          </div>
+        </div>
+
+        <div class="text-right">
+          <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 leading-tight">
+            Scale Factor
+          </div>
+          <div id="scaleFactorText" class="text-base sm:text-lg font-black text-amber-300 tabular-nums leading-tight">
+            &times; 1.00
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <script>
+    // =========================================================================
+    // REACTION DATASET (6 Reactions of Increasing Complexity - UK GCSE AQA Ar)
+    // =========================================================================
+    const REACTIONS = [
+      {
+        id: 'synthesis_mgs',
+        level: 'Level 1 • 1:1 Simple Synthesis',
+        dropdownLabel: '1. Simple Synthesis (1:1):  Mg + S → MgS',
+        title: 'Synthesis of Magnesium Sulfide',
+        arNote: 'Mg = 24,  S = 32',
+        maxSliderBase: 120,
+        species: [
+          {
+            role: 'reactant',
+            coeff: 1,
+            formulaHTML: 'Mg',
+            plainFormula: 'Mg',
+            name: 'Magnesium',
+            mr: 24,
+            mrBreakdown: '24'
+          },
+          {
+            role: 'reactant',
+            coeff: 1,
+            formulaHTML: 'S',
+            plainFormula: 'S',
+            name: 'Sulfur',
+            mr: 32,
+            mrBreakdown: '32'
+          },
+          {
+            role: 'product',
+            coeff: 1,
+            formulaHTML: 'MgS',
+            plainFormula: 'MgS',
+            name: 'Magnesium sulfide',
+            mr: 56,
+            mrBreakdown: '24 + 32'
+          }
+        ]
+      },
+      {
+        id: 'decomp_caco3',
+        level: 'Level 2 • 1:1:1 Thermal Decomposition',
+        dropdownLabel: '2. Thermal Decomposition (1:1:1):  CaCO₃ → CaO + CO₂',
+        title: 'Thermal Decomposition of Calcium Carbonate',
+        arNote: 'Ca = 40,  C = 12,  O = 16',
+        maxSliderBase: 250,
+        species: [
+          {
+            role: 'reactant',
+            coeff: 1,
+            formulaHTML: 'CaCO<sub>3</sub>',
+            plainFormula: 'CaCO3',
+            name: 'Calcium carbonate',
+            mr: 100,
+            mrBreakdown: '40 + 12 + (3×16)'
+          },
+          {
+            role: 'product',
+            coeff: 1,
+            formulaHTML: 'CaO',
+            plainFormula: 'CaO',
+            name: 'Calcium oxide',
+            mr: 56,
+            mrBreakdown: '40 + 16'
+          },
+          {
+            role: 'product',
+            coeff: 1,
+            formulaHTML: 'CO<sub>2</sub>',
+            plainFormula: 'CO2',
+            name: 'Carbon dioxide',
+            mr: 44,
+            mrBreakdown: '12 + (2×16)'
+          }
+        ]
+      },
+      {
+        id: 'combustion_mg',
+        level: 'Level 3 • 2:1:2 Metal Combustion',
+        dropdownLabel: '3. Metal Combustion (2:1:2):  2Mg + O₂ → 2MgO',
+        title: 'Combustion of Magnesium in Oxygen',
+        arNote: 'Mg = 24,  O = 16',
+        maxSliderBase: 200,
+        species: [
+          {
+            role: 'reactant',
+            coeff: 2,
+            formulaHTML: 'Mg',
+            plainFormula: 'Mg',
+            name: 'Magnesium',
+            mr: 24,
+            mrBreakdown: '24'
+          },
+          {
+            role: 'reactant',
+            coeff: 1,
+            formulaHTML: 'O<sub>2</sub>',
+            plainFormula: 'O2',
+            name: 'Oxygen',
+            mr: 32,
+            mrBreakdown: '2 × 16'
+          },
+          {
+            role: 'product',
+            coeff: 2,
+            formulaHTML: 'MgO',
+            plainFormula: 'MgO',
+            name: 'Magnesium oxide',
+            mr: 40,
+            mrBreakdown: '24 + 16'
+          }
+        ]
+      },
+      {
+        id: 'acid_carbonate',
+        level: 'Level 4 • 1:2:1:1:1 Acid–Carbonate',
+        dropdownLabel: '4. Acid + Carbonate (1:2:1:1:1):  CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂',
+        title: 'Calcium Carbonate + Hydrochloric Acid',
+        arNote: 'Ca = 40,  C = 12,  O = 16,  H = 1,  Cl = 35.5',
+        maxSliderBase: 250,
+        species: [
+          {
+            role: 'reactant',
+            coeff: 1,
+            formulaHTML: 'CaCO<sub>3</sub>',
+            plainFormula: 'CaCO3',
+            name: 'Calcium carbonate',
+            mr: 100,
+            mrBreakdown: '40 + 12 + 48'
+          },
+          {
+            role: 'reactant',
+            coeff: 2,
+            formulaHTML: 'HCl',
+            plainFormula: 'HCl',
+            name: 'Hydrochloric acid',
+            mr: 36.5,
+            mrBreakdown: '1 + 35.5'
+          },
+          {
+            role: 'product',
+            coeff: 1,
+            formulaHTML: 'CaCl<sub>2</sub>',
+            plainFormula: 'CaCl2',
+            name: 'Calcium chloride',
+            mr: 111,
+            mrBreakdown: '40 + (2×35.5)'
+          },
+          {
+            role: 'product',
+            coeff: 1,
+            formulaHTML: 'H<sub>2</sub>O',
+            plainFormula: 'H2O',
+            name: 'Water',
+            mr: 18,
+            mrBreakdown: '(2×1) + 16'
+          },
+          {
+            role: 'product',
+            coeff: 1,
+            formulaHTML: 'CO<sub>2</sub>',
+            plainFormula: 'CO2',
+            name: 'Carbon dioxide',
+            mr: 44,
+            mrBreakdown: '12 + (2×16)'
+          }
+        ]
+      },
+      {
+        id: 'thermite',
+        level: 'Level 5 • 1:2:2:1 Thermite Reduction',
+        dropdownLabel: '5. Thermite Reaction (1:2:2:1):  Fe₂O₃ + 2Al → 2Fe + Al₂O₃',
+        title: 'Thermite Displacement Reaction',
+        arNote: 'Fe = 56,  O = 16,  Al = 27',
+        maxSliderBase: 400,
+        species: [
+          {
+            role: 'reactant',
+            coeff: 1,
+            formulaHTML: 'Fe<sub>2</sub>O<sub>3</sub>',
+            plainFormula: 'Fe2O3',
+            name: 'Iron(III) oxide',
+            mr: 160,
+            mrBreakdown: '(2×56) + (3×16)'
+          },
+          {
+            role: 'reactant',
+            coeff: 2,
+            formulaHTML: 'Al',
+            plainFormula: 'Al',
+            name: 'Aluminium',
+            mr: 27,
+            mrBreakdown: '27'
+          },
+          {
+            role: 'product',
+            coeff: 2,
+            formulaHTML: 'Fe',
+            plainFormula: 'Fe',
+            name: 'Iron',
+            mr: 56,
+            mrBreakdown: '56'
+          },
+          {
+            role: 'product',
+            coeff: 1,
+            formulaHTML: 'Al<sub>2</sub>O<sub>3</sub>',
+            plainFormula: 'Al2O3',
+            name: 'Aluminium oxide',
+            mr: 102,
+            mrBreakdown: '(2×27) + (3×16)'
+          }
+        ]
+      },
+      {
+        id: 'propane_combustion',
+        level: 'Level 6 • 1:5:3:4 Hydrocarbon Combustion',
+        dropdownLabel: '6. Complete Combustion (1:5:3:4):  C₃H₈ + 5O₂ → 3CO₂ + 4H₂O',
+        title: 'Complete Combustion of Propane',
+        arNote: 'C = 12,  H = 1,  O = 16',
+        maxSliderBase: 400,
+        species: [
+          {
+            role: 'reactant',
+            coeff: 1,
+            formulaHTML: 'C<sub>3</sub>H<sub>8</sub>',
+            plainFormula: 'C3H8',
+            name: 'Propane',
+            mr: 44,
+            mrBreakdown: '(3×12) + (8×1)'
+          },
+          {
+            role: 'reactant',
+            coeff: 5,
+            formulaHTML: 'O<sub>2</sub>',
+            plainFormula: 'O2',
+            name: 'Oxygen',
+            mr: 32,
+            mrBreakdown: '2 × 16'
+          },
+          {
+            role: 'product',
+            coeff: 3,
+            formulaHTML: 'CO<sub>2</sub>',
+            plainFormula: 'CO2',
+            name: 'Carbon dioxide',
+            mr: 44,
+            mrBreakdown: '12 + (2×16)'
+          },
+          {
+            role: 'product',
+            coeff: 4,
+            formulaHTML: 'H<sub>2</sub>O',
+            plainFormula: 'H2O',
+            name: 'Water',
+            mr: 18,
+            mrBreakdown: '(2×1) + 16'
+          }
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // STATE MANAGEMENT
+    // =========================================================================
+    let currentReactionIndex = 0;
+    let scaleFactor = 1.0;        // Multiplier applied to stoichiometric ratio mass (coeff * Mr)
+    let driverIndex = 0;          // Which species card the user is currently manipulating
+    let showWorking = false;
+
+    // Helper: Format numbers cleanly without trailing .00 jitter, up to 2 decimal places
+    function formatMass(val) {
+      if (!isFinite(val) || val < 0) return '0';
+      const rounded = Math.round(val * 100) / 100;
+      if (Number.isInteger(rounded)) return rounded.toString();
+      return rounded.toFixed(2).replace(/\.?0+$/, '');
+    }
+
+    function formatDisplayMass(val) {
+      if (!isFinite(val) || val < 0) return '0.0';
+      const rounded = Math.round(val * 100) / 100;
+      if (Math.abs(rounded - Math.round(rounded * 10) / 10) < 0.001) {
+        return rounded.toFixed(1);
+      }
+      return rounded.toFixed(2);
+    }
+
+    // Greatest Common Divisor for clean integer ratio display
+    function gcd(a, b) {
+      a = Math.round(Math.abs(a));
+      b = Math.round(Math.abs(b));
+      while (b) {
+        const t = b;
+        b = a % b;
+        a = t;
+      }
+      return a || 1;
+    }
+
+    // =========================================================================
+    // INITIALIZATION
+    // =========================================================================
+    function init() {
+      const select = document.getElementById('reactionSelect');
+      REACTIONS.forEach((rxn, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = rxn.dropdownLabel;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', (e) => {
+        loadReaction(parseInt(e.target.value, 10));
+      });
+
+      loadReaction(0);
+    }
+
+    function loadReaction(index) {
+      currentReactionIndex = index;
+      scaleFactor = 1.0;
+      driverIndex = 0;
+
+      const rxn = REACTIONS[currentReactionIndex];
+      document.getElementById('difficultyBadge').textContent = rxn.level;
+      document.getElementById('arReferenceText').innerHTML = `A<sub>r</sub>: ${rxn.arNote}`;
+
+      buildColumns();
+      populateTargetSpeciesSelect();
+      updateAllDisplays();
+    }
+
+    // =========================================================================
+    // BUILD ALIGNED COLUMNS (Equation -> Total RFM -> Actual Mass)
+    // =========================================================================
+    function buildColumns() {
+      const rxn = REACTIONS[currentReactionIndex];
+      const container = document.getElementById('columnsContainer');
+      container.innerHTML = '';
+
+      const isCompact = rxn.species.length >= 5;
+
+      rxn.species.forEach((sp, idx) => {
+        // Add "+" or "→" operator column between species
+        if (idx > 0) {
+          const prevRole = rxn.species[idx - 1].role;
+          const isArrow = prevRole === 'reactant' && sp.role === 'product';
+
+          const opCol = document.createElement('div');
+          opCol.className = 'flex flex-col items-center justify-start pt-8 sm:pt-11 px-0.5 shrink-0';
+          opCol.innerHTML = isArrow
+            ? `<div class="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-amber-500/20 border-2 border-amber-400/70 flex items-center justify-center shadow-lg shadow-amber-500/10" title="Yields / Forms">
+                 <span class="text-2xl sm:text-4xl font-black text-amber-400 leading-none">&rarr;</span>
+               </div>`
+            : `<div class="w-6 h-10 sm:w-8 sm:h-13 flex items-center justify-center">
+                 <span class="text-2xl sm:text-4xl font-black text-slate-400 leading-none">+</span>
+               </div>`;
+          container.appendChild(opCol);
+        }
+
+        const isReactant = sp.role === 'reactant';
+        const coeffColorClass = isReactant ? 'text-cyan-400' : 'text-emerald-400';
+
+        // Total stoichiometric RFM for this species (e.g., 2 Mg -> 2 × 24 = 48)
+        const totalSpeciesRfm = sp.coeff * sp.mr;
+        const rfmSubtext = sp.coeff > 1 ? `${sp.coeff} &times; ${sp.mr}` : `M<sub>r</sub> = ${sp.mr}`;
+
+        // Max slider scales proportionally so every species hits max simultaneously
+        const firstSpeciesTotalRfm = rxn.species[0].coeff * rxn.species[0].mr;
+        const speciesMaxSlider = Math.max(10, Math.round((totalSpeciesRfm / firstSpeciesTotalRfm) * rxn.maxSliderBase));
+
+        const col = document.createElement('div');
+        col.id = `species-card-${idx}`;
+        col.className = `flex-1 h-full min-h-0 ${isCompact ? 'min-w-[140px] max-w-[260px]' : 'min-w-[200px] max-w-[380px]'} bg-slate-900/95 border-2 border-slate-700/90 rounded-2xl p-3 sm:p-4 flex flex-col justify-between transition-all duration-150 shadow-xl`;
+
+        col.innerHTML = `
+          <!-- ROW 1: BALANCED EQUATION SPECIES -->
+          <div class="flex-1 flex flex-col items-center justify-center border-b border-slate-800 pb-2 text-center relative">
+            <span id="driver-badge-${idx}" class="hidden absolute top-0 right-0 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded bg-amber-400 text-slate-950">
+              Driver
+            </span>
+
+            <div class="${isCompact ? 'fluid-formula-compact' : 'fluid-formula'} font-black tracking-tight text-white leading-none">
+              ${sp.coeff > 1 ? `<span class="${coeffColorClass} mr-0.5">${sp.coeff}</span>` : ''}<span>${sp.formulaHTML}</span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-400 mt-1.5 truncate max-w-full">
+              ${sp.name}
+            </div>
+          </div>
+
+          <!-- ROW 2: TOTAL RELATIVE FORMULA MASS FOR THIS SPECIES (coeff * Mr) -->
+          <div class="flex-1 flex flex-col items-center justify-center border-b border-slate-800 py-2 text-center">
+            <div class="${isCompact ? 'fluid-mr-compact' : 'fluid-mr'} font-black ${coeffColorClass} tabular-nums leading-none">
+              ${totalSpeciesRfm}
+            </div>
+            <div class="text-xs sm:text-sm font-bold text-slate-400 tabular-nums mt-1.5">
+              (${rfmSubtext})
+            </div>
+          </div>
+
+          <!-- ROW 3: ACTUAL MASS (g) INTERACTIVE CONTROLS -->
+          <div class="flex-[1.25] flex flex-col justify-center gap-2.5 pt-2">
+            <!-- Large Numeric Input Box -->
+            <div class="relative flex items-center">
+              <input
+                type="number"
+                id="mass-input-${idx}"
+                min="0"
+                max="10000"
+                step="any"
+                value="${totalSpeciesRfm}"
+                oninput="handleNumericInput(${idx}, this.value)"
+                onfocus="setActiveDriver(${idx})"
+                aria-label="Actual mass in grams for ${sp.plainFormula}"
+                class="w-full bg-slate-950 text-white font-black tabular-nums ${isCompact ? 'fluid-mass-input-compact' : 'fluid-mass-input'} text-center py-1.5 sm:py-2 pl-3 pr-8 rounded-xl border-2 border-slate-600 focus:border-amber-400 focus:outline-none transition leading-none"
+              />
+              <span class="absolute right-3 text-lg sm:text-2xl font-extrabold text-slate-400 pointer-events-none">g</span>
+            </div>
+
+            <!-- Smooth Classroom Range Slider -->
+            <div class="px-1">
+              <input
+                type="range"
+                id="mass-slider-${idx}"
+                class="mass-slider"
+                min="0"
+                max="${speciesMaxSlider}"
+                step="0.5"
+                value="${totalSpeciesRfm}"
+                aria-label="Mass slider for ${sp.plainFormula}"
+                oninput="handleSliderInput(${idx}, this.value)"
+                onpointerdown="setActiveDriver(${idx})"
+              />
+            </div>
+          </div>
+        `;
+
+        container.appendChild(col);
+      });
+    }
+
+    // =========================================================================
+    // STEP-BY-STEP GCSE 3-STEP CALCULATION MODAL OVERLAY
+    // =========================================================================
+    function toggleWorkingDrawer(forceState) {
+      showWorking = typeof forceState === 'boolean' ? forceState : !showWorking;
+      const backdrop = document.getElementById('workingModalBackdrop');
+      const label = document.getElementById('toggleWorkingLabel');
+
+      if (showWorking) {
+        backdrop.classList.remove('hidden');
+        label.textContent = 'Hide GCSE Working';
+        populateTargetSpeciesSelect();
+        renderWorkingDrawer();
+      } else {
+        backdrop.classList.add('hidden');
+        label.textContent = 'Show GCSE Working';
+      }
+    }
+
+    function handleBackdropClick(event) {
+      if (event.target && event.target.id === 'workingModalBackdrop') {
+        toggleWorkingDrawer(false);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && showWorking) {
+        toggleWorkingDrawer(false);
+      }
+    });
+
+    // =========================================================================
+    // INTERACTIVE HANDLERS & PROPORTIONAL SCALING
+    // =========================================================================
+    function setActiveDriver(index) {
+      if (driverIndex === index) return;
+      driverIndex = index;
+      updateDriverHighlight();
+      if (showWorking) {
+        populateTargetSpeciesSelect();
+        renderWorkingDrawer();
+      }
+    }
+
+    function updateDriverHighlight() {
+      const rxn = REACTIONS[currentReactionIndex];
+      rxn.species.forEach((_, idx) => {
+        const card = document.getElementById(`species-card-${idx}`);
+        const badge = document.getElementById(`driver-badge-${idx}`);
+        if (!card || !badge) return;
+
+        if (idx === driverIndex) {
+          card.classList.add('driver-card');
+          badge.classList.remove('hidden');
+        } else {
+          card.classList.remove('driver-card');
+          badge.classList.add('hidden');
+        }
+      });
+    }
+
+    function handleSliderInput(index, rawValue) {
+      setActiveDriver(index);
+      const val = parseFloat(rawValue);
+      if (isNaN(val) || val < 0) return;
+
+      const rxn = REACTIONS[currentReactionIndex];
+      const sp = rxn.species[index];
+      const ratioMass = sp.coeff * sp.mr;
+
+      scaleFactor = ratioMass > 0 ? val / ratioMass : 0;
+      updateAllDisplays();
+    }
+
+    function handleNumericInput(index, rawValue) {
+      setActiveDriver(index);
+      if (rawValue === '') return;
+
+      const val = parseFloat(rawValue);
+      if (isNaN(val) || val < 0) return;
+
+      const rxn = REACTIONS[currentReactionIndex];
+      const sp = rxn.species[index];
+      const ratioMass = sp.coeff * sp.mr;
+
+      scaleFactor = ratioMass > 0 ? val / ratioMass : 0;
+      updateAllDisplays(index);
+    }
+
+    function applyMultiplier(factor) {
+      scaleFactor = Math.max(0, scaleFactor * factor);
+      updateAllDisplays();
+    }
+
+    function resetToStandardMoles() {
+      scaleFactor = 1.0;
+      updateAllDisplays();
+    }
+
+    function updateAllDisplays(skipInputIndex = -1) {
+      const rxn = REACTIONS[currentReactionIndex];
+      updateDriverHighlight();
+
+      let totalReactants = 0;
+      let totalProducts = 0;
+
+      // Calculate total mass of one side to compute exact percentage shares & bar widths
+      let standardSideMass = 0;
+      rxn.species.forEach((sp) => {
+        if (sp.role === 'reactant') standardSideMass += sp.coeff * sp.mr;
+      });
+      const currentTotalSideMass = standardSideMass * scaleFactor;
+
+      rxn.species.forEach((sp, idx) => {
+        const ratioMass = sp.coeff * sp.mr;
+        const actualMass = ratioMass * scaleFactor;
+
+        if (sp.role === 'reactant') {
+          totalReactants += actualMass;
+        } else {
+          totalProducts += actualMass;
+        }
+
+        // Update numeric input unless user is currently typing directly into it
+        if (idx !== skipInputIndex) {
+          const numInput = document.getElementById(`mass-input-${idx}`);
+          if (numInput) numInput.value = formatMass(actualMass);
+        }
+
+        // Update slider position (dynamically expand slider max if teacher types a large number)
+        const slider = document.getElementById(`mass-slider-${idx}`);
+        if (slider) {
+          const currentMax = parseFloat(slider.max);
+          if (actualMass > currentMax) {
+            slider.max = Math.ceil(actualMass * 1.25);
+          }
+          slider.value = actualMass;
+        }
+      });
+
+      // Update Bottom Law of Conservation of Mass Banner
+      document.getElementById('totalReactantsMass').textContent = formatDisplayMass(totalReactants);
+      document.getElementById('totalProductsMass').textContent = formatDisplayMass(totalProducts);
+
+      // Update Scale Factor
+      document.getElementById('scaleFactorText').innerHTML = `&times; ${formatMass(scaleFactor)}`;
+
+      // Update Fixed Ratio String
+      const reactantParts = [];
+      const productParts = [];
+      const allRatioMasses = rxn.species.map((s) => s.coeff * s.mr);
+
+      rxn.species.forEach((s) => {
+        const rm = s.coeff * s.mr;
+        if (s.role === 'reactant') reactantParts.push(`${rm}g`);
+        else productParts.push(`${rm}g`);
+      });
+
+      // Compute simplified whole-number ratio if all ratio masses are integers
+      const allIntegers = allRatioMasses.every((m) => Number.isInteger(m));
+      let simplifiedSuffix = '';
+      if (allIntegers) {
+        const commonDivisor = allRatioMasses.reduce((acc, val) => gcd(acc, val));
+        if (commonDivisor > 1) {
+          const simplified = allRatioMasses.map((m) => m / commonDivisor).join(' : ');
+          simplifiedSuffix = ` <span class="text-amber-300 ml-1">(Simplest ratio ${simplified})</span>`;
+        }
+      }
+
+      document.getElementById('fixedRatioText').innerHTML =
+        `${reactantParts.join(' : ')} &rarr; ${productParts.join(' : ')}${simplifiedSuffix}`;
+
+      if (showWorking) {
+        renderWorkingDrawer();
+      }
+    }
+
+    function populateTargetSpeciesSelect() {
+      const rxn = REACTIONS[currentReactionIndex];
+      const select = document.getElementById('targetSpeciesSelect');
+      const previousVal = select.value;
+      select.innerHTML = '';
+
+      rxn.species.forEach((sp, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `${sp.plainFormula} (${sp.name})`;
+        select.appendChild(opt);
+      });
+
+      // Default target to a different species from the active driver
+      const defaultTarget = driverIndex === 0 ? rxn.species.length - 1 : 0;
+      if (previousVal !== '' && parseInt(previousVal, 10) < rxn.species.length && parseInt(previousVal, 10) !== driverIndex) {
+        select.value = previousVal;
+      } else {
+        select.value = defaultTarget;
+      }
+    }
+
+    function renderWorkingDrawer() {
+      const rxn = REACTIONS[currentReactionIndex];
+      const targetSelect = document.getElementById('targetSpeciesSelect');
+      let targetIdx = parseInt(targetSelect.value, 10);
+
+      // Ensure target differs from driver when possible
+      if (targetIdx === driverIndex && rxn.species.length > 1) {
+        targetIdx = (driverIndex + 1) % rxn.species.length;
+        targetSelect.value = targetIdx;
+      }
+
+      const known = rxn.species[driverIndex];
+      const target = rxn.species[targetIdx];
+
+      const knownMass = known.coeff * known.mr * scaleFactor;
+      const knownMoles = known.coeff * scaleFactor;
+      const targetMoles = target.coeff * scaleFactor;
+      const targetMass = target.coeff * target.mr * scaleFactor;
+
+      document.getElementById('workingTitle').innerHTML =
+        `Calculating mass of <span class="text-emerald-300">${target.formulaHTML}</span> from <span class="text-amber-300">${formatMass(knownMass)}g of ${known.formulaHTML}</span>`;
+
+      const stepsGrid = document.getElementById('workingStepsGrid');
+      stepsGrid.innerHTML = `
+        <!-- STEP 1 -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
+          <div class="text-xs font-black uppercase tracking-wider text-amber-400 mb-1">
+            Step 1: Moles of Known (${known.formulaHTML})
+          </div>
+          <div class="text-sm text-slate-300 font-semibold">
+            Moles = Mass &divide; M<sub>r</sub>
+          </div>
+          <div class="text-lg sm:text-xl font-black text-white tabular-nums mt-1.5">
+            ${formatMass(knownMass)}g &divide; ${known.mr} = <span class="text-amber-300">${formatMass(knownMoles)} mol</span>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
+          <div class="text-xs font-black uppercase tracking-wider text-cyan-400 mb-1">
+            Step 2: Balanced Equation Mole Ratio
+          </div>
+          <div class="text-sm text-slate-300 font-semibold">
+            Ratio ${known.formulaHTML} : ${target.formulaHTML} is <span class="text-white font-bold">${known.coeff} : ${target.coeff}</span>
+          </div>
+          <div class="text-lg sm:text-xl font-black text-white tabular-nums mt-1.5">
+            ${formatMass(knownMoles)} &times; (${target.coeff} &divide; ${known.coeff}) = <span class="text-cyan-300">${formatMass(targetMoles)} mol</span>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5">
+          <div class="text-xs font-black uppercase tracking-wider text-emerald-400 mb-1">
+            Step 3: Actual Mass of ${target.formulaHTML}
+          </div>
+          <div class="text-sm text-slate-300 font-semibold">
+            Mass = Moles &times; M<sub>r</sub>
+          </div>
+          <div class="text-lg sm:text-xl font-black text-white tabular-nums mt-1.5">
+            ${formatMass(targetMoles)} mol &times; ${target.mr} = <span class="text-emerald-300">${formatMass(targetMass)}g</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Boot simulation on load
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
