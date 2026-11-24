@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCSE Chemistry: Rates of Reaction Simulator</title>
+    <!-- Load Tailwind CSS for responsive projector-ready layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Fonts: Inter & JetBrains Mono for crisp numerical readouts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b1120;
+            color: #f8fafc;
+            overflow: hidden; /* Keep strictly on a single screen for projector display */
+            user-select: none;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom high-visibility range sliders for smartboards/projectors */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 14px;
+            background: #1e293b;
+            border-radius: 999px;
+            outline: none;
+            border: 2px solid #334155;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #38bdf8;
+            border: 3px solid #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+            transition: transform 0.1s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.12);
+        }
+        input[type="range"].temp-slider::-webkit-slider-thumb {
+            background: #f97316;
+            box-shadow: 0 0 12px rgba(249, 115, 22, 0.7);
+        }
+        input[type="range"]:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col p-3 lg:p-4 gap-3 bg-slate-950">
+
+    <!-- Top Projector Header Bar -->
+    <header class="flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-2xl px-5 py-2.5 shadow-lg shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400">
+                <!-- Flask / Reaction Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl lg:text-2xl font-extrabold tracking-tight text-white leading-tight">
+                    GCSE Rates of Reaction <span class="text-sky-400">Live Simulator</span>
+                </h1>
+                <p class="text-xs lg:text-sm text-slate-400 font-medium">
+                    Collision Theory &amp; Gas Volume vs. Time Graph Comparison
+                </p>
+            </div>
+        </div>
+
+        <!-- Live Telemetry Pills -->
+        <div class="flex items-center gap-3 lg:gap-5">
+            <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-1.5 text-center min-w-[115px]">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Time Elapsed</div>
+                <div id="timeReadout" class="mono text-xl lg:text-2xl font-bold text-white">0.0 s</div>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-1.5 text-center min-w-[135px]">
+                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Gas Formed</div>
+                <div id="volumeReadout" class="mono text-xl lg:text-2xl font-bold text-emerald-400">0.0 cm³</div>
+            </div>
+            <div id="statusBadge" class="hidden sm:flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2 text-sm lg:text-base font-bold text-sky-300">
+                <span id="statusDot" class="w-3 h-3 rounded-full bg-sky-400"></span>
+                <span id="statusText">Ready to React</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Two-Column Workspace -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0">
+
+        <!-- LEFT PANEL: Particle Vessel + Controls (5 cols on lg) -->
+        <section class="lg:col-span-5 flex flex-col gap-3 min-h-0">
+
+            <!-- Particle Collision Chamber Card -->
+            <div class="flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex flex-col min-h-[210px] shadow-xl relative">
+                <div class="flex items-center justify-between mb-2 shrink-0">
+                    <h2 class="text-base lg:text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <span>Reaction Vessel (Particles)</span>
+                    </h2>
+                    <!-- Particle Key -->
+                    <div class="flex items-center gap-3 text-xs lg:text-sm font-semibold bg-slate-950/90 px-3 py-1 rounded-lg border border-slate-800">
+                        <span class="flex items-center gap-1.5 text-sky-300">
+                            <span class="w-3 h-3 rounded-full bg-sky-400 inline-block"></span> Acid (Limiting)
+                        </span>
+                        <span class="flex items-center gap-1.5 text-amber-300">
+                            <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Marble (Excess)
+                        </span>
+                        <span class="flex items-center gap-1.5 text-emerald-300">
+                            <span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span> Gas Product
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Particle Canvas Container -->
+                <div id="particleContainer" class="flex-1 w-full rounded-xl overflow-hidden bg-slate-950 border-2 border-slate-800 relative">
+                    <canvas id="particleCanvas"></canvas>
+                    <!-- Collision Stats Overlay -->
+                    <div class="absolute bottom-2.5 left-3 right-3 flex justify-between items-center pointer-events-none text-xs lg:text-sm font-bold">
+                        <span class="bg-slate-900/85 backdrop-blur-sm border border-slate-700/80 px-2.5 py-1 rounded-lg text-slate-200">
+                            Reactant Particles Left: <span id="particlesLeftText" class="mono text-sky-400">20</span>
+                        </span>
+                        <span class="bg-slate-900/85 backdrop-blur-sm border border-slate-700/80 px-2.5 py-1 rounded-lg text-slate-200">
+                            Avg Kinetic Energy: <span id="keLevelText" class="text-orange-400">Low</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3.5 shrink-0 shadow-xl">
+
+                <!-- Concentration Slider -->
+                <div>
+                    <div class="flex justify-between items-baseline mb-1.5">
+                        <label for="concSlider" class="text-base lg:text-lg font-bold text-sky-300">
+                            1. Acid Concentration
+                        </label>
+                        <span id="concDisplay" class="mono text-lg lg:text-xl font-extrabold text-white bg-sky-500/20 border border-sky-400/40 px-3 py-0.5 rounded-lg">
+                            1.0 mol/dm³
+                        </span>
+                    </div>
+                    <input type="range" id="concSlider" min="0.5" max="2.5" step="0.5" value="1.0">
+                    <div class="flex justify-between text-xs font-semibold text-slate-400 mt-1 px-1">
+                        <span>0.5 M (Dilute)</span>
+                        <span>1.0 M</span>
+                        <span>1.5 M</span>
+                        <span>2.0 M</span>
+                        <span>2.5 M (Conc.)</span>
+                    </div>
+                </div>
+
+                <!-- Temperature Slider -->
+                <div>
+                    <div class="flex justify-between items-baseline mb-1.5">
+                        <label for="tempSlider" class="text-base lg:text-lg font-bold text-orange-300">
+                            2. Temperature
+                        </label>
+                        <span id="tempDisplay" class="mono text-lg lg:text-xl font-extrabold text-white bg-orange-500/20 border border-orange-400/40 px-3 py-0.5 rounded-lg">
+                            20 °C
+                        </span>
+                    </div>
+                    <input type="range" id="tempSlider" class="temp-slider" min="20" max="60" step="10" value="20">
+                    <div class="flex justify-between text-xs font-semibold text-slate-400 mt-1 px-1">
+                        <span>20°C (Room)</span>
+                        <span>30°C</span>
+                        <span>40°C</span>
+                        <span>50°C</span>
+                        <span>60°C (Hot)</span>
+                    </div>
+                </div>
+
+                <!-- Curve Colour Selector & Tangent Helper -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-sm lg:text-base font-bold text-slate-300">Line Colour:</span>
+                        <div id="colorSwatches" class="flex items-center gap-2">
+                            <!-- Swatches injected by JS -->
+                        </div>
+                    </div>
+
+                    <button id="toggleTangentBtn" type="button"
+                        class="px-3 py-1.5 rounded-xl text-xs lg:text-sm font-bold border transition-all bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700">
+                        Initial Gradient: OFF
+                    </button>
+                </div>
+
+                <!-- Primary Action Buttons -->
+                <div class="grid grid-cols-12 gap-2.5 pt-1">
+                    <button id="startPauseBtn" type="button"
+                        class="col-span-6 py-3 px-4 rounded-xl font-extrabold text-base lg:text-lg text-slate-950 bg-emerald-400 hover:bg-emerald-300 active:scale-[0.99] transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer">
+                        <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <span id="startPauseText">Start Reaction</span>
+                    </button>
+
+                    <button id="resetVesselBtn" type="button"
+                        class="col-span-3 py-3 px-2 rounded-xl font-bold text-sm lg:text-base text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 active:scale-[0.99] transition-all cursor-pointer">
+                        New Run
+                    </button>
+
+                    <button id="clearGraphBtn" type="button"
+                        class="col-span-3 py-3 px-2 rounded-xl font-bold text-sm lg:text-base text-rose-200 bg-rose-950/70 hover:bg-rose-900/80 border border-rose-800/80 active:scale-[0.99] transition-all cursor-pointer">
+                        Clear Graph
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: Live Idealised Graph & Legend (7 cols on lg) -->
+        <section class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col min-h-0 shadow-xl">
+
+            <!-- Graph Header + Legend Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5 shrink-0">
+                <div>
+                    <h2 class="text-lg lg:text-xl font-extrabold text-white">
+                        Volume of Gas Produced vs. Time
+                    </h2>
+                    <p class="text-xs lg:text-sm text-slate-400 font-medium">
+                        Steeper gradient = faster rate &bull; Horizontal plateau = reaction finished (limiting reactant used up)
+                    </p>
+                </div>
+
+                <!-- Dynamic Legend for Plotted Curves -->
+                <div id="graphLegend" class="flex flex-wrap items-center gap-2 max-w-full">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Main Graph Canvas Wrapper -->
+            <div id="graphContainer" class="flex-1 w-full rounded-xl bg-slate-950 border-2 border-slate-800 relative overflow-hidden">
+                <canvas id="graphCanvas"></canvas>
+
+                <!-- Floating Teaching Tip Banner (disappears once runs are plotted) -->
+                <div id="emptyGraphHint" class="absolute inset-0 flex items-center justify-center pointer-events-none p-6">
+                    <div class="bg-slate-900/90 border border-slate-700/90 rounded-2xl px-6 py-4 text-center max-w-md shadow-2xl">
+                        <p class="text-base lg:text-lg font-bold text-sky-300 mb-1">Classroom Comparison Ready</p>
+                        <p class="text-sm lg:text-base text-slate-300">
+                            Press <span class="text-emerald-400 font-bold">Start Reaction</span> to plot your first curve, then change <span class="text-sky-300 font-bold">Concentration</span> or <span class="text-orange-300 font-bold">Temperature</span> and run again to compare curves!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Notification Toast (No alert() used anywhere) -->
+    <div id="toastBox" class="fixed bottom-5 right-5 bg-slate-800 border-2 border-sky-400 text-white px-5 py-3 rounded-xl shadow-2xl font-bold text-base opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        Message
+    </div>
+
+    <script>
+        /**
+         * GCSE Rates of Reaction Interactive Classroom Simulator
+         * Models:
+         * 1. Idealised first-order reaction curve: V(t) = V_max * (1 - exp(-k * t))
+         *    - V_max is directly proportional to Concentration (since acid is the limiting reactant).
+         *    - Rate constant k increases linearly with Concentration and exponentially with Temperature (Arrhenius approximation).
+         *    - Therefore:
+         *      * Higher Concentration -> Steeper initial gradient AND higher final gas volume plateau.
+         *      * Higher Temperature   -> Steeper initial gradient AND SAME final gas volume plateau (reaches plateau earlier).
+         * 2. Synchronized 2D Particle Collision Chamber demonstrating collision frequency and kinetic energy.
+         */
+
+        // --- High-Contrast Projector Palette ---
+        const CURVE_PALETTE = [
+            { name: 'Cyan',    hex: '#38bdf8' },
+            { name: 'Rose',    hex: '#fb7185' },
+            { name: 'Emerald', hex: '#34d399' },
+            { name: 'Amber',   hex: '#fbbf24' },
+            { name: 'Violet',  hex: '#c084fc' }
+        ];
+
+        // --- Simulation State ---
+        const state = {
+            concentration: 1.0, // mol/dm^3 (0.5 to 2.5)
+            temperature: 20,    // °C (20 to 60)
+            selectedColorIndex: 0,
+            isRunning: false,
+            isFinished: false,
+            simTime: 0,         // seconds (0 to MAX_TIME)
+            MAX_TIME: 60,       // X-axis max (60 seconds)
+            MAX_VOLUME: 100,    // Y-axis max (100 cm^3)
+            showTangent: false,
+            completedRuns: [],  // Array of { id, conc, temp, color, vMax, k, maxPlottedTime }
+            currentRun: null,   // Active run object
+            particles: [],
+            flashes: [],        // Visual collision flash rings
+            lastFrameTime: null
+        };
+
+        // --- DOM References ---
+        const particleCanvas = document.getElementById('particleCanvas');
+        const pCtx = particleCanvas.getContext('2d');
+        const graphCanvas = document.getElementById('graphCanvas');
+        const gCtx = graphCanvas.getContext('2d');
+
+        const concSlider = document.getElementById('concSlider');
+        const tempSlider = document.getElementById('tempSlider');
+        const concDisplay = document.getElementById('concDisplay');
+        const tempDisplay = document.getElementById('tempDisplay');
+
+        const timeReadout = document.getElementById('timeReadout');
+        const volumeReadout = document.getElementById('volumeReadout');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        const particlesLeftText = document.getElementById('particlesLeftText');
+        const keLevelText = document.getElementById('keLevelText');
+
+        const startPauseBtn = document.getElementById('startPauseBtn');
+        const startPauseText = document.getElementById('startPauseText');
+        const playIcon = document.getElementById('playIcon');
+        const resetVesselBtn = document.getElementById('resetVesselBtn');
+        const clearGraphBtn = document.getElementById('clearGraphBtn');
+        const toggleTangentBtn = document.getElementById('toggleTangentBtn');
+        const colorSwatchesContainer = document.getElementById('colorSwatches');
+        const graphLegend = document.getElementById('graphLegend');
+        const emptyGraphHint = document.getElementById('emptyGraphHint');
+        const toastBox = document.getElementById('toastBox');
+
+        // --- Chemistry Kinetics Calculations ---
+        function getReactionParameters(conc, temp) {
+            // 1.0 mol/dm^3 produces 40 cm^3 of gas; 2.5 mol/dm^3 produces 100 cm^3
+            const vMax = conc * 40;
+
+            // Rate constant k (s^-1):
+            // Base rate at 1.0 M and 20°C gives k = 0.055 s^-1 (plateaus around 55s)
+            // Doubling temp every ~15°C doubles k; doubling conc doubles collision frequency (k)
+            const tempFactor = Math.pow(2, (temp - 20) / 15);
+            const concFactor = conc / 1.0;
+            const k = 0.055 * concFactor * tempFactor;
+
+            return { vMax, k };
+        }
+
+        function calculateVolumeAtTime(t, vMax, k) {
+            return vMax * (1 - Math.exp(-k * t));
+        }
+
+        // --- Toast Message Helper (Replaces alert) ---
+        let toastTimer = null;
+        function showToast(msg) {
+            toastBox.textContent = msg;
+            toastBox.classList.remove('opacity-0');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toastBox.classList.add('opacity-0');
+            }, 2400);
+        }
+
+        // --- Initialize Colour Swatches ---
+        function renderColorSwatches() {
+            colorSwatchesContainer.innerHTML = '';
+            CURVE_PALETTE.forEach((col, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.title = col.name;
+                btn.className = `w-7 h-7 rounded-full transition-transform cursor-pointer border-2 ${
+                    state.selectedColorIndex === idx
+                        ? 'scale-125 border-white ring-2 ring-white/50'
+                        : 'border-slate-900 opacity-75 hover:opacity-100'
+                }`;
+                btn.style.backgroundColor = col.hex;
+                btn.addEventListener('click', () => {
+                    state.selectedColorIndex = idx;
+                    if (state.currentRun) {
+                        state.currentRun.color = col.hex;
+                    }
+                    renderColorSwatches();
+                    renderLegend();
+                    drawGraph();
+                });
+                colorSwatchesContainer.appendChild(btn);
+            });
+        }
+
+        // --- Particle Vessel Setup ---
+        function initParticles() {
+            const width = particleCanvas.width || 400;
+            const height = particleCanvas.height || 250;
+            state.particles = [];
+            state.flashes = [];
+
+            // Number of Acid (limiting reactant) particles scales with Concentration
+            // 0.5 M -> 12 particles, 1.0 M -> 24, 1.5 M -> 36, 2.0 M -> 48, 2.5 M -> 60
+            const acidCount = Math.round(state.concentration * 24);
+            // Excess Marble/Magnesium chips (stationary or slow-moving large targets)
+            const marbleCount = 14;
+
+            // Speed scales with square root of temperature (kinetic energy ~ T)
+            const baseSpeed = 45 + (state.temperature - 20) * 2.4;
+
+            // Create Excess Reactant Particles (Amber)
+            for (let i = 0; i < marbleCount; i++) {
+                const radius = 11;
+                state.particles.push({
+                    type: 'marble',
+                    x: radius + 16 + Math.random() * (width - 2 * radius - 32),
+                    y: radius + 16 + Math.random() * (height - 2 * radius - 45),
+                    vx: (Math.random() - 0.5) * 18,
+                    vy: (Math.random() - 0.5) * 18,
+                    radius: radius
+                });
+            }
+
+            // Create Acid Reactant Particles (Cyan) -> turn into Product Gas (Emerald) as reaction progresses
+            for (let i = 0; i < acidCount; i++) {
+                const radius = 6.5;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = baseSpeed * (0.75 + Math.random() * 0.5);
+                state.particles.push({
+                    type: 'acid',
+                    x: radius + 10 + Math.random() * (width - 2 * radius - 20),
+                    y: radius + 10 + Math.random() * (height - 2 * radius - 38),
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: radius
+                });
+            }
+
+            updateParticleReadouts();
+        }
+
+        function updateParticleSpeeds() {
+            const baseSpeed = 45 + (state.temperature - 20) * 2.4;
+            state.particles.forEach(p => {
+                if (p.type === 'acid' || p.type === 'product') {
+                    const currentSpeed = Math.hypot(p.vx, p.vy) || 1;
+                    const targetSpeed = baseSpeed * (0.8 + Math.random() * 0.4);
+                    p.vx = (p.vx / currentSpeed) * targetSpeed;
+                    p.vy = (p.vy / currentSpeed) * targetSpeed;
+                }
+            });
+            updateParticleReadouts();
+        }
+
+        function updateParticleReadouts() {
+            const remainingAcid = state.particles.filter(p => p.type === 'acid').length;
+            particlesLeftText.textContent = remainingAcid;
+
+            if (state.temperature <= 20) {
+                keLevelText.textContent = 'Low (20°C)';
+                keLevelText.className = 'text-sky-300';
+            } else if (state.temperature <= 40) {
+                keLevelText.textContent = 'Moderate (' + state.temperature + '°C)';
+                keLevelText.className = 'text-amber-300';
+            } else {
+                keLevelText.textContent = 'High (' + state.temperature + '°C)';
+                keLevelText.className = 'text-orange-400';
+            }
+        }
+
+        // --- Synchronize Reacted Particle Count with Idealised Curve ---
+        function syncParticlesWithCurve(fractionComplete) {
+            const acidParticles = state.particles.filter(p => p.type === 'acid');
+            const productParticles = state.particles.filter(p => p.type === 'product');
+            const totalLimiting = acidParticles.length + productParticles.length;
+
+            if (totalLimiting === 0) return;
+
+            const targetProductCount = Math.min(
+                totalLimiting,
+                Math.round(fractionComplete * totalLimiting)
+            );
+
+            // Convert acid particles into product particles when collisions happen (or smoothly if needed)
+            let needed = targetProductCount - productParticles.length;
+            if (needed > 0) {
+                for (let i = 0; i < acidParticles.length && needed > 0; i++) {
+                    const p = acidParticles[i];
+                    p.type = 'product';
+                    // Add a visual reaction flash at this particle's position
+                    state.flashes.push({
+                        x: p.x,
+                        y: p.y,
+                        radius: 6,
+                        maxRadius: 24,
+                        alpha: 1.0
+                    });
+                    needed--;
+                }
+            }
+            updateParticleReadouts();
+        }
+
+        // --- Update Particle Physics ---
+        function updateParticles(dt) {
+            const width = particleCanvas.width;
+            const height = particleCanvas.height;
+            const bottomPadding = 34; // Leave space for bottom overlay labels
+
+            for (let i = 0; i < state.particles.length; i++) {
+                const p = state.particles[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+
+                // Wall bounces
+                if (p.x - p.radius < 4) {
+                    p.x = 4 + p.radius;
+                    p.vx = Math.abs(p.vx);
+                } else if (p.x + p.radius > width - 4) {
+                    p.x = width - 4 - p.radius;
+                    p.vx = -Math.abs(p.vx);
+                }
+
+                if (p.y - p.radius < 4) {
+                    p.y = 4 + p.radius;
+                    p.vy = Math.abs(p.vy);
+                } else if (p.y + p.radius > height - bottomPadding) {
+                    p.y = height - bottomPadding - p.radius;
+                    p.vy = -Math.abs(p.vy);
+                }
+            }
+
+            // Elastic collisions between Acid/Product particles and Marble targets
+            for (let i = 0; i < state.particles.length; i++) {
+                const p1 = state.particles[i];
+                if (p1.type === 'marble') continue;
+
+                for (let j = 0; j < state.particles.length; j++) {
+                    const p2 = state.particles[j];
+                    if (p2.type !== 'marble') continue;
+
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.hypot(dx, dy);
+                    const minDist = p1.radius + p2.radius;
+
+                    if (dist < minDist && dist > 0) {
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        // Separate overlap
+                        p1.x = p2.x + nx * (minDist + 0.5);
+                        p1.y = p2.y + ny * (minDist + 0.5);
+
+                        // Reflect velocity
+                        const dot = p1.vx * nx + p1.vy * ny;
+                        p1.vx = p1.vx - 2 * dot * nx;
+                        p1.vy = p1.vy - 2 * dot * ny;
+                    }
+                }
+            }
+
+            // Update visual flash rings
+            for (let i = state.flashes.length - 1; i >= 0; i--) {
+                const f = state.flashes[i];
+                f.radius += 48 * dt;
+                f.alpha -= 2.4 * dt;
+                if (f.alpha <= 0) {
+                    state.flashes.splice(i, 1);
+                }
+            }
+        }
+
+        // --- Render Particle Chamber ---
+        function drawParticles() {
+            const width = particleCanvas.width;
+            const height = particleCanvas.height;
+            pCtx.clearRect(0, 0, width, height);
+
+            // Subtle liquid tint in vessel
+            const grad = pCtx.createLinearGradient(0, 0, 0, height);
+            grad.addColorStop(0, 'rgba(15, 23, 42, 0.4)');
+            grad.addColorStop(1, 'rgba(56, 189, 248, 0.08)');
+            pCtx.fillStyle = grad;
+            pCtx.fillRect(0, 0, width, height);
+
+            // Draw Collision Flash Rings
+            state.flashes.forEach(f => {
+                pCtx.beginPath();
+                pCtx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+                pCtx.strokeStyle = `rgba(52, 211, 153, ${Math.max(0, f.alpha)})`;
+                pCtx.lineWidth = 2.5;
+                pCtx.stroke();
+            });
+
+            // Draw Particles
+            state.particles.forEach(p => {
+                pCtx.beginPath();
+                pCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+
+                if (p.type === 'marble') {
+                    pCtx.fillStyle = '#f59e0b';
+                    pCtx.fill();
+                    pCtx.lineWidth = 2;
+                    pCtx.strokeStyle = '#fef3c7';
+                    pCtx.stroke();
+                } else if (p.type === 'acid') {
+                    pCtx.fillStyle = '#38bdf8';
+                    pCtx.fill();
+                } else if (p.type === 'product') {
+                    pCtx.fillStyle = '#34d399';
+                    pCtx.fill();
+                    pCtx.lineWidth = 1.5;
+                    pCtx.strokeStyle = '#ecfdf5';
+                    pCtx.stroke();
+                }
+            });
+        }
+
+        // --- Render Live Idealised Graph ---
+        function drawGraph() {
+            const width = graphCanvas.width;
+            const height = graphCanvas.height;
+            gCtx.clearRect(0, 0, width, height);
+
+            // Generous margins for large projector axis labels
+            const padLeft = 82;
+            const padRight = 32;
+            const padTop = 28;
+            const padBottom = 64;
+
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            if (plotW <= 20 || plotH <= 20) return;
+
+            const toX = (t) => padLeft + (t / state.MAX_TIME) * plotW;
+            const toY = (v) => padTop + plotH - (v / state.MAX_VOLUME) * plotH;
+
+            // 1. Gridlines & Tick Labels
+            gCtx.textAlign = 'right';
+            gCtx.textBaseline = 'middle';
+            gCtx.font = '700 15px "JetBrains Mono", monospace';
+
+            // Horizontal gridlines (Volume: 0 to 100 cm^3 in steps of 20)
+            for (let v = 0; v <= state.MAX_VOLUME; v += 20) {
+                const y = toY(v);
+                gCtx.beginPath();
+                gCtx.moveTo(padLeft, y);
+                gCtx.lineTo(padLeft + plotW, y);
+                gCtx.strokeStyle = v === 0 ? '#94a3b8' : '#1e293b';
+                gCtx.lineWidth = v === 0 ? 2.5 : 1.5;
+                gCtx.stroke();
+
+                gCtx.fillStyle = '#cbd5e1';
+                gCtx.fillText(v.toString(), padLeft - 12, y);
+            }
+
+            // Vertical gridlines (Time: 0 to 60 s in steps of 10)
+            gCtx.textAlign = 'center';
+            gCtx.textBaseline = 'top';
+            for (let t = 0; t <= state.MAX_TIME; t += 10) {
+                const x = toX(t);
+                gCtx.beginPath();
+                gCtx.moveTo(x, padTop);
+                gCtx.lineTo(x, padTop + plotH);
+                gCtx.strokeStyle = t === 0 ? '#94a3b8' : '#1e293b';
+                gCtx.lineWidth = t === 0 ? 2.5 : 1.5;
+                gCtx.stroke();
+
+                gCtx.fillStyle = '#cbd5e1';
+                gCtx.fillText(t.toString(), x, padTop + plotH + 10);
+            }
+
+            // 2. Axis Titles (Large for Classroom Projector)
+            gCtx.fillStyle = '#f8fafc';
+            gCtx.font = '700 17px "Inter", sans-serif';
+            gCtx.textAlign = 'center';
+            gCtx.fillText('Time (seconds)', padLeft + plotW / 2, height - 22);
+
+            gCtx.save();
+            gCtx.translate(24, padTop + plotH / 2);
+            gCtx.rotate(-Math.PI / 2);
+            gCtx.fillText('Volume of Gas Formed (cm³)', 0, 0);
+            gCtx.restore();
+
+            // 3. Collect all runs to render (completed + active)
+            const runsToDraw = [...state.completedRuns];
+            if (state.currentRun && state.currentRun.maxPlottedTime > 0) {
+                runsToDraw.push(state.currentRun);
+            }
+
+            // Toggle empty graph hint visibility
+            emptyGraphHint.style.display = runsToDraw.length === 0 ? 'flex' : 'none';
+
+            // 4. Draw Each Idealised Curve
+            runsToDraw.forEach((run, index) => {
+                const isLatest = index === runsToDraw.length - 1;
+                const endTime = run.maxPlottedTime;
+                const step = 0.25;
+
+                // Optional: Draw Initial Rate Tangent Line at t = 0
+                if (state.showTangent) {
+                    // Slope at t=0 is dV/dt(0) = V_max * k
+                    const initialSlope = run.vMax * run.k;
+                    // Draw tangent from (0,0) until it hits V_max or MAX_TIME
+                    const tAtTop = Math.min(state.MAX_TIME, state.MAX_VOLUME / initialSlope);
+                    const vAtTop = initialSlope * tAtTop;
+
+                    gCtx.save();
+                    gCtx.beginPath();
+                    gCtx.setLineDash([7, 6]);
+                    gCtx.moveTo(toX(0), toY(0));
+                    gCtx.lineTo(toX(tAtTop), toY(vAtTop));
+                    gCtx.strokeStyle = run.color;
+                    gCtx.globalAlpha = 0.65;
+                    gCtx.lineWidth = 2.5;
+                    gCtx.stroke();
+                    gCtx.restore();
+                }
+
+                // Draw Smooth Curve
+                gCtx.beginPath();
+                gCtx.moveTo(toX(0), toY(0));
+
+                for (let t = step; t <= endTime; t += step) {
+                    const v = calculateVolumeAtTime(t, run.vMax, run.k);
+                    gCtx.lineTo(toX(t), toY(v));
+                }
+
+                // Exact final point
+                const finalV = calculateVolumeAtTime(endTime, run.vMax, run.k);
+                gCtx.lineTo(toX(endTime), toY(finalV));
+
+                gCtx.strokeStyle = run.color;
+                gCtx.lineWidth = isLatest ? 5 : 3.8;
+                gCtx.lineCap = 'round';
+                gCtx.lineJoin = 'round';
+                gCtx.stroke();
+
+                // Draw glowing leading marker dot at the tip of the curve
+                gCtx.beginPath();
+                gCtx.arc(toX(endTime), toY(finalV), isLatest ? 6.5 : 4.5, 0, Math.PI * 2);
+                gCtx.fillStyle = run.color;
+                gCtx.fill();
+                gCtx.lineWidth = 2;
+                gCtx.strokeStyle = '#ffffff';
+                gCtx.stroke();
+            });
+        }
+
+        // --- Legend Renderer ---
+        function renderLegend() {
+            const runs = [...state.completedRuns];
+            if (state.currentRun && !runs.includes(state.currentRun)) {
+                runs.push(state.currentRun);
+            }
+
+            if (runs.length === 0) {
+                graphLegend.innerHTML = `<span class="text-xs lg:text-sm text-slate-500 italic">No curves plotted yet</span>`;
+                return;
+            }
+
+            graphLegend.innerHTML = runs.map((run, idx) => `
+                <div class="flex items-center gap-2 bg-slate-950 border border-slate-700/90 px-3 py-1 rounded-xl text-xs lg:text-sm font-bold shadow">
+                    <span class="w-3.5 h-3.5 rounded-full shrink-0" style="background-color: ${run.color}"></span>
+                    <span class="text-slate-200">Run ${idx + 1}:</span>
+                    <span class="text-sky-300">${run.conc.toFixed(1)}M</span>
+                    <span class="text-slate-500">|</span>
+                    <span class="text-orange-300">${run.temp}°C</span>
+                </div>
+            `).join('');
+        }
+
+        // --- Control State & UI Sync ---
+        function lockSliders(locked) {
+            concSlider.disabled = locked;
+            tempSlider.disabled = locked;
+        }
+
+        function setStatus(mode) {
+            if (mode === 'ready') {
+                statusText.textContent = 'Ready to React';
+                statusDot.className = 'w-3 h-3 rounded-full bg-sky-400';
+                startPauseText.textContent = 'Start Reaction';
+                startPauseBtn.className = 'col-span-6 py-3 px-4 rounded-xl font-extrabold text-base lg:text-lg text-slate-950 bg-emerald-400 hover:bg-emerald-300 active:scale-[0.99] transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer';
+                playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            } else if (mode === 'running') {
+                statusText.textContent = 'Reaction in Progress...';
+                statusDot.className = 'w-3 h-3 rounded-full bg-emerald-400 animate-ping';
+                startPauseText.textContent = 'Pause';
+                startPauseBtn.className = 'col-span-6 py-3 px-4 rounded-xl font-extrabold text-base lg:text-lg text-slate-950 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 cursor-pointer';
+                playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            } else if (mode === 'paused') {
+                statusText.textContent = 'Paused';
+                statusDot.className = 'w-3 h-3 rounded-full bg-amber-400';
+                startPauseText.textContent = 'Resume';
+                startPauseBtn.className = 'col-span-6 py-3 px-4 rounded-xl font-extrabold text-base lg:text-lg text-slate-950 bg-emerald-400 hover:bg-emerald-300 active:scale-[0.99] transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer';
+                playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            } else if (mode === 'complete') {
+                statusText.textContent = 'Complete (Plateau Reached)';
+                statusDot.className = 'w-3 h-3 rounded-full bg-purple-400';
+                startPauseText.textContent = 'Run Again';
+                startPauseBtn.className = 'col-span-6 py-3 px-4 rounded-xl font-extrabold text-base lg:text-lg text-slate-950 bg-sky-400 hover:bg-sky-300 active:scale-[0.99] transition-all shadow-lg shadow-sky-500/25 flex items-center justify-center gap-2 cursor-pointer';
+                playIcon.innerHTML = '<path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>';
+            }
+        }
+
+        function prepareNewRun() {
+            // Save any active run that already plotted data into completedRuns
+            if (state.currentRun && state.currentRun.maxPlottedTime > 0) {
+                state.completedRuns.push(state.currentRun);
+                // Advance colour automatically for clarity when overlaying curves
+                state.selectedColorIndex = (state.selectedColorIndex + 1) % CURVE_PALETTE.length;
+                renderColorSwatches();
+            }
+
+            state.currentRun = null;
+            state.isRunning = false;
+            state.isFinished = false;
+            state.simTime = 0;
+
+            timeReadout.textContent = '0.0 s';
+            volumeReadout.textContent = '0.0 cm³';
+
+            lockSliders(false);
+            initParticles();
+            renderLegend();
+            drawGraph();
+            setStatus('ready');
+        }
+
+        // --- Event Listeners ---
+        concSlider.addEventListener('input', (e) => {
+            state.concentration = parseFloat(e.target.value);
+            concDisplay.textContent = `${state.concentration.toFixed(1)} mol/dm³`;
+            if (!state.currentRun) {
+                initParticles();
+            }
+        });
+
+        tempSlider.addEventListener('input', (e) => {
+            state.temperature = parseInt(e.target.value, 10);
+            tempDisplay.textContent = `${state.temperature} °C`;
+            updateParticleSpeeds();
+        });
+
+        startPauseBtn.addEventListener('click', () => {
+            // If finished, start a fresh run automatically keeping previous curves
+            if (state.isFinished) {
+                prepareNewRun();
+            }
+
+            if (!state.isRunning) {
+                // Starting or resuming
+                if (!state.currentRun) {
+                    const { vMax, k } = getReactionParameters(state.concentration, state.temperature);
+                    state.currentRun = {
+                        conc: state.concentration,
+                        temp: state.temperature,
+                        color: CURVE_PALETTE[state.selectedColorIndex].hex,
+                        vMax,
+                        k,
+                        maxPlottedTime: 0
+                    };
+                    lockSliders(true);
+                    renderLegend();
+                }
+                state.isRunning = true;
+                setStatus('running');
+            } else {
+                // Pausing
+                state.isRunning = false;
+                setStatus('paused');
+            }
+        });
+
+        resetVesselBtn.addEventListener('click', () => {
+            prepareNewRun();
+            showToast('Vessel reset — ready for next comparison curve');
+        });
+
+        clearGraphBtn.addEventListener('click', () => {
+            state.completedRuns = [];
+            state.currentRun = null;
+            state.isRunning = false;
+            state.isFinished = false;
+            state.simTime = 0;
+            state.selectedColorIndex = 0;
+
+            timeReadout.textContent = '0.0 s';
+            volumeReadout.textContent = '0.0 cm³';
+
+            lockSliders(false);
+            renderColorSwatches();
+            initParticles();
+            renderLegend();
+            drawGraph();
+            setStatus('ready');
+            showToast('All curves cleared from graph');
+        });
+
+        toggleTangentBtn.addEventListener('click', () => {
+            state.showTangent = !state.showTangent;
+            toggleTangentBtn.textContent = state.showTangent ? 'Initial Gradient: ON' : 'Initial Gradient: OFF';
+            toggleTangentBtn.className = state.showTangent
+                ? 'px-3 py-1.5 rounded-xl text-xs lg:text-sm font-bold border transition-all bg-sky-500/25 text-sky-300 border-sky-400'
+                : 'px-3 py-1.5 rounded-xl text-xs lg:text-sm font-bold border transition-all bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700';
+            drawGraph();
+        });
+
+        // --- Responsive Canvas Resizing ---
+        function resizeCanvases() {
+            const pContainer = document.getElementById('particleContainer');
+            if (pContainer) {
+                particleCanvas.width = pContainer.clientWidth;
+                particleCanvas.height = pContainer.clientHeight;
+            }
+
+            const gContainer = document.getElementById('graphContainer');
+            if (gContainer) {
+                graphCanvas.width = gContainer.clientWidth;
+                graphCanvas.height = gContainer.clientHeight;
+            }
+
+            drawParticles();
+            drawGraph();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // --- Main Animation Loop ---
+        function animate(timestamp) {
+            if (!state.lastFrameTime) state.lastFrameTime = timestamp;
+            const rawDt = (timestamp - state.lastFrameTime) / 1000;
+            state.lastFrameTime = timestamp;
+            // Clamp dt to avoid jumps if tab loses focus
+            const dt = Math.min(rawDt, 0.05);
+
+            // Always animate particle thermal motion so temperature differences are visibly obvious even before starting!
+            updateParticles(dt);
+            drawParticles();
+
+            if (state.isRunning && state.currentRun) {
+                // Advance simulation clock at 4.0x real-time speed (~15 seconds real-time for a 60s textbook graph)
+                const simSpeedMultiplier = 4.0;
+                state.simTime = Math.min(state.MAX_TIME, state.simTime + dt * simSpeedMultiplier);
+                state.currentRun.maxPlottedTime = state.simTime;
+
+                const currentVol = calculateVolumeAtTime(
+                    state.simTime,
+                    state.currentRun.vMax,
+                    state.currentRun.k
+                );
+
+                // Fraction of limiting reactant converted (0 to 1)
+                const fractionDone = currentVol / state.currentRun.vMax;
+                syncParticlesWithCurve(fractionDone);
+
+                // Update live numerical readouts
+                timeReadout.textContent = `${state.simTime.toFixed(1)} s`;
+                volumeReadout.textContent = `${currentVol.toFixed(1)} cm³`;
+
+                drawGraph();
+
+                // Check if 60s axis limit reached
+                if (state.simTime >= state.MAX_TIME) {
+                    state.isRunning = false;
+                    state.isFinished = true;
+                    syncParticlesWithCurve(1.0);
+                    setStatus('complete');
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Boot Application on Window Load ---
+        window.onload = function () {
+            renderColorSwatches();
+            resizeCanvases();
+            initParticles();
+            renderLegend();
+            drawGraph();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>
