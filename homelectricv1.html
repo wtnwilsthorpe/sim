@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GCSE Physics: UK Domestic Electricity & Safety</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Range Sliders for Projector Visibility */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 10px;
+      border-radius: 999px;
+      background: #1e293b;
+      border: 1px solid #334155;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 24px;
+      width: 24px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 3px solid #0f172a;
+      margin-top: -8px;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+    }
+    input[type="range"]:focus {
+      outline: none;
+    }
+    .earth-stripe {
+      background: repeating-linear-gradient(
+        -45deg,
+        #16a34a,
+        #16a34a 10px,
+        #eab308 10px,
+        #eab308 20px
+      );
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    }
+    .nav-btn-active {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.45);
+    }
+    .hotspot-pulse {
+      animation: pulseRing 2s infinite;
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
+
+  <!-- TOP HEADER BAR (Fixed 68px height) -->
+  <header class="h-[68px] px-5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between shrink-0 z-20">
+    <!-- Title & Specification Tag -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-extrabold tracking-tight text-white leading-none">UK Mains Electricity & Safety</h1>
+          <span class="px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">GCSE Physics</span>
+        </div>
+        <p class="text-xs text-slate-400 mt-0.5 font-medium">AQA / Edexcel / OCR Interactive Classroom Lab • 230V AC • 50Hz</p>
+      </div>
+    </div>
+
+    <!-- Slide Navigation Tabs -->
+    <nav class="flex items-center gap-2 bg-slate-950/90 p-1.5 rounded-2xl border border-slate-800">
+      <button onclick="switchSlide(0)" id="tab-0" class="nav-btn-active px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-transparent">
+        <span class="w-5 h-5 rounded-full bg-white/20 text-xs flex items-center justify-center">1</span>
+        <span>3-Pin Plug & Insulation</span>
+      </button>
+      <button onclick="switchSlide(1)" id="tab-1" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all flex items-center gap-2 border border-transparent">
+        <span class="w-5 h-5 rounded-full bg-slate-800 text-xs flex items-center justify-center">2</span>
+        <span>AC vs DC (P.d. & Frequency)</span>
+      </button>
+      <button onclick="switchSlide(2)" id="tab-2" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all flex items-center gap-2 border border-transparent">
+        <span class="w-5 h-5 rounded-full bg-slate-800 text-xs flex items-center justify-center">3</span>
+        <span>Current, Fuses & MCBs</span>
+      </button>
+      <button onclick="switchSlide(3)" id="tab-3" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all flex items-center gap-2 border border-transparent">
+        <span class="w-5 h-5 rounded-full bg-slate-800 text-xs flex items-center justify-center">4</span>
+        <span>Earth Wire Fault Lab</span>
+      </button>
+    </nav>
+
+    <!-- Teacher Tools: Exam Mark Scheme Overlay & Reset -->
+    <div class="flex items-center gap-2.5">
+      <button onclick="toggleExamOverlay()" id="btn-exam-tips" class="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-sm font-bold flex items-center gap-2 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Exam Mark Scheme</span>
+      </button>
+      <button onclick="resetCurrentSlide()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-bold flex items-center gap-1.5 transition-all" title="Reset Slide">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>Reset</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT AREA (Exact remaining height, zero overflow) -->
+  <main class="relative flex-1 w-full h-[calc(100vh-68px)] overflow-hidden p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+
+    <!-- EXAM MARK SCHEME MODAL / DRAWER OVERLAY -->
+    <div id="exam-overlay" class="hidden absolute top-4 right-4 w-[440px] z-40 glass-panel rounded-2xl p-5 border-2 border-emerald-500/60 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-3">
+        <div class="flex items-center gap-2 text-emerald-400 font-extrabold text-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <span id="exam-overlay-title">GCSE Examiner Key Points</span>
+        </div>
+        <button onclick="toggleExamOverlay()" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <ul id="exam-overlay-list" class="space-y-2.5 text-base text-slate-200 leading-snug">
+        <!-- Populated dynamically per slide -->
+      </ul>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SLIDE 1: INSIDE THE UK 3-PIN PLUG & DOUBLE INSULATION                 -->
+    <!-- ===================================================================== -->
+    <section id="slide-0" class="slide-container w-full h-full grid grid-cols-12 gap-4">
+      
+      <!-- Left/Center Interactive Plug Diagram (7 Columns) -->
+      <div class="col-span-7 glass-panel rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between z-10">
+          <div>
+            <h2 class="text-2xl font-extrabold text-white">BS 1363 UK 3-Pin Plug Anatomy</h2>
+            <p class="text-sm text-slate-300">Click any wire, pin, or component to inspect its role & potential difference</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="togglePlugCover()" id="btn-plug-cover" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold shadow-lg transition-all flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              <span id="cover-btn-text">Cover: OFF (Cutaway)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive SVG Plug Cutaway -->
+        <div class="flex-1 flex items-center justify-center relative my-1">
+          <svg id="uk-plug-svg" viewBox="0 0 700 470" class="w-full h-full max-h-[430px] drop-shadow-2xl">
+            <defs>
+              <!-- Green & Yellow Earth Wire Pattern -->
+              <pattern id="earthPattern" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <rect x="0" y="0" width="10" height="20" fill="#16a34a" />
+                <rect x="10" y="0" width="10" height="20" fill="#eab308" />
+              </pattern>
+              <!-- Brass Metallic Gradient -->
+              <linearGradient id="brassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#b45309" />
+                <stop offset="35%" stop-color="#fbbf24" />
+                <stop offset="65%" stop-color="#f59e0b" />
+                <stop offset="100%" stop-color="#78350f" />
+              </linearGradient>
+              <!-- Copper Wire Gradient -->
+              <linearGradient id="copperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ea580c" />
+                <stop offset="50%" stop-color="#fdba74" />
+                <stop offset="100%" stop-color="#9a3412" />
+              </linearGradient>
+            </defs>
+
+            <!-- Outer Cable entering from bottom -->
+            <g class="cursor-pointer" onclick="selectPlugPart('cable')">
+              <rect x="318" y="375" width="64" height="95" rx="8" fill="#1e293b" stroke="#475569" stroke-width="3"/>
+              <text x="400" y="445" fill="#94a3b8" font-size="14" font-weight="700">3-Core Flex Cable</text>
+              <text x="400" y="462" fill="#64748b" font-size="12">(Copper cores + PVC insulation)</text>
+            </g>
+
+            <!-- Plug Moulded Outer Plastic Shell -->
+            <g class="cursor-pointer" onclick="selectPlugPart('casing')">
+              <path d="M 225 45 L 475 45 Q 525 45 535 95 L 555 295 Q 560 355 505 375 L 410 390 L 290 390 L 195 375 Q 140 355 145 295 L 165 95 Q 175 45 225 45 Z" 
+                    fill="#0f172a" stroke="#64748b" stroke-width="5" />
+              <!-- Inner recessed cavity -->
+              <path d="M 235 60 L 465 60 Q 508 60 516 102 L 534 288 Q 538 338 492 355 L 402 370 L 298 370 L 208 355 Q 162 338 166 288 L 184 102 Q 192 60 235 60 Z" 
+                    fill="#1e293b" stroke="#334155" stroke-width="2" />
+            </g>
+
+            <!-- TOP EARTH PIN (Longer for safety shutter opening!) -->
+            <g class="cursor-pointer transition-transform hover:brightness-110" onclick="selectPlugPart('earth')">
+              <!-- Brass Pin protruding top -->
+              <rect x="334" y="8" width="32" height="82" rx="4" fill="url(#brassGrad)" stroke="#fef08a" stroke-width="1.5"/>
+              <!-- Earth Terminal Block inside -->
+              <rect x="326" y="82" width="48" height="36" rx="5" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
+              <circle cx="350" cy="100" r="7" fill="#475569"/>
+              <!-- Exposed Copper strands -->
+              <rect x="344" y="118" width="12" height="14" fill="url(#copperGrad)"/>
+              <!-- Green/Yellow Striped Earth Wire -->
+              <path d="M 350 132 C 350 185, 350 265, 350 385" fill="none" stroke="url(#earthPattern)" stroke-width="16" stroke-linecap="round"/>
+              <path d="M 350 132 C 350 185, 350 265, 350 385" fill="none" stroke="#0f172a" stroke-width="17" stroke-opacity="0.15"/>
+            </g>
+
+            <!-- BOTTOM LEFT NEUTRAL PIN & BLUE WIRE -->
+            <g class="cursor-pointer transition-transform hover:brightness-110" onclick="selectPlugPart('neutral')">
+              <!-- Neutral Brass Pin -->
+              <rect x="195" y="218" width="46" height="44" rx="5" fill="url(#brassGrad)" stroke="#fef08a" stroke-width="1.5"/>
+              <!-- Insulated Sleeve on Neutral Pin (BS 1363 standard) -->
+              <rect x="195" y="218" width="18" height="44" rx="2" fill="#0f172a"/>
+              <!-- Neutral Terminal -->
+              <rect x="236" y="222" width="34" height="36" rx="4" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
+              <circle cx="253" cy="240" r="6" fill="#475569"/>
+              <!-- Exposed Copper -->
+              <rect x="255" y="258" width="11" height="14" fill="url(#copperGrad)"/>
+              <!-- Blue Neutral Wire -->
+              <path d="M 260 272 C 260 315, 332 325, 334 385" fill="none" stroke="#2563eb" stroke-width="16" stroke-linecap="round"/>
+              <path d="M 260 272 C 260 315, 332 325, 334 385" fill="none" stroke="#60a5fa" stroke-width="3" stroke-opacity="0.6"/>
+            </g>
+
+            <!-- BOTTOM RIGHT LIVE PIN, FUSE & BROWN WIRE -->
+            <g class="cursor-pointer transition-transform hover:brightness-110" onclick="selectPlugPart('live')">
+              <!-- Live Brass Pin -->
+              <rect x="459" y="218" width="46" height="44" rx="5" fill="url(#brassGrad)" stroke="#fef08a" stroke-width="1.5"/>
+              <!-- Insulated Sleeve on Live Pin -->
+              <rect x="487" y="218" width="18" height="44" rx="2" fill="#0f172a"/>
+              <!-- Live Pin Clip to Fuse -->
+              <rect x="435" y="224" width="26" height="32" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
+              <!-- Bottom Fuse Clip -->
+              <rect x="435" y="302" width="26" height="26" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
+              <!-- Exposed Copper from Fuse Clip -->
+              <rect x="438" y="328" width="11" height="12" fill="url(#copperGrad)"/>
+              <!-- Brown Live Wire -->
+              <path d="M 443 340 C 443 362, 368 352, 366 385" fill="none" stroke="#b45309" stroke-width="16" stroke-linecap="round"/>
+              <path d="M 443 340 C 443 362, 368 352, 366 385" fill="none" stroke="#f59e0b" stroke-width="3" stroke-opacity="0.5"/>
+            </g>
+
+            <!-- CARTRIDGE FUSE (Connected directly to Live Pin!) -->
+            <g class="cursor-pointer transition-transform hover:scale-105" onclick="selectPlugPart('fuse')">
+              <!-- Ceramic Body -->
+              <rect x="433" y="254" width="30" height="50" rx="3" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+              <!-- Metal End Caps -->
+              <rect x="433" y="252" width="30" height="10" rx="1" fill="url(#brassGrad)"/>
+              <rect x="433" y="296" width="30" height="10" rx="1" fill="url(#brassGrad)"/>
+              <!-- Red/Brown 13A Band -->
+              <rect x="433" y="272" width="30" height="14" fill="#dc2626"/>
+              <text x="448" y="283" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="800">13A</text>
+            </g>
+
+            <!-- CABLE GRIP (At Bottom Entry) -->
+            <g class="cursor-pointer transition-transform hover:brightness-110" onclick="selectPlugPart('grip')">
+              <rect x="304" y="346" width="92" height="22" rx="4" fill="#e2e8f0" stroke="#475569" stroke-width="2"/>
+              <circle cx="315" cy="357" r="5" fill="#475569"/>
+              <circle cx="385" cy="357" r="5" fill="#475569"/>
+              <text x="350" y="361" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="800">CABLE GRIP</text>
+            </g>
+
+            <!-- INTERACTIVE CALLOUT LABELS & LINES -->
+            <!-- Earth Label -->
+            <g class="cursor-pointer" onclick="selectPlugPart('earth')">
+              <line x1="334" y1="38" x2="210" y2="38" stroke="#4ade80" stroke-width="2" stroke-dasharray="4 3"/>
+              <rect x="25" y="18" width="185" height="44" rx="8" fill="#052e16" stroke="#22c55e" stroke-width="2"/>
+              <text x="117" y="37" text-anchor="middle" fill="#4ade80" font-size="14" font-weight="800">EARTH PIN & WIRE</text>
+              <text x="117" y="54" text-anchor="middle" fill="#bbf7d0" font-size="12" font-weight="600">Green/Yellow • 0 V (Safety)</text>
+            </g>
+
+            <!-- Neutral Label -->
+            <g class="cursor-pointer" onclick="selectPlugPart('neutral')">
+              <line x1="195" y1="240" x2="155" y2="240" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4 3"/>
+              <rect x="10" y="216" width="145" height="48" rx="8" fill="#172554" stroke="#3b82f6" stroke-width="2"/>
+              <text x="82" y="236" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="800">NEUTRAL WIRE</text>
+              <text x="82" y="254" text-anchor="middle" fill="#bfdbfe" font-size="12" font-weight="600">Blue • ~0 V Return</text>
+            </g>
+
+            <!-- Live Label -->
+            <g class="cursor-pointer" onclick="selectPlugPart('live')">
+              <line x1="505" y1="236" x2="545" y2="210" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4 3"/>
+              <rect x="545" y="180" width="145" height="48" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="2"/>
+              <text x="617" y="200" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="800">LIVE WIRE</text>
+              <text x="617" y="218" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="600">Brown • 230 V AC</text>
+            </g>
+
+            <!-- Fuse Label -->
+            <g class="cursor-pointer" onclick="selectPlugPart('fuse')">
+              <line x1="463" y1="278" x2="545" y2="278" stroke="#f87171" stroke-width="2" stroke-dasharray="4 3"/>
+              <rect x="545" y="254" width="145" height="48" rx="8" fill="#450a0a" stroke="#ef4444" stroke-width="2"/>
+              <text x="617" y="274" text-anchor="middle" fill="#f87171" font-size="14" font-weight="800">CARTRIDGE FUSE</text>
+              <text x="617" y="292" text-anchor="middle" fill="#fecaca" font-size="12" font-weight="600">3A / 5A / 13A on Live</text>
+            </g>
+
+            <!-- Cable Grip Label -->
+            <g class="cursor-pointer" onclick="selectPlugPart('grip')">
+              <line x1="304" y1="357" x2="175" y2="357" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 3"/>
+              <rect x="10" y="334" width="165" height="46" rx="8" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+              <text x="92" y="353" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="800">CABLE GRIP</text>
+              <text x="92" y="370" text-anchor="middle" fill="#cbd5e1" font-size="11" font-weight="600">Holds outer sheath tight</text>
+            </g>
+
+            <!-- Brass Pins & Casing Label -->
+            <g class="cursor-pointer" onclick="selectPlugPart('pins')">
+              <line x1="366" y1="45" x2="530" y2="45" stroke="#fde047" stroke-width="2" stroke-dasharray="4 3"/>
+              <rect x="530" y="22" width="160" height="46" rx="8" fill="#1e293b" stroke="#eab308" stroke-width="2"/>
+              <text x="610" y="41" text-anchor="middle" fill="#fde047" font-size="13" font-weight="800">BRASS PINS & CASE</text>
+              <text x="610" y="58" text-anchor="middle" fill="#cbd5e1" font-size="11" font-weight="600">Conductor vs Insulator</text>
+            </g>
+
+            <!-- Optional Translucent Plastic Lid when Cover is toggled ON -->
+            <g id="plug-outer-cover" class="hidden pointer-events-none">
+              <path d="M 225 45 L 475 45 Q 525 45 535 95 L 555 295 Q 560 355 505 375 L 410 390 L 290 390 L 195 375 Q 140 355 145 295 L 165 95 Q 175 45 225 45 Z" 
+                    fill="#f8fafc" fill-opacity="0.88" stroke="#94a3b8" stroke-width="5" />
+              <circle cx="350" cy="215" r="14" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/>
+              <line x1="342" y1="215" x2="358" y2="215" stroke="#475569" stroke-width="3"/>
+              <text x="350" y="135" text-anchor="middle" fill="#0f172a" font-size="22" font-weight="800">BS 1363 / A</text>
+              <text x="350" y="162" text-anchor="middle" fill="#334155" font-size="15" font-weight="700">230V ~ 50Hz • FUSED</text>
+              <text x="235" y="295" text-anchor="middle" fill="#1d4ed8" font-size="20" font-weight="800">N</text>
+              <text x="465" y="295" text-anchor="middle" fill="#b45309" font-size="20" font-weight="800">L</text>
+              <text x="350" y="88" text-anchor="middle" fill="#15803d" font-size="20" font-weight="800">E</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Component Inspector Readout Card at Bottom of Left Panel -->
+        <div id="plug-inspector-card" class="bg-slate-900/95 border-2 border-amber-500/60 rounded-xl p-3.5 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div id="plug-part-badge" class="w-12 h-12 rounded-xl bg-amber-600/30 border border-amber-400 flex items-center justify-center text-amber-300 font-extrabold text-xl shrink-0">L</div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 id="plug-part-title" class="text-lg font-extrabold text-amber-400">Live Wire (Brown) — 230 V</h3>
+                <span id="plug-part-tag" class="px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-200">Bottom Right Pin</span>
+              </div>
+              <p id="plug-part-desc" class="text-sm text-slate-200 mt-0.5 leading-snug">Carries the alternating potential difference (230 V) from the mains supply to the appliance. Connected directly to the fuse so breaking the fuse isolates the appliance from high voltage.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Double Insulation vs Earthed Metal Appliance (5 Columns) -->
+      <div class="col-span-5 glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xl font-extrabold text-white">Appliance Casing & Insulation</h2>
+            <span class="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-bold">Class I vs Class II</span>
+          </div>
+          <p class="text-sm text-slate-300 mb-3">Toggle between appliance types to see why some devices do <strong>not</strong> need an Earth wire:</p>
+
+          <!-- Toggle Buttons -->
+          <div class="grid grid-cols-2 gap-2.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+            <button onclick="setInsulationMode('double')" id="btn-insul-double" class="py-2.5 px-3 rounded-lg bg-sky-600 text-white font-bold text-sm shadow transition-all flex items-center justify-center gap-2">
+              <span class="inline-flex items-center justify-center w-5 h-5 border-2 border-white text-[10px] font-black">□</span>
+              <span>Double Insulated (Class II)</span>
+            </button>
+            <button onclick="setInsulationMode('metal')" id="btn-insul-metal" class="py-2.5 px-3 rounded-lg text-slate-400 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
+              <span>⚡</span>
+              <span>Metal-Cased (Class I)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Visual Cross-Section Diagram -->
+        <div class="flex-1 my-3 bg-slate-900/90 rounded-xl border border-slate-700/80 p-3 flex flex-col items-center justify-center relative">
+          <svg id="insulation-svg" viewBox="0 0 420 230" class="w-full h-full max-h-[225px]">
+            <!-- Dynamic content rendered by JS -->
+          </svg>
+        </div>
+
+        <!-- Explanation Box -->
+        <div id="insulation-info" class="bg-slate-900/95 border border-sky-500/40 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <!-- Double Insulation Symbol SVG -->
+              <svg id="double-insul-symbol" class="w-8 h-8 text-sky-400 shrink-0" viewBox="0 0 40 40">
+                <rect x="4" y="4" width="32" height="32" fill="none" stroke="currentColor" stroke-width="3"/>
+                <rect x="12" y="12" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3"/>
+              </svg>
+              <div>
+                <h4 id="insul-heading" class="text-base font-extrabold text-sky-300">Double-Insulated Appliance (e.g. Hairdryer, Drill)</h4>
+                <p id="insul-sub" class="text-xs text-slate-400 font-semibold">2-Core Cable (Live & Neutral ONLY) • Plastic Earth Pin on Plug</p>
+              </div>
+            </div>
+          </div>
+          <ul id="insul-bullets" class="text-sm text-slate-200 space-y-1 list-disc list-inside leading-snug">
+            <li><strong>Layer 1:</strong> Internal wires are wrapped in insulating PVC plastic.</li>
+            <li><strong>Layer 2:</strong> The entire outer casing is made of non-conducting plastic.</li>
+            <li><strong>Why no Earth wire?</strong> Even if a live wire comes loose inside, the plastic outer case cannot conduct electricity, so a user cannot get an electric shock.</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SLIDE 2: AC SUPPLY — P.D. & FREQUENCY (OSCILLOSCOPE & ELECTRON FLOW)  -->
+    <!-- ===================================================================== -->
+    <section id="slide-1" class="slide-container hidden w-full h-full grid grid-cols-12 gap-4">
+      
+      <!-- Left: Cathode Ray Oscilloscope (CRO) Screen & Controls (7 Columns) -->
+      <div class="col-span-7 glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-extrabold text-white">Oscilloscope: Alternating vs Direct P.d.</h2>
+            <p class="text-sm text-slate-300">Adjust Peak Potential Difference and Frequency to observe the waveform & time period</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="setOscPreset('uk')" class="px-3 py-1.5 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/50 text-xs font-extrabold transition-all">
+              UK Mains (230V, 50Hz)
+            </button>
+            <button onclick="setOscPreset('dc')" class="px-3 py-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/50 text-xs font-extrabold transition-all">
+              DC Battery (230V, 0Hz)
+            </button>
+          </div>
+        </div>
+
+        <!-- CRO Canvas Container -->
+        <div class="relative flex-1 my-2.5 rounded-xl overflow-hidden border-2 border-slate-700 bg-[#04120c] shadow-inner">
+          <canvas id="cro-canvas" class="w-full h-full block"></canvas>
+          <!-- CRO Scale Overlay -->
+          <div class="absolute top-2.5 left-3 flex gap-3 pointer-events-none">
+            <span class="px-2.5 py-1 rounded bg-black/70 border border-emerald-500/40 text-emerald-400 font-mono-tech text-xs font-bold">Y-Gain: 100 V/div</span>
+            <span class="px-2.5 py-1 rounded bg-black/70 border border-emerald-500/40 text-emerald-400 font-mono-tech text-xs font-bold">Timebase: 5 ms/div</span>
+          </div>
+          <div class="absolute bottom-2.5 right-3 flex items-center gap-4 pointer-events-none bg-black/75 px-3 py-1 rounded-lg border border-slate-700">
+            <span class="flex items-center gap-1.5 text-xs font-bold text-amber-400"><span class="w-3 h-1 bg-amber-400 inline-block"></span> AC Mains Trace</span>
+            <span class="flex items-center gap-1.5 text-xs font-bold text-cyan-400"><span class="w-3 h-1 border-b-2 border-dashed border-cyan-400 inline-block"></span> Equivalent DC (V<sub>rms</sub>)</span>
+          </div>
+        </div>
+
+        <!-- Interactive Sliders -->
+        <div class="grid grid-cols-2 gap-4 bg-slate-900/90 p-3.5 rounded-xl border border-slate-800">
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="text-sm font-bold text-amber-300">Peak P.d. (V<sub>0</sub>)</label>
+              <span id="val-vpeak" class="font-mono-tech text-base font-extrabold text-white bg-slate-800 px-2.5 py-0.5 rounded">325 V</span>
+            </div>
+            <input type="range" id="slider-vpeak" min="50" max="400" step="5" value="325" class="w-full" oninput="updateOscParams()">
+            <div class="flex justify-between text-[11px] text-slate-400 mt-1 font-medium">
+              <span>50 V</span>
+              <span>UK Peak: 325 V (V<sub>rms</sub> = 230 V)</span>
+              <span>400 V</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="text-sm font-bold text-sky-300">Mains Frequency (f)</label>
+              <span id="val-freq" class="font-mono-tech text-base font-extrabold text-white bg-slate-800 px-2.5 py-0.5 rounded">50 Hz</span>
+            </div>
+            <input type="range" id="slider-freq" min="10" max="100" step="5" value="50" class="w-full" oninput="updateOscParams()">
+            <div class="flex justify-between text-[11px] text-slate-400 mt-1 font-medium">
+              <span>10 Hz</span>
+              <span>UK Mains: 50 Hz</span>
+              <span>100 Hz</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Live Formula Readouts & Electron Drift Comparison (5 Columns) -->
+      <div class="col-span-5 glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <h2 class="text-xl font-extrabold text-white mb-2">Live Calculations & Electron Motion</h2>
+          <!-- 4 Key Metric Cards -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-slate-900/95 border border-amber-500/40 rounded-xl p-2.5">
+              <div class="text-xs font-bold text-amber-400 uppercase">Effective P.d. (V<sub>rms</sub>)</div>
+              <div id="readout-vrms" class="font-mono-tech text-2xl font-extrabold text-white mt-0.5">230 V</div>
+              <div class="text-[11px] text-slate-400">V<sub>rms</sub> = V<sub>peak</sub> / √2</div>
+            </div>
+            <div class="bg-slate-900/95 border border-sky-500/40 rounded-xl p-2.5">
+              <div class="text-xs font-bold text-sky-400 uppercase">Time Period (T)</div>
+              <div id="readout-period" class="font-mono-tech text-2xl font-extrabold text-white mt-0.5">0.020 s</div>
+              <div class="text-[11px] text-slate-400">T = 1 / f (20 ms)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Side-by-Side AC vs DC Circuit Animation Canvas -->
+        <div class="flex-1 my-2.5 bg-slate-900/90 rounded-xl border border-slate-700/80 p-2.5 flex flex-col">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-300 px-1 mb-1">
+            <span>AC: Electrons Oscillate Back & Forth</span>
+            <span>DC: Electrons Flow One Way</span>
+          </div>
+          <div class="flex-1 relative">
+            <canvas id="acdc-circuit-canvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+
+        <!-- Key Concept Comparison Table -->
+        <div class="bg-slate-900/95 border border-slate-700 rounded-xl p-3 space-y-1.5 text-sm">
+          <div class="flex items-start gap-2">
+            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-xs mt-0.5 shrink-0">AC</span>
+            <p class="text-slate-200 leading-snug"><strong>Alternating Current:</strong> P.d. constantly changes direction (positive to negative 50 times/sec). Used for mains electricity.</p>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold text-xs mt-0.5 shrink-0">DC</span>
+            <p class="text-slate-200 leading-snug"><strong>Direct Current:</strong> P.d. stays in one direction; electrons flow steadily from negative to positive (cells & batteries).</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SLIDE 3: CURRENT FLOW, FUSES & CIRCUIT BREAKERS (MCB)                 -->
+    <!-- ===================================================================== -->
+    <section id="slide-2" class="slide-container hidden w-full h-full grid grid-cols-12 gap-4">
+      
+      <!-- Left: Controls, Appliance Selector & I = P/V Calculator (5 Columns) -->
+      <div class="col-span-5 glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <h2 class="text-2xl font-extrabold text-white">Fuses & Circuit Breakers</h2>
+          <p class="text-sm text-slate-300 mb-3">Choose an appliance, select the correct fuse rating, or trigger a surge!</p>
+
+          <!-- Step 1: Select Appliance -->
+          <div class="mb-3">
+            <label class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">1. Select Household Appliance (230 V Mains)</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="selectAppliance(0)" id="app-btn-0" class="p-2.5 rounded-xl bg-sky-600/30 border-2 border-sky-400 text-left transition-all">
+                <div class="text-lg">💡</div>
+                <div class="text-sm font-extrabold text-white">Desk Lamp</div>
+                <div class="font-mono-tech text-xs text-sky-300 font-bold">60 W</div>
+              </button>
+              <button onclick="selectAppliance(1)" id="app-btn-1" class="p-2.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-slate-500 text-left transition-all">
+                <div class="text-lg">🍞</div>
+                <div class="text-sm font-extrabold text-white">Toaster</div>
+                <div class="font-mono-tech text-xs text-slate-300 font-bold">1150 W</div>
+              </button>
+              <button onclick="selectAppliance(2)" id="app-btn-2" class="p-2.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-slate-500 text-left transition-all">
+                <div class="text-lg">🫖</div>
+                <div class="text-sm font-extrabold text-white">Kettle</div>
+                <div class="font-mono-tech text-xs text-slate-300 font-bold">2800 W</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: Protection Device Type & Rating -->
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">2. Safety Device</label>
+              <div class="flex flex-col gap-1.5">
+                <button onclick="setProtectionType('fuse')" id="prot-fuse" class="py-2 px-3 rounded-lg bg-amber-600 text-white font-bold text-xs text-left flex items-center justify-between">
+                  <span>Cartridge Fuse (Melts)</span>
+                  <span>●</span>
+                </button>
+                <button onclick="setProtectionType('mcb')" id="prot-mcb" class="py-2 px-3 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs text-left flex items-center justify-between">
+                  <span>Circuit Breaker (MCB)</span>
+                  <span>○</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">3. Current Rating</label>
+              <div class="grid grid-cols-3 gap-1.5 h-[72px]">
+                <button onclick="setFuseRating(3)" id="rate-3" class="rounded-lg bg-emerald-600 text-white font-mono-tech font-extrabold text-base border-2 border-emerald-300">3 A</button>
+                <button onclick="setFuseRating(5)" id="rate-5" class="rounded-lg bg-slate-900 text-slate-300 font-mono-tech font-extrabold text-base border border-slate-700">5 A</button>
+                <button onclick="setFuseRating(13)" id="rate-13" class="rounded-lg bg-slate-900 text-slate-300 font-mono-tech font-extrabold text-base border border-slate-700">13 A</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Physics Formula Card: I = P / V -->
+        <div class="bg-slate-900/95 border border-slate-700 rounded-xl p-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <span class="text-xs font-extrabold uppercase text-sky-400">Normal Operating Current (I = P ÷ V)</span>
+            <span id="fuse-suitability-badge" class="px-2 py-0.5 rounded text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Ideal Rating!</span>
+          </div>
+          <div class="flex items-center justify-between font-mono-tech">
+            <div class="text-base text-slate-300">
+              I = <span id="calc-power" class="text-white font-bold">60 W</span> ÷ <span class="text-amber-400 font-bold">230 V</span>
+            </div>
+            <div class="text-2xl font-extrabold text-emerald-400">
+              = <span id="calc-current">0.26 A</span>
+            </div>
+          </div>
+          <p id="fuse-advice-text" class="text-xs text-slate-300 mt-1.5">Rule: Choose a fuse rating slightly <strong>above</strong> the normal operating current (0.26 A → use 3 A fuse).</p>
+        </div>
+
+        <!-- Action Buttons: Surge vs Replace/Reset -->
+        <div class="grid grid-cols-2 gap-2.5 mt-2">
+          <button onclick="triggerPowerSurge()" id="btn-surge" class="py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-sm shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2">
+            <span>⚡ Simulate Fault Surge (25A)</span>
+          </button>
+          <button onclick="repairProtectionDevice()" id="btn-repair" class="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-extrabold text-sm transition-all flex items-center justify-center gap-2">
+            <span id="repair-btn-label">Replace Fuse / Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Live Circuit & Magnified Fuse / MCB Mechanism Canvas (7 Columns) -->
+      <div class="col-span-7 glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 id="prot-sim-title" class="text-xl font-extrabold text-white">Live Circuit & Cartridge Fuse Thermal View</h3>
+            <p id="prot-sim-subtitle" class="text-sm text-slate-300">Thin wire heats up due to resistance ($P = I^2 R$) and melts if $I > \text{Rating}$</p>
+          </div>
+          <div id="circuit-status-pill" class="px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-extrabold text-sm">
+            ● CIRCUIT CLOSED (SAFE)
+          </div>
+        </div>
+
+        <!-- Interactive Canvas for Fuse Wire Melting / Electromagnet MCB Trip -->
+        <div class="flex-1 my-2.5 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 relative">
+          <canvas id="protection-canvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- Comparison Footer: Fuse vs Circuit Breaker -->
+        <div class="grid grid-cols-2 gap-3 bg-slate-900/90 p-3 rounded-xl border border-slate-800 text-xs">
+          <div>
+            <span class="font-extrabold text-amber-400 block mb-0.5">Cartridge Fuse (Thermal):</span>
+            <p class="text-slate-300">Cheap & simple, but <strong>single-use</strong> — once the wire melts, it must be manually replaced.</p>
+          </div>
+          <div>
+            <span class="font-extrabold text-sky-400 block mb-0.5">Circuit Breaker / MCB (Electromagnetic):</span>
+            <p class="text-slate-300">Trips open <strong>much faster</strong> using an electromagnet and can be <strong>reset</strong> with a switch.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SLIDE 4: THE EARTH WIRE SAFETY MECHANISM (FAULT SIMULATOR)            -->
+    <!-- ===================================================================== -->
+    <section id="slide-3" class="slide-container hidden w-full h-full grid grid-cols-12 gap-4">
+      
+      <!-- Left: Interactive Fault Scenario Controls (4 Columns) -->
+      <div class="col-span-4 glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div>
+          <span class="px-2.5 py-1 rounded bg-green-500/20 text-green-300 border border-green-500/40 text-xs font-extrabold uppercase">Live Fault Simulation</span>
+          <h2 class="text-2xl font-extrabold text-white mt-1.5">Why Do Metal Appliances Need an Earth Wire?</h2>
+          <p class="text-sm text-slate-300 mt-1">Test what happens if the Live wire comes loose inside a metal-cased washing machine.</p>
+
+          <!-- 3 Scenario Buttons -->
+          <div class="space-y-2.5 mt-4">
+            <button onclick="setEarthScenario('normal')" id="earth-btn-normal" class="w-full p-3.5 rounded-xl bg-emerald-600/25 border-2 border-emerald-400 text-left transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-base text-emerald-300">1. Normal Operation</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200">SAFE</span>
+              </div>
+              <p class="text-xs text-slate-200 mt-1">Live wire is intact. Current flows through heating element & returns via Neutral. Metal case is at 0 V.</p>
+            </button>
+
+            <button onclick="setEarthScenario('fault_earthed')" id="earth-btn-earthed" class="w-full p-3.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-amber-400/60 text-left transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-base text-amber-300">2. Fault WITH Earth Wire</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/30 text-amber-200">PROTECTED</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1">Live wire touches metal casing. Low-resistance Earth wire causes huge surge → <strong>Fuse blows immediately!</strong></p>
+            </button>
+
+            <button onclick="setEarthScenario('fault_unearthed')" id="earth-btn-unearthed" class="w-full p-3.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-red-400/60 text-left transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-base text-red-400">3. Fault NO Earth Wire</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded bg-red-500/30 text-red-200">DANGER 230V</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1">Earth wire is missing/broken. Metal casing becomes LIVE at 230 V. Fuse does NOT blow until someone touches it!</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Touch Casing Button -->
+        <div class="bg-slate-900/95 border border-slate-700 rounded-xl p-3.5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-extrabold uppercase text-slate-400">User Interaction Test</span>
+            <span id="casing-voltage-badge" class="font-mono-tech text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Casing: 0 V</span>
+          </div>
+          <button onclick="togglePersonTouch()" id="btn-touch-case" class="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-sm shadow-lg transition-all flex items-center justify-center gap-2">
+            <span>✋ Touch Metal Appliance Casing</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Full Visual Simulation Canvas (8 Columns) -->
+      <div class="col-span-8 glass-panel rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 id="earth-sim-heading" class="text-xl font-extrabold text-white">Scenario 1: Normal Circuit Operation</h3>
+            <p id="earth-sim-sub" class="text-sm text-slate-300">Current = 10.0 A (Live → Element → Neutral) • Earth Wire Current = 0.0 A</p>
+          </div>
+          <div id="earth-alert-banner" class="px-4 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-extrabold text-sm">
+            ✓ SAFE TO TOUCH
+          </div>
+        </div>
+
+        <!-- Interactive Canvas showing Plug, Fuse, Live/Neutral/Earth Wires, Metal Washer & Person -->
+        <div class="flex-1 my-2.5 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 relative">
+          <canvas id="earth-fault-canvas" class="w-full h-full block"></canvas>
+        </div>
+
+        <!-- GCSE Exam Step-by-Step Explanation Bar -->
+        <div id="earth-explanation-bar" class="bg-slate-900/95 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 leading-snug">
+          <strong class="text-emerald-400">How it works:</strong> Under normal conditions, the Earth wire carries <strong>no current</strong>. It is connected directly to the outer metal casing of the appliance and leads to a metal spike buried in the ground (0 V).
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // =========================================================================
+    // GLOBAL STATE & SLIDE MANAGEMENT
+    // =========================================================================
+    let currentSlide = 0;
+    let examOverlayOpen = false;
+    let animationFrameId = null;
+    let globalTime = 0;
+
+    // Exam Mark Scheme Content per Slide
+    const examData = [
+      {
+        title: "Slide 1: 3-Pin Plug & Double Insulation",
+        points: [
+          "<strong>Live wire (Brown):</strong> Carries alternating potential difference (230 V) from the supply.",
+          "<strong>Neutral wire (Blue):</strong> Completes the circuit; kept at or close to 0 V.",
+          "<strong>Earth wire (Green & Yellow):</strong> Safety wire at 0 V; stops the appliance casing becoming live.",
+          "<strong>Brass pins:</strong> Hard, durable, and a good electrical conductor (doesn't rust).",
+          "<strong>Plastic casing & cable grip:</strong> Electrical insulator; grip prevents wires pulling loose from terminals.",
+          "<strong>Double insulation:</strong> Plastic outer casing + insulated internal wires. No Earth wire needed because casing cannot conduct."
+        ]
+      },
+      {
+        title: "Slide 2: Mains AC, P.d. & Frequency",
+        points: [
+          "<strong>UK Mains Supply:</strong> Alternating current (AC) with a frequency of <strong>50 Hz</strong> and effective P.d. of <strong>230 V</strong>.",
+          "<strong>AC vs DC:</strong> In AC, potential difference and current constantly reverse direction. In DC (batteries), current flows in one direction only.",
+          "<strong>Time Period (T):</strong> $T = 1 / f = 1 / 50 = 0.02\\text{ s}$ (one full wave cycle takes 20 ms).",
+          "<strong>Peak vs RMS:</strong> Peak voltage is ~325 V, delivering the same average power as a 230 V DC supply."
+        ]
+      },
+      {
+        title: "Slide 3: Current, Fuses & Circuit Breakers",
+        points: [
+          "<strong>Choosing a Fuse:</strong> Calculate normal current using $I = P / V$, then pick the standard fuse (3A, 5A, 13A) just <strong>above</strong> this value.",
+          "<strong>How a Fuse Works:</strong> Connected to the <strong>Live wire</strong>. If current is too high, the thin wire heats up, <strong>melts, and breaks the circuit</strong>.",
+          "<strong>Circuit Breakers (MCBs):</strong> Use an electromagnet to trip a switch open when current surges.",
+          "<strong>MCB Advantage:</strong> Reacts much faster than a fuse and can be <strong>reset</strong> rather than replaced."
+        ]
+      },
+      {
+        title: "Slide 4: Earth Wire Safety Mechanism",
+        points: [
+          "<strong>Step 1 (Fault):</strong> If the Live wire touches the metal casing, the Earth wire provides a <strong>very low-resistance path</strong> to the ground.",
+          "<strong>Step 2 (Surge):</strong> A <strong>very large current</strong> flows through the Live wire, metal casing, and Earth wire.",
+          "<strong>Step 3 (Isolation):</strong> This large current causes the <strong>fuse to melt and break the circuit</strong> (or trips the circuit breaker).",
+          "<strong>Result:</strong> The appliance is disconnected from the 230 V Live supply, preventing electric shock."
+        ]
+      }
+    ];
+
+    function switchSlide(index) {
+      currentSlide = index;
+      // Update slides visibility
+      document.querySelectorAll('.slide-container').forEach((el, idx) => {
+        if (idx === index) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      // Update Nav Buttons
+      for (let i = 0; i < 4; i++) {
+        const btn = document.getElementById(`tab-${i}`);
+        const badge = btn.querySelector('span:first-child');
+        if (i === index) {
+          btn.className = "nav-btn-active px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-transparent";
+          badge.className = "w-5 h-5 rounded-full bg-white/20 text-xs flex items-center justify-center";
+        } else {
+          btn.className = "px-4 py-2 rounded-xl text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all flex items-center gap-2 border border-transparent";
+          badge.className = "w-5 h-5 rounded-full bg-slate-800 text-xs flex items-center justify-center";
+        }
+      }
+
+      updateExamOverlayContent();
+      resizeAllCanvases();
+    }
+
+    function toggleExamOverlay() {
+      examOverlayOpen = !examOverlayOpen;
+      const overlay = document.getElementById('exam-overlay');
+      if (examOverlayOpen) {
+        overlay.classList.remove('hidden');
+        updateExamOverlayContent();
+      } else {
+        overlay.classList.add('hidden');
+      }
+    }
+
+    function updateExamOverlayContent() {
+      const data = examData[currentSlide];
+      document.getElementById('exam-overlay-title').textContent = data.title;
+      const list = document.getElementById('exam-overlay-list');
+      list.innerHTML = data.points.map(pt => `
+        <li class="flex items-start gap-2.5 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800">
+          <span class="text-emerald-400 font-extrabold mt-0.5">✓</span>
+          <span>${pt}</span>
+        </li>
+      `).join('');
+    }
+
+    function resetCurrentSlide() {
+      if (currentSlide === 0) {
+        plugCoverOn = false;
+        document.getElementById('plug-outer-cover').classList.add('hidden');
+        document.getElementById('cover-btn-text').textContent = "Cover: OFF (Cutaway)";
+        selectPlugPart('live');
+        setInsulationMode('double');
+      } else if (currentSlide === 1) {
+        setOscPreset('uk');
+      } else if (currentSlide === 2) {
+        selectAppliance(0);
+        setProtectionType('fuse');
+        setFuseRating(3);
+        repairProtectionDevice();
+      } else if (currentSlide === 3) {
+        setEarthScenario('normal');
+      }
+    }
+
+    // =========================================================================
+    // SLIDE 1 LOGIC: 3-PIN PLUG & DOUBLE INSULATION
+    // =========================================================================
+    let plugCoverOn = false;
+
+    const plugPartsInfo = {
+      live: {
+        badge: "L",
+        badgeClass: "bg-amber-600/30 border-amber-400 text-amber-300",
+        cardBorder: "border-amber-500/60",
+        title: "Live Wire (Brown) — 230 V AC",
+        titleColor: "text-amber-400",
+        tag: "Bottom Right Pin",
+        tagClass: "bg-amber-500/20 text-amber-200",
+        desc: "Carries the alternating potential difference (230 V) from the mains supply to the appliance. Connected directly to the fuse so blowing the fuse isolates the appliance from high voltage."
+      },
+      neutral: {
+        badge: "N",
+        badgeClass: "bg-blue-600/30 border-blue-400 text-blue-300",
+        cardBorder: "border-blue-500/60",
+        title: "Neutral Wire (Blue) — ~0 V",
+        titleColor: "text-blue-400",
+        tag: "Bottom Left Pin",
+        tagClass: "bg-blue-500/20 text-blue-200",
+        desc: "Completes the electrical circuit back to the local substation. It is kept at or very close to 0 V relative to Earth."
+      },
+      earth: {
+        badge: "E",
+        badgeClass: "bg-green-600/30 border-green-400 text-green-300",
+        cardBorder: "border-green-500/60",
+        title: "Earth Wire (Green & Yellow) — 0 V Safety",
+        titleColor: "text-green-400",
+        tag: "Top Longer Pin",
+        tagClass: "bg-green-500/20 text-green-200",
+        desc: "A low-resistance safety wire connected to the metal casing of an appliance. Its longer top pin also opens the safety shutters on UK wall sockets before Live/Neutral enter."
+      },
+      fuse: {
+        badge: "F",
+        badgeClass: "bg-red-600/30 border-red-400 text-red-300",
+        cardBorder: "border-red-500/60",
+        title: "Cartridge Fuse (3 A, 5 A, or 13 A)",
+        titleColor: "text-red-400",
+        tag: "Series with Live Wire",
+        tagClass: "bg-red-500/20 text-red-200",
+        desc: "Contains a thin wire designed to melt and break the circuit if the current exceeds the fuse rating, preventing overheating and electrical fires."
+      },
+      grip: {
+        badge: "G",
+        badgeClass: "bg-slate-600/30 border-slate-400 text-slate-200",
+        cardBorder: "border-slate-500/60",
+        title: "Cable Grip (Strain Relief)",
+        titleColor: "text-slate-200",
+        tag: "Clamps Outer Sheath",
+        tagClass: "bg-slate-700 text-slate-200",
+        desc: "Firmly clamps the outer plastic insulation of the 3-core flex cable so that tugging on the cord cannot pull the copper wires out of their screw terminals."
+      },
+      pins: {
+        badge: "Cu",
+        badgeClass: "bg-yellow-600/30 border-yellow-400 text-yellow-300",
+        cardBorder: "border-yellow-500/60",
+        title: "Brass Pins & Plastic Outer Case",
+        titleColor: "text-yellow-300",
+        tag: "Materials Science",
+        tagClass: "bg-yellow-500/20 text-yellow-200",
+        desc: "Pins are made of Brass (alloy of copper & zinc) because it is a good conductor, hard, and resists corrosion. The outer shell is rigid plastic (electrical insulator)."
+      },
+      casing: {
+        badge: "INS",
+        badgeClass: "bg-purple-600/30 border-purple-400 text-purple-300",
+        cardBorder: "border-purple-500/60",
+        title: "Moulded Insulating Plastic Case",
+        titleColor: "text-purple-300",
+        tag: "Electrical Insulator",
+        tagClass: "bg-purple-500/20 text-purple-200",
+        desc: "Made of tough thermosetting plastic (urea-formaldehyde) which does not conduct electricity and will not melt if the plug gets warm."
+      },
+      cable: {
+        badge: "3C",
+        badgeClass: "bg-cyan-600/30 border-cyan-400 text-cyan-300",
+        cardBorder: "border-cyan-500/60",
+        title: "3-Core Flexible Cable",
+        titleColor: "text-cyan-300",
+        tag: "Copper + PVC",
+        tagClass: "bg-cyan-500/20 text-cyan-200",
+        desc: "Stranded copper wires provide flexibility and very low electrical resistance, surrounded by colour-coded PVC insulation and a tough outer sheath."
+      }
+    };
+
+    function selectPlugPart(partKey) {
+      const info = plugPartsInfo[partKey];
+      if (!info) return;
+      const card = document.getElementById('plug-inspector-card');
+      card.className = `bg-slate-900/95 border-2 ${info.cardBorder} rounded-xl p-3.5 flex items-center justify-between gap-4 transition-all`;
+      const badge = document.getElementById('plug-part-badge');
+      badge.className = `w-12 h-12 rounded-xl border flex items-center justify-center font-extrabold text-xl shrink-0 ${info.badgeClass}`;
+      badge.textContent = info.badge;
+      const title = document.getElementById('plug-part-title');
+      title.className = `text-lg font-extrabold ${info.titleColor}`;
+      title.textContent = info.title;
+      const tag = document.getElementById('plug-part-tag');
+      tag.className = `px-2 py-0.5 rounded text-xs font-bold ${info.tagClass}`;
+      tag.textContent = info.tag;
+      document.getElementById('plug-part-desc').textContent = info.desc;
+    }
+
+    function togglePlugCover() {
+      plugCoverOn = !plugCoverOn;
+      const cover = document.getElementById('plug-outer-cover');
+      const btnText = document.getElementById('cover-btn-text');
+      if (plugCoverOn) {
+        cover.classList.remove('hidden');
+        btnText.textContent = "Cover: ON (Assembled)";
+      } else {
+        cover.classList.add('hidden');
+        btnText.textContent = "Cover: OFF (Cutaway)";
+      }
+    }
+
+    function setInsulationMode(mode) {
+      const btnDouble = document.getElementById('btn-insul-double');
+      const btnMetal = document.getElementById('btn-insul-metal');
+      const svg = document.getElementById('insulation-svg');
+      const heading = document.getElementById('insul-heading');
+      const sub = document.getElementById('insul-sub');
+      const bullets = document.getElementById('insul-bullets');
+      const sym = document.getElementById('double-insul-symbol');
+
+      if (mode === 'double') {
+        btnDouble.className = "py-2.5 px-3 rounded-lg bg-sky-600 text-white font-bold text-sm shadow transition-all flex items-center justify-center gap-2";
+        btnMetal.className = "py-2.5 px-3 rounded-lg text-slate-400 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2";
+        sym.classList.remove('hidden');
+        heading.textContent = "Double-Insulated Appliance (e.g. Hairdryer)";
+        heading.className = "text-base font-extrabold text-sky-300";
+        sub.textContent = "2-Core Cable (Live & Neutral ONLY) • Plastic Earth Pin on Plug";
+        bullets.innerHTML = `
+          <li><strong>Layer 1 (Inner):</strong> Live & Neutral copper wires have individual PVC insulation.</li>
+          <li><strong>Layer 2 (Outer):</strong> The entire appliance casing is made of insulating plastic.</li>
+          <li><strong>No Earth Wire Needed:</strong> Even if an internal wire detaches, the plastic casing cannot conduct electricity, so no shock can occur.</li>
+        `;
+
+        svg.innerHTML = `
+          <!-- Outer Plastic Casing (Layer 2) -->
+          <rect x="130" y="20" width="260" height="190" rx="28" fill="#0f172a" stroke="#38bdf8" stroke-width="6"/>
+          <rect x="144" y="34" width="232" height="162" rx="20" fill="#1e293b" stroke="#0284c7" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="260" y="56" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="800">LAYER 2: INSULATING PLASTIC CASE</text>
+          
+          <!-- Motor / Heater Block -->
+          <rect x="235" y="80" width="110" height="75" rx="12" fill="#334155" stroke="#94a3b8" stroke-width="2"/>
+          <text x="290" y="115" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="800">Internal Motor</text>
+          <text x="290" y="133" text-anchor="middle" fill="#94a3b8" font-size="11">(Isolated)</text>
+
+          <!-- 2-Core Cable Entering (No Earth) -->
+          <rect x="15" y="96" width="125" height="42" rx="6" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+          <!-- Live Wire with Inner Insulation (Layer 1) -->
+          <line x1="25" y1="108" x2="235" y2="108" stroke="#d97706" stroke-width="8"/>
+          <!-- Neutral Wire with Inner Insulation -->
+          <line x1="25" y1="126" x2="235" y2="126" stroke="#2563eb" stroke-width="8"/>
+          
+          <text x="72" y="84" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="800">2-Core Cable ONLY</text>
+          <text x="72" y="155" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="700">(No Earth Wire)</text>
+          <text x="260" y="182" text-anchor="middle" fill="#7dd3fc" font-size="12" font-weight="700">LAYER 1: PVC Wire Insulation</text>
+        `;
+      } else {
+        btnMetal.className = "py-2.5 px-3 rounded-lg bg-amber-600 text-white font-bold text-sm shadow transition-all flex items-center justify-center gap-2";
+        btnDouble.className = "py-2.5 px-3 rounded-lg text-slate-400 hover:text-white font-bold text-sm transition-all flex items-center justify-center gap-2";
+        sym.classList.add('hidden');
+        heading.textContent = "Metal-Cased Appliance (e.g. Toaster, Kettle)";
+        heading.className = "text-base font-extrabold text-amber-300";
+        sub.textContent = "3-Core Cable (Live, Neutral AND Earth) • Brass Earth Pin";
+        bullets.innerHTML = `
+          <li><strong>Conducting Exterior:</strong> Metal casing can conduct electricity if a fault develops inside.</li>
+          <li><strong>Earth Wire Connection:</strong> The Green/Yellow Earth wire is bolted directly to the inside of the metal case.</li>
+          <li><strong>Safety Action:</strong> If Live touches the metal case, current surges through Earth and blows the fuse.</li>
+        `;
+
+        svg.innerHTML = `
+          <defs>
+            <pattern id="earthMini" width="12" height="12" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="6" height="12" fill="#16a34a" />
+              <rect x="6" y="0" width="6" height="12" fill="#eab308" />
+            </pattern>
+          </defs>
+          <!-- Outer Metal Casing -->
+          <rect x="130" y="20" width="260" height="190" rx="16" fill="#1e293b" stroke="#cbd5e1" stroke-width="7"/>
+          <text x="260" y="48" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="800">CONDUCTING METAL CASING</text>
+          
+          <!-- Heating Element -->
+          <rect x="245" y="95" width="105" height="65" rx="10" fill="#334155" stroke="#f59e0b" stroke-width="2"/>
+          <text x="297" y="125" text-anchor="middle" fill="#fde68a" font-size="13" font-weight="800">Heating</text>
+          <text x="297" y="142" text-anchor="middle" fill="#fde68a" font-size="13" font-weight="800">Element</text>
+
+          <!-- 3-Core Cable Entering -->
+          <rect x="15" y="92" width="120" height="54" rx="6" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+          
+          <!-- Earth Wire bolted to Metal Case! -->
+          <path d="M 25 104 L 165 104 L 165 30" fill="none" stroke="url(#earthMini)" stroke-width="7"/>
+          <circle cx="165" cy="26" r="7" fill="#22c55e" stroke="#ffffff" stroke-width="2"/>
+          <text x="235" y="72" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="800">← Earth bolted to case</text>
+
+          <!-- Live Wire -->
+          <line x1="25" y1="119" x2="245" y2="119" stroke="#d97706" stroke-width="7"/>
+          <!-- Neutral Wire -->
+          <line x1="25" y1="134" x2="245" y2="134" stroke="#2563eb" stroke-width="7"/>
+          
+          <text x="72" y="80" text-anchor="middle" fill="#cbd5e1" font-size="12" font-weight="800">3-Core Cable</text>
+          <text x="72" y="164" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="700">(Includes Earth)</text>
+        `;
+      }
+    }
+
+    // =========================================================================
+    // SLIDE 2 LOGIC: OSCILLOSCOPE (AC vs DC, P.D. & FREQUENCY)
+    // =========================================================================
+    let oscVPeak = 325;
+    let oscFreq = 50;
+    let isDCPreset = false;
+
+    function updateOscParams() {
+      isDCPreset = false;
+      oscVPeak = parseInt(document.getElementById('slider-vpeak').value, 10);
+      oscFreq = parseInt(document.getElementById('slider-freq').value, 10);
+
+      const vRms = Math.round(oscVPeak / Math.SQRT2);
+      const period = (1 / oscFreq).toFixed(3);
+
+      document.getElementById('val-vpeak').textContent = `${oscVPeak} V`;
+      document.getElementById('val-freq').textContent = `${oscFreq} Hz`;
+      document.getElementById('readout-vrms').textContent = `${vRms} V`;
+      document.getElementById('readout-period').textContent = `${period} s`;
+    }
+
+    function setOscPreset(type) {
+      if (type === 'uk') {
+        isDCPreset = false;
+        document.getElementById('slider-vpeak').value = 325;
+        document.getElementById('slider-freq').value = 50;
+        updateOscParams();
+      } else {
+        isDCPreset = true;
+        oscVPeak = 230;
+        oscFreq = 0;
+        document.getElementById('slider-vpeak').value = 230;
+        document.getElementById('val-vpeak').textContent = `230 V (DC)`;
+        document.getElementById('val-freq').textContent = `0 Hz (DC)`;
+        document.getElementById('readout-vrms').textContent = `230 V`;
+        document.getElementById('readout-period').textContent = `∞ (Constant)`;
+      }
+    }
+
+    function renderOscilloscope(time) {
+      const canvas = document.getElementById('cro-canvas');
+      if (!canvas || canvas.offsetParent === null) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      const midY = h / 2;
+
+      // Clear CRO Screen
+      ctx.fillStyle = '#03110b';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw Graticule Grid (10 horizontal divs, 8 vertical divs)
+      const cols = 10;
+      const rows = 8;
+      const cellW = w / cols;
+      const cellH = h / rows;
+
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.16)';
+      ctx.lineWidth = 1;
+      for (let c = 1; c < cols; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * cellW, 0);
+        ctx.lineTo(c * cellW, h);
+        ctx.stroke();
+      }
+      for (let r = 1; r < rows; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * cellH);
+        ctx.lineTo(w, r * cellH);
+        ctx.stroke();
+      }
+
+      // Draw Central Axes with tick marks
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, midY);
+      ctx.lineTo(w, midY);
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.stroke();
+
+      // Y-Axis Voltage Labels (100 V / div)
+      ctx.fillStyle = '#6ee7b7';
+      ctx.font = 'bold 12px "JetBrains Mono", monospace';
+      ctx.fillText('+300V', 8, midY - 3 * cellH + 14);
+      ctx.fillText('+200V', 8, midY - 2 * cellH + 4);
+      ctx.fillText('+100V', 8, midY - 1 * cellH + 4);
+      ctx.fillText('  0 V', 8, midY - 6);
+      ctx.fillText('-100V', 8, midY + 1 * cellH + 4);
+      ctx.fillText('-200V', 8, midY + 2 * cellH + 4);
+      ctx.fillText('-300V', 8, midY + 3 * cellH - 4);
+
+      // Calculate V_rms line (Cyan dashed)
+      const vRms = isDCPreset ? oscVPeak : (oscVPeak / Math.SQRT2);
+      const rmsY = midY - (vRms / 100) * cellH;
+      ctx.save();
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(0, rmsY);
+      ctx.lineTo(w, rmsY);
+      ctx.stroke();
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillText(`DC / Vrms = ${Math.round(vRms)}V`, w - 165, rmsY - 8);
+      ctx.restore();
+
+      // Draw Main Waveform (Amber glowing trace)
+      // Total screen width = 10 divs * 5 ms/div = 50 ms = 0.05 s
+      const totalTimeWindow = 0.05; // seconds across screen
+      const phaseScroll = time * 2.2;
+
+      ctx.save();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+
+      for (let x = 0; x <= w; x += 2) {
+        const t = (x / w) * totalTimeWindow;
+        let voltage = 0;
+        if (isDCPreset) {
+          voltage = oscVPeak;
+        } else {
+          voltage = oscVPeak * Math.sin(2 * Math.PI * oscFreq * t - phaseScroll);
+        }
+        const y = midY - (voltage / 100) * cellH;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function renderACDCCircuits(time) {
+      const canvas = document.getElementById('acdc-circuit-canvas');
+      if (!canvas || canvas.offsetParent === null) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const halfW = w / 2;
+      const pad = 26;
+
+      // Divider line
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(halfW, 8);
+      ctx.lineTo(halfW, h - 8);
+      ctx.stroke();
+
+      // Helper to draw a circuit loop + bulb + moving electrons
+      function drawLoop(offsetX, boxW, isAC) {
+        const left = offsetX + pad;
+        const right = offsetX + boxW - pad;
+        const top = 34;
+        const bottom = h - 24;
+        const midX = (left + right) / 2;
+        const midY = (top + bottom) / 2;
+
+        // Wire Track
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(left, top, right - left, bottom - top);
+
+        // Power Supply Box on Left Side
+        ctx.fillStyle = isAC ? '#78350f' : '#164e63';
+        ctx.strokeStyle = isAC ? '#f59e0b' : '#22d3ee';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(left - 20, midY - 22, 40, 44, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(isAC ? '~ AC' : '+ DC -', left, midY + 5);
+
+        // Bulb on Right Side
+        const vFactor = oscVPeak / 325;
+        const instBrightness = isAC
+          ? (isDCPreset ? vFactor : Math.abs(Math.sin(time * (oscFreq / 12))) * vFactor)
+          : vFactor;
+
+        // Glow behind bulb
+        const glowRadius = 24 + instBrightness * 24;
+        const grad = ctx.createRadialGradient(right, midY, 4, right, midY, glowRadius);
+        grad.addColorStop(0, `rgba(253, 224, 71, ${Math.min(0.95, 0.25 + instBrightness * 0.7)})`);
+        grad.addColorStop(1, 'rgba(253, 224, 71, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(right, midY, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bulb Glass
+        ctx.fillStyle = `rgba(254, 240, 138, ${0.2 + instBrightness * 0.75})`;
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(right, midY, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Electrons along perimeter
+        const loopW = right - left;
+        const loopH = bottom - top;
+        const perim = 2 * (loopW + loopH);
+        const numElectrons = 14;
+
+        let shift = 0;
+        if (isAC && !isDCPreset) {
+          // Oscillate back and forth proportional to amplitude and frequency
+          const amp = 18 * (oscVPeak / 325);
+          shift = Math.sin(time * (oscFreq / 8)) * amp;
+        } else {
+          // Continuous clockwise flow for DC
+          shift = (time * 65 * (oscVPeak / 230)) % perim;
+        }
+
+        ctx.fillStyle = '#38bdf8';
+        for (let i = 0; i < numElectrons; i++) {
+          let dist = ((i / numElectrons) * perim + shift) % perim;
+          if (dist < 0) dist += perim;
+
+          let ex = left, ey = top;
+          if (dist < loopW) {
+            ex = left + dist;
+            ey = top;
+          } else if (dist < loopW + loopH) {
+            ex = right;
+            ey = top + (dist - loopW);
+          } else if (dist < 2 * loopW + loopH) {
+            ex = right - (dist - loopW - loopH);
+            ey = bottom;
+          } else {
+            ex = left;
+            ey = bottom - (dist - 2 * loopW - loopH);
+          }
+
+          // Skip drawing over power source or bulb
+          if (Math.hypot(ex - left, ey - midY) < 22 || Math.hypot(ex - right, ey - midY) < 18) continue;
+
+          ctx.beginPath();
+          ctx.arc(ex, ey, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      drawLoop(0, halfW, true);
+      drawLoop(halfW, halfW, false);
+    }
+
+    // =========================================================================
+    // SLIDE 3 LOGIC: CURRENT, FUSES & CIRCUIT BREAKERS (MCB)
+    // =========================================================================
+    const appliances = [
+      { name: "Desk Lamp", power: 60, recommendedFuse: 3 },
+      { name: "Toaster", power: 1150, recommendedFuse: 13 }, // 5A is exact boundary (5.0A), 13A is standard UK toaster fuse!
+      { name: "Kettle", power: 2800, recommendedFuse: 13 }
+    ];
+
+    let selectedAppIndex = 0;
+    let protectionType = 'fuse'; // 'fuse' | 'mcb'
+    let fuseRating = 3; // 3, 5, 13
+    let surgeActive = false;
+    let deviceTripped = false;
+    let fuseWireTemp = 0; // 0 to 1 (melts at 1)
+    let mcbLeverAngle = 0; // 0 (closed) to 1 (tripped)
+
+    function selectAppliance(idx) {
+      selectedAppIndex = idx;
+      for (let i = 0; i < 3; i++) {
+        const btn = document.getElementById(`app-btn-${i}`);
+        if (i === idx) {
+          btn.className = "p-2.5 rounded-xl bg-sky-600/30 border-2 border-sky-400 text-left transition-all";
+        } else {
+          btn.className = "p-2.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-slate-500 text-left transition-all";
+        }
+      }
+      repairProtectionDevice();
+      updateProtectionReadouts();
+    }
+
+    function setProtectionType(type) {
+      protectionType = type;
+      const btnFuse = document.getElementById('prot-fuse');
+      const btnMcb = document.getElementById('prot-mcb');
+      if (type === 'fuse') {
+        btnFuse.className = "py-2 px-3 rounded-lg bg-amber-600 text-white font-bold text-xs text-left flex items-center justify-between";
+        btnFuse.querySelector('span:last-child').textContent = "●";
+        btnMcb.className = "py-2 px-3 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs text-left flex items-center justify-between";
+        btnMcb.querySelector('span:last-child').textContent = "○";
+        document.getElementById('prot-sim-title').textContent = "Live Circuit & Cartridge Fuse Thermal View";
+        document.getElementById('prot-sim-subtitle').textContent = "Thin wire heats up due to resistance and melts if Current > Rating";
+        document.getElementById('repair-btn-label').textContent = "Replace Blown Fuse";
+      } else {
+        btnMcb.className = "py-2 px-3 rounded-lg bg-sky-600 text-white font-bold text-xs text-left flex items-center justify-between";
+        btnMcb.querySelector('span:last-child').textContent = "●";
+        btnFuse.className = "py-2 px-3 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 font-bold text-xs text-left flex items-center justify-between";
+        btnFuse.querySelector('span:last-child').textContent = "○";
+        document.getElementById('prot-sim-title').textContent = "Live Circuit & Electromagnetic Circuit Breaker (MCB)";
+        document.getElementById('prot-sim-subtitle').textContent = "High current creates a strong magnetic field that pulls the iron latch open";
+        document.getElementById('repair-btn-label').textContent = "Flip MCB Switch Back ON";
+      }
+      repairProtectionDevice();
+    }
+
+    function setFuseRating(rating) {
+      fuseRating = rating;
+      [3, 5, 13].forEach(r => {
+        const btn = document.getElementById(`rate-${r}`);
+        if (r === rating) {
+          btn.className = "rounded-lg bg-emerald-600 text-white font-mono-tech font-extrabold text-base border-2 border-emerald-300";
+        } else {
+          btn.className = "rounded-lg bg-slate-900 text-slate-300 font-mono-tech font-extrabold text-base border border-slate-700";
+        }
+      });
+      repairProtectionDevice();
+      updateProtectionReadouts();
+    }
+
+    function updateProtectionReadouts() {
+      const app = appliances[selectedAppIndex];
+      const normalCurrent = app.power / 230;
+      document.getElementById('calc-power').textContent = `${app.power} W`;
+      document.getElementById('calc-current').textContent = `${normalCurrent.toFixed(2)} A`;
+
+      const badge = document.getElementById('fuse-suitability-badge');
+      const advice = document.getElementById('fuse-advice-text');
+
+      if (normalCurrent > fuseRating) {
+        badge.textContent = "Rating Too Low! (Will Blow)";
+        badge.className = "px-2 py-0.5 rounded text-xs font-extrabold bg-red-500/20 text-red-300 border border-red-500/40";
+        advice.innerHTML = `<span class="text-red-300">Warning:</span> Normal current (${normalCurrent.toFixed(2)} A) exceeds the ${fuseRating} A rating! The device will trip during normal use.`;
+      } else if (fuseRating === 13 && normalCurrent < 3) {
+        badge.textContent = "Rating Too High (Unsafe)";
+        badge.className = "px-2 py-0.5 rounded text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40";
+        advice.innerHTML = `<span class="text-amber-300">Caution:</span> A 13 A fuse won't blow if a 9 A fault develops in a thin lamp cable! Use a <strong>3 A</strong> fuse.`;
+      } else {
+        badge.textContent = "Correct Rating ✓";
+        badge.className = "px-2 py-0.5 rounded text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        advice.innerHTML = `Good choice: ${fuseRating} A is safely above the normal operating current of ${normalCurrent.toFixed(2)} A.`;
+      }
+    }
+
+    function triggerPowerSurge() {
+      if (deviceTripped) return;
+      surgeActive = true;
+    }
+
+    function repairProtectionDevice() {
+      surgeActive = false;
+      deviceTripped = false;
+      fuseWireTemp = 0;
+      mcbLeverAngle = 0;
+      const pill = document.getElementById('circuit-status-pill');
+      pill.className = "px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-extrabold text-sm";
+      pill.textContent = "● CIRCUIT CLOSED (FLOWING)";
+    }
+
+    function updateAndRenderProtection(dt) {
+      const canvas = document.getElementById('protection-canvas');
+      if (!canvas || canvas.offsetParent === null) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const app = appliances[selectedAppIndex];
+      const normalCurrent = app.power / 230;
+      const activeCurrent = deviceTripped ? 0 : (surgeActive ? 25.0 : normalCurrent);
+
+      // Check Overload Physics
+      if (!deviceTripped && activeCurrent > fuseRating) {
+        const heatRate = protectionType === 'mcb' ? 2.4 : 1.1; // MCB trips faster than thermal fuse!
+        fuseWireTemp += dt * heatRate;
+        if (fuseWireTemp >= 1) {
+          fuseWireTemp = 1;
+          deviceTripped = true;
+          surgeActive = false;
+          const pill = document.getElementById('circuit-status-pill');
+          pill.className = "px-3.5 py-1.5 rounded-full bg-red-500/20 border border-red-500/50 text-red-300 font-extrabold text-sm";
+          pill.textContent = protectionType === 'fuse' ? "✕ FUSE MELTED (CIRCUIT BROKEN)" : "✕ MCB TRIPPED OPEN (SAFE)";
+        }
+      } else if (!deviceTripped) {
+        fuseWireTemp = Math.max(0, fuseWireTemp - dt * 0.5);
+      }
+
+      if (deviceTripped && protectionType === 'mcb') {
+        mcbLeverAngle = Math.min(1, mcbLeverAngle + dt * 8);
+      }
+
+      // Draw Background Grid
+      ctx.fillStyle = '#070b14';
+      ctx.fillRect(0, 0, w, h);
+
+      // Top Section: Circuit Loop with Live, Device, Appliance, Neutral
+      const topY = 55;
+      const botY = h - 42;
+      const leftX = 75;
+      const rightX = w - 85;
+      const devX = (leftX + rightX) / 2 - 20;
+
+      // Live Wire (Brown) from Supply to Protection Device
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(leftX, (topY + botY) / 2);
+      ctx.lineTo(leftX, topY);
+      ctx.lineTo(devX - 75, topY);
+      ctx.stroke();
+
+      // Live Wire after Protection Device to Appliance
+      ctx.strokeStyle = deviceTripped ? '#64748b' : '#d97706';
+      ctx.beginPath();
+      ctx.moveTo(devX + 75, topY);
+      ctx.lineTo(rightX, topY);
+      ctx.lineTo(rightX, (topY + botY) / 2 - 35);
+      ctx.stroke();
+
+      // Neutral Wire (Blue) return path
+      ctx.strokeStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.moveTo(rightX, (topY + botY) / 2 + 35);
+      ctx.lineTo(rightX, botY);
+      ctx.lineTo(leftX, botY);
+      ctx.lineTo(leftX, (topY + botY) / 2);
+      ctx.stroke();
+
+      // 230V AC Mains Supply Badge on Left
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(leftX - 48, (topY + botY) / 2 - 34, 96, 68, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'extrabold 15px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('230 V AC', leftX, (topY + botY) / 2 - 4);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = 'bold 12px "JetBrains Mono", monospace';
+      ctx.fillText(`I = ${activeCurrent.toFixed(2)} A`, leftX, (topY + botY) / 2 + 16);
+
+      // Appliance Box on Right
+      ctx.fillStyle = deviceTripped ? '#0f172a' : '#1e293b';
+      ctx.strokeStyle = deviceTripped ? '#475569' : '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(rightX - 55, (topY + botY) / 2 - 35, 110, 70, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = deviceTripped ? '#64748b' : '#ffffff';
+      ctx.font = 'bold 14px Inter, sans-serif';
+      ctx.fillText(app.name, rightX, (topY + botY) / 2 - 4);
+      ctx.fillStyle = deviceTripped ? '#ef4444' : '#38bdf8';
+      ctx.font = 'bold 12px "JetBrains Mono", monospace';
+      ctx.fillText(deviceTripped ? 'OFF (0 W)' : `${app.power} W`, rightX, (topY + botY) / 2 + 16);
+
+      // Animated Current Dots when circuit is closed
+      if (!deviceTripped && activeCurrent > 0) {
+        const speed = Math.min(240, 35 + activeCurrent * 10);
+        const offset = (globalTime * speed) % 40;
+        ctx.fillStyle = surgeActive ? '#ef4444' : '#fde047';
+        for (let x = leftX + offset; x < rightX; x += 40) {
+          ctx.beginPath();
+          ctx.arc(x, topY, surgeActive ? 6 : 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        for (let x = rightX - offset; x > leftX; x -= 40) {
+          ctx.beginPath();
+          ctx.arc(x, botY, surgeActive ? 6 : 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // MAGNIFIED PROTECTION MECHANISM IN CENTER
+      const boxW = 340;
+      const boxH = 165;
+      const boxX = devX - boxW / 2;
+      const boxY = (topY + botY) / 2 - 48;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+      ctx.strokeStyle = deviceTripped ? '#ef4444' : '#475569';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, boxW, boxH, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      if (protectionType === 'fuse') {
+        // Draw Magnified Cartridge Fuse
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.fillText(`MAGNIFIED ${fuseRating}A CARTRIDGE FUSE`, devX, boxY + 22);
+
+        const fLeft = devX - 110;
+        const fRight = devX + 110;
+        const fMidY = boxY + 86;
+
+        // Glass/Ceramic Tube
+        ctx.fillStyle = 'rgba(248, 250, 252, 0.08)';
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
+        ctx.fillRect(fLeft + 25, fMidY - 26, 170, 52);
+        ctx.strokeRect(fLeft + 25, fMidY - 26, 170, 52);
+
+        // Brass End Caps
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(fLeft, fMidY - 28, 28, 56);
+        ctx.fillRect(fRight - 28, fMidY - 28, 28, 56);
+
+        // Thin Fuse Wire inside
+        const wireThickness = fuseRating === 3 ? 2.5 : (fuseRating === 5 ? 4 : 6.5);
+        if (!deviceTripped) {
+          // Glows orange/red as fuseWireTemp rises
+          const r = 255;
+          const g = Math.round(255 * (1 - fuseWireTemp * 0.85));
+          const b = Math.round(255 * (1 - fuseWireTemp));
+          ctx.strokeStyle = `rgb(${r},${g},${b})`;
+          ctx.lineWidth = wireThickness;
+          ctx.shadowColor = '#ef4444';
+          ctx.shadowBlur = fuseWireTemp * 22;
+          ctx.beginPath();
+          ctx.moveTo(fLeft + 28, fMidY);
+          ctx.lineTo(fRight - 28, fMidY);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '12px Inter, sans-serif';
+          ctx.fillText(fuseWireTemp > 0.1 ? 'Wire heating up rapidly!' : 'Thin fuse wire intact (low resistance)', devX, boxY + 142);
+        } else {
+          // Melted / Snapped gap in center!
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = wireThickness;
+          ctx.beginPath();
+          ctx.moveTo(fLeft + 28, fMidY);
+          ctx.quadraticCurveTo(devX - 35, fMidY + 14, devX - 22, fMidY + 20);
+          ctx.moveTo(fRight - 28, fMidY);
+          ctx.quadraticCurveTo(devX + 35, fMidY + 14, devX + 22, fMidY + 20);
+          ctx.stroke();
+
+          ctx.fillStyle = '#f87171';
+          ctx.font = 'extrabold 13px Inter, sans-serif';
+          ctx.fillText('WIRE MELTED — CIRCUIT BROKEN!', devX, boxY + 142);
+        }
+      } else {
+        // Draw Magnified Electromagnetic MCB
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.fillText(`MAGNIFIED ${fuseRating}A CIRCUIT BREAKER (MCB)`, devX, boxY + 22);
+
+        const coilX = devX - 55;
+        const coilY = boxY + 88;
+
+        // Iron Core & Solenoid Coil
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(coilX - 35, coilY - 14, 70, 28);
+
+        // Coil turns (glowing blue/red when surge happens)
+        ctx.strokeStyle = surgeActive ? '#ef4444' : '#38bdf8';
+        ctx.lineWidth = 4;
+        for (let i = -25; i <= 25; i += 10) {
+          ctx.beginPath();
+          ctx.moveTo(coilX + i, coilY - 18);
+          ctx.lineTo(coilX + i, coilY + 18);
+          ctx.stroke();
+        }
+
+        // Magnetic Field Lines when high current flows
+        if (surgeActive && !deviceTripped) {
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(coilX - 48, coilY - 28, 96, 56);
+          ctx.setLineDash([]);
+        }
+
+        // Pivoting Switch Contact on Right
+        const pivotX = devX + 25;
+        const pivotY = coilY;
+        const tipX = pivotX + 75 * Math.cos(-mcbLeverAngle * 0.75);
+        const tipY = pivotY + 75 * Math.sin(-mcbLeverAngle * 0.75);
+
+        // Fixed Contact Terminal
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(pivotX + 75, pivotY, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Moving Switch Arm
+        ctx.strokeStyle = deviceTripped ? '#ef4444' : '#22c55e';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(pivotX, pivotY);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+
+        ctx.fillStyle = deviceTripped ? '#f87171' : '#cbd5e1';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.fillText(
+          deviceTripped
+            ? 'ELECTROMAGNET PULLED SWITCH OPEN!'
+            : 'Electromagnet holds switch closed under normal current',
+          devX,
+          boxY + 144
+        );
+      }
+    }
+
+    // =========================================================================
+    // SLIDE 4 LOGIC: EARTH WIRE SAFETY FAULT SIMULATOR
+    // =========================================================================
+    let earthScenario = 'normal'; // 'normal' | 'fault_earthed' | 'fault_unearthed'
+    let personTouching = false;
+    let earthFaultFuseBlown = false;
+    let earthSurgeTimer = 0;
+
+    function setEarthScenario(scenario) {
+      earthScenario = scenario;
+      earthFaultFuseBlown = false;
+      earthSurgeTimer = 0;
+
+      // Update button styles
+      const bNorm = document.getElementById('earth-btn-normal');
+      const bEarth = document.getElementById('earth-btn-earthed');
+      const bUnearth = document.getElementById('earth-btn-unearthed');
+
+      bNorm.className = scenario === 'normal'
+        ? "w-full p-3.5 rounded-xl bg-emerald-600/25 border-2 border-emerald-400 text-left transition-all"
+        : "w-full p-3.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-emerald-400/60 text-left transition-all";
+
+      bEarth.className = scenario === 'fault_earthed'
+        ? "w-full p-3.5 rounded-xl bg-amber-600/25 border-2 border-amber-400 text-left transition-all"
+        : "w-full p-3.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-amber-400/60 text-left transition-all";
+
+      bUnearth.className = scenario === 'fault_unearthed'
+        ? "w-full p-3.5 rounded-xl bg-red-600/25 border-2 border-red-400 text-left transition-all"
+        : "w-full p-3.5 rounded-xl bg-slate-900 border-2 border-slate-700 hover:border-red-400/60 text-left transition-all";
+
+      updateEarthTextUI();
+    }
+
+    function togglePersonTouch() {
+      personTouching = !personTouching;
+      const btn = document.getElementById('btn-touch-case');
+      if (personTouching) {
+        btn.innerHTML = `<span>🚶 Step Back from Appliance</span>`;
+        btn.className = "w-full py-3 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-extrabold text-sm shadow-lg transition-all flex items-center justify-center gap-2";
+      } else {
+        btn.innerHTML = `<span>✋ Touch Metal Appliance Casing</span>`;
+        btn.className = "w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-sm shadow-lg transition-all flex items-center justify-center gap-2";
+      }
+      updateEarthTextUI();
+    }
+
+    function updateEarthTextUI() {
+      const heading = document.getElementById('earth-sim-heading');
+      const sub = document.getElementById('earth-sim-sub');
+      const banner = document.getElementById('earth-alert-banner');
+      const caseBadge = document.getElementById('casing-voltage-badge');
+      const expBar = document.getElementById('earth-explanation-bar');
+
+      if (earthScenario === 'normal') {
+        heading.textContent = "Scenario 1: Normal Operation (Intact Wires)";
+        sub.textContent = "Live → Heating Element → Neutral (10.0 A) • Earth Wire = 0.0 A";
+        banner.className = "px-4 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-extrabold text-sm";
+        banner.textContent = "✓ SAFE TO TOUCH (0 V)";
+        caseBadge.className = "font-mono-tech text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300";
+        caseBadge.textContent = "Casing: 0 V";
+        expBar.innerHTML = `<strong class="text-emerald-400">Normal Operation:</strong> Current flows through the Live wire, heats the element, and returns via the Neutral wire. The metal casing is connected to Earth at <strong>0 V</strong>, so touching it is completely safe.`;
+      } else if (earthScenario === 'fault_earthed') {
+        heading.textContent = "Scenario 2: Live Wire Touches Casing (WITH Earth Wire)";
+        if (earthFaultFuseBlown) {
+          sub.textContent = "13A Fuse Melted! Circuit Isolated • Casing Potential = 0 V";
+          banner.className = "px-4 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-extrabold text-sm";
+          banner.textContent = "✓ FUSE BLEW — USER PROTECTED!";
+          caseBadge.className = "font-mono-tech text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300";
+          caseBadge.textContent = "Casing: 0 V (Isolated)";
+          expBar.innerHTML = `<strong class="text-amber-400">Exam Answer:</strong> The Earth wire provides a <strong>low-resistance path</strong> to the ground. A <strong>large surge of current</strong> flowed through the Live and Earth wires, which <strong>melted the fuse and broke the circuit</strong>.`;
+        } else {
+          sub.textContent = "MASSIVE SURGE CURRENT THROUGH EARTH WIRE (> 100 A)!";
+          banner.className = "px-4 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 font-extrabold text-sm";
+          banner.textContent = "⚡ SURGE IN EARTH WIRE...";
+          caseBadge.className = "font-mono-tech text-xs font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300";
+          caseBadge.textContent = "Casing: Surge → 0 V";
+        }
+      } else if (earthScenario === 'fault_unearthed') {
+        heading.textContent = "Scenario 3: Live Wire Touches Casing (NO Earth Wire!)";
+        caseBadge.className = "font-mono-tech text-xs font-extrabold px-2 py-0.5 rounded bg-red-500/20 text-red-300";
+        caseBadge.textContent = "Casing: LIVE 230 V!";
+        if (personTouching) {
+          sub.textContent = "DANGER! Current flowing through person to ground (230 V → 0 V)!";
+          banner.className = "px-4 py-1.5 rounded-xl bg-red-600 text-white font-extrabold text-sm animate-pulse";
+          banner.textContent = "⚠️ ELECTRIC SHOCK HAZARD!";
+          expBar.innerHTML = `<strong class="text-red-400">Fatal Danger:</strong> Without an Earth wire, the fuse did <strong>not</strong> blow when the fault occurred. When the person touches the 230 V metal casing, current flows <strong>through their body to the ground</strong>, causing a severe electric shock.`;
+        } else {
+          sub.textContent = "Metal casing is sitting at 230 V! Fuse has NOT blown!";
+          banner.className = "px-4 py-1.5 rounded-xl bg-red-500/20 border border-red-500/50 text-red-300 font-extrabold text-sm";
+          banner.textContent = "⚠️ LIVE CASING (DO NOT TOUCH)";
+          expBar.innerHTML = `<strong class="text-red-400">Hidden Hazard:</strong> Because the Earth wire is broken/missing, there is no path to ground yet, so the <strong>fuse does NOT blow</strong>. The entire metal casing is now at <strong>230 V</strong> waiting to shock anyone who touches it.`;
+        }
+      }
+    }
+
+    function updateAndRenderEarthFault(dt) {
+      const canvas = document.getElementById('earth-fault-canvas');
+      if (!canvas || canvas.offsetParent === null) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Progress surge timer in Scenario 2
+      if (earthScenario === 'fault_earthed' && !earthFaultFuseBlown) {
+        earthSurgeTimer += dt;
+        if (earthSurgeTimer > 1.1) {
+          earthFaultFuseBlown = true;
+          updateEarthTextUI();
+        }
+      }
+
+      ctx.fillStyle = '#070b14';
+      ctx.fillRect(0, 0, w, h);
+
+      // Ground Floor Line
+      const floorY = h - 42;
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, floorY, w, 42);
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, floorY);
+      ctx.lineTo(w, floorY);
+      ctx.stroke();
+
+      // Earth Spike in Ground (Left)
+      const earthSpikeX = 115;
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(earthSpikeX, floorY);
+      ctx.lineTo(earthSpikeX, floorY + 28);
+      ctx.moveTo(earthSpikeX - 18, floorY + 14);
+      ctx.lineTo(earthSpikeX + 18, floorY + 14);
+      ctx.moveTo(earthSpikeX - 11, floorY + 21);
+      ctx.lineTo(earthSpikeX + 11, floorY + 21);
+      ctx.stroke();
+      ctx.fillStyle = '#4ade80';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('EARTH (0 V)', earthSpikeX, floorY + 38);
+
+      // 1. WALL SOCKET & FUSE BOX (Left)
+      const sockX = 50;
+      const sockY = 75;
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(sockX, sockY, 130, 175, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'extrabold 13px Inter, sans-serif';
+      ctx.fillText('UK MAINS PLUG', sockX + 65, sockY + 22);
+
+      // Fuse inside Plug
+      const fuseX = sockX + 35;
+      const fuseY = sockY + 42;
+      ctx.fillStyle = earthFaultFuseBlown ? '#450a0a' : '#0f172a';
+      ctx.strokeStyle = earthFaultFuseBlown ? '#ef4444' : '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.fillRect(fuseX, fuseY, 60, 26);
+      ctx.strokeRect(fuseX, fuseY, 60, 26);
+      ctx.fillStyle = earthFaultFuseBlown ? '#f87171' : '#fbbf24';
+      ctx.font = 'bold 11px "JetBrains Mono", monospace';
+      ctx.fillText(earthFaultFuseBlown ? 'BLOWN!' : '13A FUSE', fuseX + 30, fuseY + 17);
+
+      // 2. METAL-CASED APPLIANCE (Center)
+      const appX = w * 0.42;
+      const appY = 65;
+      const appW = 210;
+      const appH = floorY - appY - 8;
+
+      const isCaseLive = (earthScenario === 'fault_unearthed') || (earthScenario === 'fault_earthed' && !earthFaultFuseBlown);
+
+      // Danger Aura if Case is Live
+      if (isCaseLive) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.65)';
+        ctx.lineWidth = 6;
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 20;
+        ctx.strokeRect(appX - 4, appY - 4, appW + 8, appH + 8);
+        ctx.restore();
+      }
+
+      // Outer Metal Body
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = isCaseLive ? '#ef4444' : '#cbd5e1';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(appX, appY, appW, appH, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = isCaseLive ? '#fca5a5' : '#e2e8f0';
+      ctx.font = 'extrabold 13px Inter, sans-serif';
+      ctx.fillText('METAL APPLIANCE CASING', appX + appW / 2, appY + 24);
+
+      // Washing Machine Drum / Heating Element inside
+      const elemX = appX + 55;
+      const elemY = appY + 75;
+      const elemW = 100;
+      const elemH = 85;
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(elemX, elemY, elemW, elemH, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.fillText('Heating', elemX + elemW / 2, elemY + 38);
+      ctx.fillText('Element', elemX + elemW / 2, elemY + 54);
+
+      // 3. WIRES CONNECTING PLUG TO APPLIANCE
+      // A) LIVE WIRE (Brown)
+      const liveStartY = fuseY + 13;
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(fuseX + 60, liveStartY);
+      if (earthScenario === 'normal') {
+        // Connects cleanly to heating element
+        ctx.lineTo(elemX, liveStartY);
+      } else {
+        // FAULT! Wire detached and touching top-left metal casing!
+        ctx.lineTo(appX - 15, liveStartY);
+        ctx.lineTo(appX, appY + 45);
+      }
+      ctx.stroke();
+
+      // Spark at fault contact point
+      if (earthScenario !== 'normal' && !earthFaultFuseBlown) {
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(appX, appY + 45, 8 + Math.sin(globalTime * 30) * 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f87171';
+        ctx.font = 'extrabold 11px Inter, sans-serif';
+        ctx.fillText('FAULT CONTACT!', appX - 55, appY + 36);
+      }
+
+      // B) NEUTRAL WIRE (Blue)
+      const neutY = sockY + 135;
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(sockX + 130, neutY);
+      ctx.lineTo(elemX, neutY);
+      ctx.stroke();
+
+      // C) EARTH WIRE (Green/Yellow)
+      const earthY = sockY + 160;
+      // Down to ground spike
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(earthSpikeX, sockY + 175);
+      ctx.lineTo(earthSpikeX, floorY);
+      ctx.stroke();
+
+      if (earthScenario !== 'fault_unearthed') {
+        // Intact Earth wire bolted to bottom-left of metal casing
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(sockX + 130, earthY);
+        ctx.lineTo(appX, earthY);
+        ctx.stroke();
+
+        // Bolt terminal on metal case
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(appX, earthY, 7, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Broken / Missing Earth wire!
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(sockX + 130, earthY);
+        ctx.lineTo(sockX + 195, earthY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'extrabold 12px Inter, sans-serif';
+        ctx.fillText('✕ EARTH BROKEN', sockX + 205, earthY + 20);
+      }
+
+      // Animated Current Dots
+      const dotOffset = (globalTime * 120) % 30;
+      if (earthScenario === 'normal') {
+        // Normal loop through Live & Neutral
+        ctx.fillStyle = '#fde047';
+        for (let x = fuseX + 65 + dotOffset; x < elemX; x += 30) {
+          ctx.beginPath();
+          ctx.arc(x, liveStartY, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        for (let x = elemX - dotOffset; x > sockX + 130; x -= 30) {
+          ctx.beginPath();
+          ctx.arc(x, neutY, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (earthScenario === 'fault_earthed' && !earthFaultFuseBlown) {
+        // Massive high-speed surge through Live -> Casing -> Earth!
+        const fastOffset = (globalTime * 280) % 24;
+        ctx.fillStyle = '#ef4444';
+        for (let x = fuseX + 65 + fastOffset; x < appX; x += 24) {
+          ctx.beginPath();
+          ctx.arc(x, liveStartY, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        for (let x = appX - fastOffset; x > sockX + 130; x -= 24) {
+          ctx.beginPath();
+          ctx.arc(x, earthY, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 4. PERSON STANDING ON RIGHT (Touching or Safe Distance)
+      const personX = personTouching ? (appX + appW + 46) : (appX + appW + 115);
+      const headY = floorY - 145;
+      const shoulderY = floorY - 115;
+      const hipY = floorY - 60;
+
+      const gettingShocked = (earthScenario === 'fault_unearthed' && personTouching);
+
+      ctx.strokeStyle = gettingShocked ? '#ef4444' : '#e2e8f0';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+
+      // Head
+      ctx.beginPath();
+      ctx.arc(personX, headY, 16, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Torso
+      ctx.beginPath();
+      ctx.moveTo(personX, headY + 16);
+      ctx.lineTo(personX, hipY);
+      ctx.stroke();
+
+      // Legs
+      ctx.beginPath();
+      ctx.moveTo(personX, hipY);
+      ctx.lineTo(personX - 18, floorY);
+      ctx.moveTo(personX, hipY);
+      ctx.lineTo(personX + 18, floorY);
+      ctx.stroke();
+
+      // Arms
+      ctx.beginPath();
+      if (personTouching) {
+        // Left arm reaches out and touches metal casing!
+        ctx.moveTo(personX, shoulderY);
+        ctx.lineTo(appX + appW, shoulderY + 5);
+        // Right arm down
+        ctx.moveTo(personX, shoulderY);
+        ctx.lineTo(personX + 22, hipY - 5);
+      } else {
+        ctx.moveTo(personX, shoulderY);
+        ctx.lineTo(personX - 22, hipY - 5);
+        ctx.moveTo(personX, shoulderY);
+        ctx.lineTo(personX + 22, hipY - 5);
+      }
+      ctx.stroke();
+
+      // Shock Current Flowing Through Body to Ground!
+      if (gettingShocked) {
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(appX + appW, shoulderY + 5);
+        ctx.lineTo(personX, shoulderY);
+        ctx.lineTo(personX, hipY);
+        ctx.lineTo(personX - 18, floorY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'extrabold 14px Inter, sans-serif';
+        ctx.fillText('⚡ SHOCK TO EARTH!', personX + 15, headY - 26);
+      }
+    }
+
+    // =========================================================================
+    // CANVAS RESIZING & MAIN ANIMATION LOOP
+    // =========================================================================
+    function resizeAllCanvases() {
+      const ids = ['cro-canvas', 'acdc-circuit-canvas', 'protection-canvas', 'earth-fault-canvas'];
+      ids.forEach(id => {
+        const canvas = document.getElementById(id);
+        if (canvas && canvas.parentElement) {
+          const rect = canvas.parentElement.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+          }
+        }
+      });
+    }
+
+    let lastTimestamp = 0;
+    function mainLoop(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+      globalTime += dt;
+
+      if (currentSlide === 1) {
+        renderOscilloscope(globalTime);
+        renderACDCCircuits(globalTime);
+      } else if (currentSlide === 2) {
+        updateAndRenderProtection(dt);
+      } else if (currentSlide === 3) {
+        updateAndRenderEarthFault(dt);
+      }
+
+      animationFrameId = requestAnimationFrame(mainLoop);
+    }
+
+    window.addEventListener('resize', resizeAllCanvases);
+    window.onload = function () {
+      selectPlugPart('live');
+      setInsulationMode('double');
+      updateOscParams();
+      updateProtectionReadouts();
+      updateEarthTextUI();
+      resizeAllCanvases();
+      animationFrameId = requestAnimationFrame(mainLoop);
+    };
+  </script>
+</body>
+</html>
