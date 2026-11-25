@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electrical Equations — Interactive Classroom Projection Sim</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #060913;
+      font-family: 'Inter', sans-serif;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Strict 16:9 Presentation Slide Container scaled smoothly to fit any projector/screen */
+    #slide-deck {
+      width: min(100vw, calc(100vh * (16 / 9)));
+      height: min(100vh, calc(100vw * (9 / 16)));
+      aspect-ratio: 16 / 9;
+      background: radial-gradient(circle at 75% 30%, #131d36 0%, #0b1120 65%, #070b14 100%);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Custom High-Visibility Classroom Range Sliders */
+    input[type="range"].sim-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: #1e293b;
+      outline: none;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: opacity 0.2s ease;
+    }
+
+    input[type="range"].sim-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--thumb-color, #38bdf8);
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 14px var(--thumb-color, rgba(56, 189, 248, 0.7));
+      cursor: grab;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    input[type="range"].sim-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.14);
+    }
+
+    input[type="range"].sim-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.2);
+    }
+
+    input[type="range"].sim-slider::-moz-range-thumb {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--thumb-color, #38bdf8);
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 14px var(--thumb-color, rgba(56, 189, 248, 0.7));
+      cursor: grab;
+    }
+
+    /* Locked slider styling */
+    .slider-card.is-locked {
+      background: rgba(15, 23, 42, 0.55);
+      border-color: rgba(148, 163, 184, 0.15);
+    }
+
+    .slider-card.is-locked input[type="range"].sim-slider {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Tab Button Active State */
+    .nav-tab {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-tab.active {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
+      border-color: #60a5fa;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45);
+      transform: translateY(-1px);
+    }
+
+    /* Subtle pulse on equation values when updated */
+    .eq-token {
+      display: inline-block;
+      transition: transform 0.15s ease, text-shadow 0.15s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main 16:9 Slide Container -->
+  <div id="slide-deck" class="rounded-xl">
+
+    <!-- TOP NAVIGATION BAR (6 Equations + Presenter Step Controls) -->
+    <header class="w-full px-5 pt-3 pb-2.5 bg-slate-950/80 border-b border-slate-800/90 flex items-center justify-between gap-3 shrink-0">
+      <div class="flex items-center gap-2.5 shrink-0">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+          <svg class="w-5 h-5 text-slate-950" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs font-extrabold tracking-widest uppercase text-amber-400 leading-none">Physics Interactive</div>
+          <div class="text-sm font-bold text-slate-200 leading-tight">Electrical Equations</div>
+        </div>
+      </div>
+
+      <!-- 6 Equation Tabs -->
+      <nav id="equation-tabs" class="flex items-center gap-1.5 flex-1 justify-center">
+        <!-- Populated dynamically by JS -->
+      </nav>
+
+      <!-- Prev / Next Slide Buttons for Projector Clicker / Mouse -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="prev-slide-btn" title="Previous Slide (Left Arrow)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          Prev
+        </button>
+        <span id="slide-counter" class="font-mono-num text-xs font-bold text-slate-400 px-1.5">1 / 6</span>
+        <button id="next-slide-btn" title="Next Slide (Right Arrow)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition">
+          Next
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- SLIDE HEADER BANNER (Title, Real-World Context, Why It Matters) -->
+    <section class="px-6 pt-3 pb-2 flex items-center justify-between gap-4 shrink-0">
+      <div class="flex items-center gap-3.5 min-w-0">
+        <span id="slide-badge" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shrink-0">
+          Context
+        </span>
+        <h1 id="slide-title" class="text-2xl font-black tracking-tight text-white truncate">
+          Charge Flow in Fast-Charging
+        </h1>
+      </div>
+
+      <div id="slide-takeaway" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-1.5 text-sm font-semibold text-slate-200 flex items-center gap-2 shrink-0 max-w-[54%]">
+        <span class="text-amber-400 font-black text-base">★</span>
+        <span id="takeaway-text" class="truncate">Higher current delivers more coulombs of charge in less time.</span>
+      </div>
+    </section>
+
+    <!-- MAIN SLIDE WORKSPACE: Left Controls & Live Equation | Right Interactive Visual Canvas -->
+    <main class="flex-1 px-6 pb-4 pt-1 grid grid-cols-12 gap-5 min-h-0">
+
+      <!-- LEFT COLUMN (5 cols): Big Equation Display + 3 Interactive Sliders -->
+      <div class="col-span-5 flex flex-col justify-between gap-3 min-h-0">
+
+        <!-- Dynamic Formula & Live Substituted Numbers Card -->
+        <div class="bg-slate-900/95 border-2 border-slate-700/90 rounded-2xl px-4 py-3 shadow-xl flex flex-col items-center justify-center shrink-0">
+          <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Live Relationship</div>
+          <!-- Symbolic Formula -->
+          <div id="symbolic-equation" class="text-3xl font-black tracking-wide mb-1 flex items-center justify-center gap-2">
+            <!-- Populated by JS -->
+          </div>
+          <!-- Substituted Values -->
+          <div id="numeric-equation" class="font-mono-num text-lg font-extrabold bg-slate-950/90 px-3.5 py-1 rounded-xl border border-slate-800 text-slate-100">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Helper Instruction -->
+        <div class="flex items-center justify-between px-1 text-xs text-slate-400 font-semibold shrink-0">
+          <span>Drag any unlocked slider to test:</span>
+          <span class="flex items-center gap-1 text-amber-300">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+            Click lock to hold constant
+          </span>
+        </div>
+
+        <!-- 3 Variable Sliders Container -->
+        <div id="sliders-container" class="flex-1 flex flex-col justify-between gap-2.5 min-h-0">
+          <!-- 3 Slider Cards injected by JS -->
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN (7 cols): Live Animated Physics Stage -->
+      <div class="col-span-7 bg-slate-950/90 border-2 border-slate-800 rounded-2xl relative overflow-hidden flex flex-col shadow-2xl">
+        <!-- Top Overlay Bar inside Visual Stage -->
+        <div class="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+          <div id="stage-status-pill" class="px-3.5 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700/80 text-xs font-bold text-slate-200 shadow-lg">
+            Live Simulation Active
+          </div>
+
+          <button id="action-trigger-btn" class="pointer-events-auto px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center gap-1.5 transition transform active:scale-95">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+            <span id="action-btn-label">Replay Cycle</span>
+          </button>
+        </div>
+
+        <!-- Responsive Full-Area HTML5 Canvas -->
+        <div id="canvas-wrapper" class="w-full h-full relative">
+          <canvas id="sim-canvas"></canvas>
+        </div>
+
+        <!-- Bottom Physics Insight Caption inside Stage -->
+        <div id="stage-caption" class="absolute bottom-3 left-3 right-3 z-10 px-4 py-2 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700/80 text-xs font-semibold text-slate-200 flex items-center justify-between pointer-events-none">
+          <span id="caption-left">1 Amp = 1 Coulomb of charge passing every second.</span>
+          <span id="caption-right" class="font-mono-num font-bold text-cyan-300">Rate: 4.0 C/s</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /**
+     * ELECTRICAL EQUATIONS CLASSROOM SIMULATION
+     * Designed as a 16:9 presentation slide deck with 6 interactive physics simulations.
+     * Supports locking any of the 3 variables so adjusting one dynamically calculates the unlocked partner.
+     */
+
+    // Color Palette Tokens for Physical Quantities (Consistent across all slides)
+    const COLORS = {
+      Q: { hex: '#34d399', text: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-400/40' }, // Charge (Emerald)
+      I: { hex: '#38bdf8', text: 'text-sky-400',     bg: 'bg-sky-500/15',     border: 'border-sky-400/40' },     // Current (Cyan/Sky)
+      t: { hex: '#c084fc', text: 'text-purple-400',  bg: 'bg-purple-500/15',  border: 'border-purple-400/40' },  // Time (Purple)
+      V: { hex: '#fbbf24', text: 'text-amber-400',   bg: 'bg-amber-500/15',   border: 'border-amber-400/40' },   // Voltage (Amber/Gold)
+      R: { hex: '#fb7185', text: 'text-rose-400',    bg: 'bg-rose-500/15',    border: 'border-rose-400/40' },    // Resistance (Rose/Red)
+      E: { hex: '#f472b6', text: 'text-pink-400',    bg: 'bg-pink-500/15',    border: 'border-pink-400/40' },    // Energy (Pink/Magenta)
+      P: { hex: '#fb923c', text: 'text-orange-400',  bg: 'bg-orange-500/15',  border: 'border-orange-400/40' }   // Power (Orange)
+    };
+
+    // Definitions for all 6 Equation Slides
+    const SLIDES = [
+      {
+        id: 'q-it',
+        tabLabel: 'Q = It',
+        contextBadge: 'Smartphone Fast-Charger',
+        title: 'Charge, Current & Time  (Q = I × t)',
+        takeaway: '1 Amp means 1 Coulomb of charge flows every second into your battery.',
+        actionLabel: 'Replay Charge Cycle',
+        vars: {
+          Q: { symbol: 'Q', name: 'Charge',  unit: 'C', min: 10, max: 600, step: 1,   val: 180, color: COLORS.Q },
+          I: { symbol: 'I', name: 'Current', unit: 'A', min: 0.5, max: 10, step: 0.1, val: 3.0, color: COLORS.I },
+          t: { symbol: 't', name: 'Time',    unit: 's', min: 5,  max: 120, step: 1,   val: 60,  color: COLORS.t }
+        },
+        lockedKey: 't', // Hold Time constant by default so sliding I updates Q (and vice versa)
+        recalculate(changedKey) {
+          const v = this.vars;
+          const locked = this.lockedKey;
+          // Formula: Q = I * t
+          if (changedKey === 'I') {
+            if (locked === 't') {
+              v.Q.val = clamp(round(v.I.val * v.t.val, 1), v.Q.min, v.Q.max);
+              v.I.val = round(v.Q.val / v.t.val, 2);
+            } else {
+              v.t.val = clamp(round(v.Q.val / v.I.val, 1), v.t.min, v.t.max);
+              v.I.val = round(v.Q.val / v.t.val, 2);
+            }
+          } else if (changedKey === 't') {
+            if (locked === 'I') {
+              v.Q.val = clamp(round(v.I.val * v.t.val, 1), v.Q.min, v.Q.max);
+              v.t.val = round(v.Q.val / v.I.val, 1);
+            } else {
+              v.I.val = clamp(round(v.Q.val / v.t.val, 2), v.I.min, v.I.max);
+              v.t.val = round(v.Q.val / v.I.val, 1);
+            }
+          } else if (changedKey === 'Q') {
+            if (locked === 't') {
+              v.I.val = clamp(round(v.Q.val / v.t.val, 2), v.I.min, v.I.max);
+              v.Q.val = round(v.I.val * v.t.val, 1);
+            } else {
+              v.t.val = clamp(round(v.Q.val / v.I.val, 1), v.t.min, v.t.max);
+              v.Q.val = round(v.I.val * v.t.val, 1);
+            }
+          }
+        },
+        renderSymbolic() {
+          return `
+            <span class="eq-token ${COLORS.Q.text}">Q</span>
+            <span class="text-slate-400">=</span>
+            <span class="eq-token ${COLORS.I.text}">I</span>
+            <span class="text-slate-400">×</span>
+            <span class="eq-token ${COLORS.t.text}">t</span>
+          `;
+        },
+        renderNumeric() {
+          const { Q, I, t } = this.vars;
+          return `
+            <span class="${COLORS.Q.text}">${Q.val.toFixed(1)} C</span>
+            <span class="text-slate-500 mx-1">=</span>
+            <span class="${COLORS.I.text}">${I.val.toFixed(1)} A</span>
+            <span class="text-slate-500 mx-1">×</span>
+            <span class="${COLORS.t.text}">${t.val.toFixed(0)} s</span>
+          `;
+        }
+      },
+
+      {
+        id: 'v-ir',
+        tabLabel: 'V = IR',
+        contextBadge: 'Stage Dimmer & Spotlight',
+        title: "Ohm's Law: Potential Difference  (V = I × R)",
+        takeaway: 'Voltage pushes current through a circuit; resistance opposes that flow.',
+        actionLabel: 'Pulse Circuit',
+        vars: {
+          V: { symbol: 'V', name: 'Voltage',    unit: 'V', min: 2,   max: 24, step: 0.5, val: 12.0, color: COLORS.V },
+          I: { symbol: 'I', name: 'Current',    unit: 'A', min: 0.2, max: 6.0, step: 0.1, val: 2.0, color: COLORS.I },
+          R: { symbol: 'R', name: 'Resistance', unit: 'Ω', min: 1,   max: 20, step: 0.5, val: 6.0,  color: COLORS.R }
+        },
+        lockedKey: 'R', // Hold Resistance constant by default
+        recalculate(changedKey) {
+          const v = this.vars;
+          const locked = this.lockedKey;
+          // Formula: V = I * R
+          if (changedKey === 'V') {
+            if (locked === 'R') {
+              v.I.val = clamp(round(v.V.val / v.R.val, 2), v.I.min, v.I.max);
+              v.V.val = round(v.I.val * v.R.val, 1);
+            } else {
+              v.R.val = clamp(round(v.V.val / v.I.val, 1), v.R.min, v.R.max);
+              v.V.val = round(v.I.val * v.R.val, 1);
+            }
+          } else if (changedKey === 'R') {
+            if (locked === 'V') {
+              v.I.val = clamp(round(v.V.val / v.R.val, 2), v.I.min, v.I.max);
+              v.R.val = round(v.V.val / v.I.val, 1);
+            } else {
+              v.V.val = clamp(round(v.I.val * v.R.val, 1), v.V.min, v.V.max);
+              v.R.val = round(v.V.val / v.I.val, 1);
+            }
+          } else if (changedKey === 'I') {
+            if (locked === 'R') {
+              v.V.val = clamp(round(v.I.val * v.R.val, 1), v.V.min, v.V.max);
+              v.I.val = round(v.V.val / v.R.val, 2);
+            } else {
+              v.R.val = clamp(round(v.V.val / v.I.val, 1), v.R.min, v.R.max);
+              v.I.val = round(v.V.val / v.R.val, 2);
+            }
+          }
+        },
+        renderSymbolic() {
+          return `
+            <span class="eq-token ${COLORS.V.text}">V</span>
+            <span class="text-slate-400">=</span>
+            <span class="eq-token ${COLORS.I.text}">I</span>
+            <span class="text-slate-400">×</span>
+            <span class="eq-token ${COLORS.R.text}">R</span>
+          `;
+        },
+        renderNumeric() {
+          const { V, I, R } = this.vars;
+          return `
+            <span class="${COLORS.V.text}">${V.val.toFixed(1)} V</span>
+            <span class="text-slate-500 mx-1">=</span>
+            <span class="${COLORS.I.text}">${I.val.toFixed(2)} A</span>
+            <span class="text-slate-500 mx-1">×</span>
+            <span class="${COLORS.R.text}">${R.val.toFixed(1)} Ω</span>
+          `;
+        }
+      },
+
+      {
+        id: 'e-pt',
+        tabLabel: 'E = Pt',
+        contextBadge: 'Rapid-Boil Electric Kettle',
+        title: 'Energy Transferred by Appliances  (E = P × t)',
+        takeaway: 'A higher-wattage appliance transfers the same thermal energy in far less time.',
+        actionLabel: 'Re-Boil Kettle',
+        vars: {
+          E: { symbol: 'E', name: 'Energy', unit: 'kJ', min: 10,  max: 360, step: 5,   val: 120, color: COLORS.E },
+          P: { symbol: 'P', name: 'Power',  unit: 'kW', min: 0.5, max: 3.0, step: 0.1, val: 2.0, color: COLORS.P },
+          t: { symbol: 't', name: 'Time',   unit: 's',  min: 10,  max: 180, step: 1,   val: 60,  color: COLORS.t }
+        },
+        lockedKey: 'E', // Hold Energy needed to boil water constant by default!
+        recalculate(changedKey) {
+          const v = this.vars;
+          const locked = this.lockedKey;
+          // Formula: E (kJ) = P (kW) * t (s)
+          if (changedKey === 'P') {
+            if (locked === 'E') {
+              v.t.val = clamp(round(v.E.val / v.P.val, 1), v.t.min, v.t.max);
+              v.P.val = round(v.E.val / v.t.val, 2);
+            } else {
+              v.E.val = clamp(round(v.P.val * v.t.val, 1), v.E.min, v.E.max);
+              v.P.val = round(v.E.val / v.t.val, 2);
+            }
+          } else if (changedKey === 't') {
+            if (locked === 'E') {
+              v.P.val = clamp(round(v.E.val / v.t.val, 2), v.P.min, v.P.max);
+              v.t.val = round(v.E.val / v.P.val, 1);
+            } else {
+              v.E.val = clamp(round(v.P.val * v.t.val, 1), v.E.min, v.E.max);
+              v.t.val = round(v.E.val / v.P.val, 1);
+            }
+          } else if (changedKey === 'E') {
+            if (locked === 'P') {
+              v.t.val = clamp(round(v.E.val / v.P.val, 1), v.t.min, v.t.max);
+              v.E.val = round(v.P.val * v.t.val, 1);
+            } else {
+              v.P.val = clamp(round(v.E.val / v.t.val, 2), v.P.min, v.P.max);
+              v.E.val = round(v.P.val * v.t.val, 1);
+            }
+          }
+        },
+        renderSymbolic() {
+          return `
+            <span class="eq-token ${COLORS.E.text}">E</span>
+            <span class="text-slate-400">=</span>
+            <span class="eq-token ${COLORS.P.text}">P</span>
+            <span class="text-slate-400">×</span>
+            <span class="eq-token ${COLORS.t.text}">t</span>
+          `;
+        },
+        renderNumeric() {
+          const { E, P, t } = this.vars;
+          return `
+            <span class="${COLORS.E.text}">${E.val.toFixed(0)} kJ</span>
+            <span class="text-slate-500 mx-1">=</span>
+            <span class="${COLORS.P.text}">${P.val.toFixed(1)} kW</span>
+            <span class="text-slate-500 mx-1">×</span>
+            <span class="${COLORS.t.text}">${t.val.toFixed(0)} s</span>
+          `;
+        }
+      },
+
+      {
+        id: 'e-qv',
+        tabLabel: 'E = QV',
+        contextBadge: 'Medical Defibrillator Pulse',
+        title: 'Energy per Unit Charge  (E = Q × V)',
+        takeaway: 'Voltage is the energy given to each Coulomb of charge crossing a gap.',
+        actionLabel: 'Fire Shock Pulse',
+        vars: {
+          E: { symbol: 'E', name: 'Energy',  unit: 'J', min: 10,   max: 400,  step: 5,    val: 200,  color: COLORS.E },
+          Q: { symbol: 'Q', name: 'Charge',  unit: 'C', min: 0.02, max: 0.25, step: 0.01, val: 0.10, color: COLORS.Q },
+          V: { symbol: 'V', name: 'Voltage', unit: 'V', min: 500,  max: 3000, step: 50,   val: 2000, color: COLORS.V }
+        },
+        lockedKey: 'Q', // Hold Capacitor Charge capacity fixed by default
+        recalculate(changedKey) {
+          const v = this.vars;
+          const locked = this.lockedKey;
+          // Formula: E = Q * V
+          if (changedKey === 'V') {
+            if (locked === 'Q') {
+              v.E.val = clamp(round(v.Q.val * v.V.val, 1), v.E.min, v.E.max);
+              v.V.val = round(v.E.val / v.Q.val, 0);
+            } else {
+              v.Q.val = clamp(round(v.E.val / v.V.val, 3), v.Q.min, v.Q.max);
+              v.V.val = round(v.E.val / v.Q.val, 0);
+            }
+          } else if (changedKey === 'Q') {
+            if (locked === 'V') {
+              v.E.val = clamp(round(v.Q.val * v.V.val, 1), v.E.min, v.E.max);
+              v.Q.val = round(v.E.val / v.V.val, 3);
+            } else {
+              v.V.val = clamp(round(v.E.val / v.Q.val, 0), v.V.min, v.V.max);
+              v.Q.val = round(v.E.val / v.V.val, 3);
+            }
+          } else if (changedKey === 'E') {
+            if (locked === 'Q') {
+              v.V.val = clamp(round(v.E.val / v.Q.val, 0), v.V.min, v.V.max);
+              v.E.val = round(v.Q.val * v.V.val, 1);
+            } else {
+              v.Q.val = clamp(round(v.E.val / v.V.val, 3), v.Q.min, v.Q.max);
+              v.E.val = round(v.Q.val * v.V.val, 1);
+            }
+          }
+        },
+        renderSymbolic() {
+          return `
+            <span class="eq-token ${COLORS.E.text}">E</span>
+            <span class="text-slate-400">=</span>
+            <span class="eq-token ${COLORS.Q.text}">Q</span>
+            <span class="text-slate-400">×</span>
+            <span class="eq-token ${COLORS.V.text}">V</span>
+          `;
+        },
+        renderNumeric() {
+          const { E, Q, V } = this.vars;
+          return `
+            <span class="${COLORS.E.text}">${E.val.toFixed(0)} J</span>
+            <span class="text-slate-500 mx-1">=</span>
+            <span class="${COLORS.Q.text}">${Q.val.toFixed(2)} C</span>
+            <span class="text-slate-500 mx-1">×</span>
+            <span class="${COLORS.V.text}">${V.val.toFixed(0)} V</span>
+          `;
+        }
+      },
+
+      {
+        id: 'p-vi',
+        tabLabel: 'P = VI',
+        contextBadge: 'EV Supercharger Station',
+        title: 'Electrical Power Delivery  (P = V × I)',
+        takeaway: 'EV superchargers use 800 V architectures to deliver huge power without oversized cables.',
+        actionLabel: 'Boost Charge Surge',
+        vars: {
+          P: { symbol: 'P', name: 'Power',   unit: 'kW', min: 3,   max: 350, step: 1,   val: 160, color: COLORS.P },
+          V: { symbol: 'V', name: 'Voltage', unit: 'V',  min: 230, max: 800, step: 10,  val: 800, color: COLORS.V },
+          I: { symbol: 'I', name: 'Current', unit: 'A',  min: 10,  max: 500, step: 5,   val: 200, color: COLORS.I }
+        },
+        lockedKey: 'V', // Hold Charger Architecture Voltage fixed by default
+        recalculate(changedKey) {
+          const v = this.vars;
+          const locked = this.lockedKey;
+          // Formula: P (kW) = (V * I) / 1000
+          if (changedKey === 'I') {
+            if (locked === 'V') {
+              v.P.val = clamp(round((v.V.val * v.I.val) / 1000, 1), v.P.min, v.P.max);
+              v.I.val = round((v.P.val * 1000) / v.V.val, 0);
+            } else {
+              v.V.val = clamp(round((v.P.val * 1000) / v.I.val, 0), v.V.min, v.V.max);
+              v.I.val = round((v.P.val * 1000) / v.V.val, 0);
+            }
+          } else if (changedKey === 'V') {
+            if (locked === 'I') {
+              v.P.val = clamp(round((v.V.val * v.I.val) / 1000, 1), v.P.min, v.P.max);
+              v.V.val = round((v.P.val * 1000) / v.I.val, 0);
+            } else {
+              v.I.val = clamp(round((v.P.val * 1000) / v.V.val, 0), v.I.min, v.I.max);
+              v.V.val = round((v.P.val * 1000) / v.I.val, 0);
+            }
+          } else if (changedKey === 'P') {
+            if (locked === 'V') {
+              v.I.val = clamp(round((v.P.val * 1000) / v.V.val, 0), v.I.min, v.I.max);
+              v.P.val = round((v.V.val * v.I.val) / 1000, 1);
+            } else {
+              v.V.val = clamp(round((v.P.val * 1000) / v.I.val, 0), v.V.min, v.V.max);
+              v.P.val = round((v.V.val * v.I.val) / 1000, 1);
+            }
+          }
+        },
+        renderSymbolic() {
+          return `
+            <span class="eq-token ${COLORS.P.text}">P</span>
+            <span class="text-slate-400">=</span>
+            <span class="eq-token ${COLORS.V.text}">V</span>
+            <span class="text-slate-400">×</span>
+            <span class="eq-token ${COLORS.I.text}">I</span>
+          `;
+        },
+        renderNumeric() {
+          const { P, V, I } = this.vars;
+          return `
+            <span class="${COLORS.P.text}">${P.val.toFixed(1)} kW</span>
+            <span class="text-slate-500 mx-1">=</span>
+            <span class="${COLORS.V.text}">${V.val.toFixed(0)} V</span>
+            <span class="text-slate-500 mx-1">×</span>
+            <span class="${COLORS.I.text}">${I.val.toFixed(0)} A</span>
+          `;
+        }
+      },
+
+      {
+        id: 'p-i2r',
+        tabLabel: 'P = I²R',
+        contextBadge: 'National Grid Power Lines',
+        title: 'Thermal Power Loss in Cables  (P = I² × R)',
+        takeaway: 'Doubling current quadruples (4×) heat loss—why the National Grid uses 400,000 V!',
+        actionLabel: 'Test Step-Up Transformer',
+        vars: {
+          P: { symbol: 'P', name: 'Heat Loss',  unit: 'kW', min: 1,   max: 2500, step: 5,   val: 200, color: COLORS.P },
+          I: { symbol: 'I', name: 'Current',    unit: 'A',  min: 10,  max: 500,  step: 5,   val: 200, color: COLORS.I },
+          R: { symbol: 'R', name: 'Resistance', unit: 'Ω',  min: 1,   max: 20,   step: 0.5, val: 5.0, color: COLORS.R }
+        },
+        lockedKey: 'R', // Hold Transmission Cable Resistance fixed by default
+        recalculate(changedKey) {
+          const v = this.vars;
+          const locked = this.lockedKey;
+          // Formula: P (kW) = (I^2 * R) / 1000
+          if (changedKey === 'I') {
+            if (locked === 'R') {
+              v.P.val = clamp(round((v.I.val * v.I.val * v.R.val) / 1000, 1), v.P.min, v.P.max);
+              v.I.val = round(Math.sqrt((v.P.val * 1000) / v.R.val), 0);
+            } else {
+              v.R.val = clamp(round((v.P.val * 1000) / (v.I.val * v.I.val), 2), v.R.min, v.R.max);
+              v.I.val = round(Math.sqrt((v.P.val * 1000) / v.R.val), 0);
+            }
+          } else if (changedKey === 'R') {
+            if (locked === 'I') {
+              v.P.val = clamp(round((v.I.val * v.I.val * v.R.val) / 1000, 1), v.P.min, v.P.max);
+              v.R.val = round((v.P.val * 1000) / (v.I.val * v.I.val), 1);
+            } else {
+              v.I.val = clamp(round(Math.sqrt((v.P.val * 1000) / v.R.val), 0), v.I.min, v.I.max);
+              v.R.val = round((v.P.val * 1000) / (v.I.val * v.I.val), 1);
+            }
+          } else if (changedKey === 'P') {
+            if (locked === 'R') {
+              v.I.val = clamp(round(Math.sqrt((v.P.val * 1000) / v.R.val), 0), v.I.min, v.I.max);
+              v.P.val = round((v.I.val * v.I.val * v.R.val) / 1000, 1);
+            } else {
+              v.R.val = clamp(round((v.P.val * 1000) / (v.I.val * v.I.val), 1), v.R.min, v.R.max);
+              v.P.val = round((v.I.val * v.I.val * v.R.val) / 1000, 1);
+            }
+          }
+        },
+        renderSymbolic() {
+          return `
+            <span class="eq-token ${COLORS.P.text}">P</span>
+            <span class="text-slate-400">=</span>
+            <span class="eq-token ${COLORS.I.text}">I²</span>
+            <span class="text-slate-400">×</span>
+            <span class="eq-token ${COLORS.R.text}">R</span>
+          `;
+        },
+        renderNumeric() {
+          const { P, I, R } = this.vars;
+          return `
+            <span class="${COLORS.P.text}">${P.val.toFixed(0)} kW</span>
+            <span class="text-slate-500 mx-1">=</span>
+            <span class="${COLORS.I.text}">${I.val.toFixed(0)}² A</span>
+            <span class="text-slate-500 mx-1">×</span>
+            <span class="${COLORS.R.text}">${R.val.toFixed(1)} Ω</span>
+          `;
+        }
+      }
+    ];
+
+    // Helper Math Utilities
+    function clamp(val, min, max) {
+      return Math.min(Math.max(val, min), max);
+    }
+
+    function round(val, decimals = 2) {
+      const factor = Math.pow(10, decimals);
+      return Math.round(val * factor) / factor;
+    }
+
+    // Application State
+    let currentSlideIndex = 0;
+    let simTime = 0;         // Elapsed animation timer for cyclic simulations
+    let pulseEffect = 0;     // Visual burst trigger when user clicks the action button
+    let transformerMode = false; // Used on P = I^2R slide when clicking "Test Step-Up Transformer"
+
+    // DOM References
+    const tabsContainer = document.getElementById('equation-tabs');
+    const slideBadge = document.getElementById('slide-badge');
+    const slideTitle = document.getElementById('slide-title');
+    const takeawayText = document.getElementById('takeaway-text');
+    const symbolicEqEl = document.getElementById('symbolic-equation');
+    const numericEqEl = document.getElementById('numeric-equation');
+    const slidersContainer = document.getElementById('sliders-container');
+    const slideCounter = document.getElementById('slide-counter');
+    const actionBtnLabel = document.getElementById('action-btn-label');
+    const stageStatusPill = document.getElementById('stage-status-pill');
+    const captionLeft = document.getElementById('caption-left');
+    const captionRight = document.getElementById('caption-right');
+    const canvas = document.getElementById('sim-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Initialize Navigation Tabs
+    function initTabs() {
+      tabsContainer.innerHTML = '';
+      SLIDES.forEach((slide, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `nav-tab px-3.5 py-1.5 rounded-xl font-mono-num text-sm font-extrabold border border-slate-700/90 bg-slate-900/90 text-slate-300 hover:text-white hover:border-slate-500 ${idx === currentSlideIndex ? 'active' : ''}`;
+        btn.textContent = slide.tabLabel;
+        btn.onclick = () => switchSlide(idx);
+        tabsContainer.appendChild(btn);
+      });
+    }
+
+    // Switch Active Slide
+    function switchSlide(index) {
+      currentSlideIndex = (index + SLIDES.length) % SLIDES.length;
+      simTime = 0;
+      pulseEffect = 1.0;
+      transformerMode = false;
+
+      const slide = SLIDES[currentSlideIndex];
+
+      // Update Tab Active Styling
+      Array.from(tabsContainer.children).forEach((tab, idx) => {
+        tab.classList.toggle('active', idx === currentSlideIndex);
+      });
+
+      // Update Header Metadata
+      slideCounter.textContent = `${currentSlideIndex + 1} / ${SLIDES.length}`;
+      slideBadge.textContent = slide.contextBadge;
+      slideTitle.textContent = slide.title;
+      takeawayText.textContent = slide.takeaway;
+      actionBtnLabel.textContent = slide.actionLabel;
+
+      renderSliders();
+      updateEquationDisplay();
+    }
+
+    // Build the 3 Interactive Variable Sliders for the Active Slide
+    function renderSliders() {
+      const slide = SLIDES[currentSlideIndex];
+      slidersContainer.innerHTML = '';
+
+      Object.keys(slide.vars).forEach((key) => {
+        const v = slide.vars[key];
+        const isLocked = slide.lockedKey === key;
+
+        const card = document.createElement('div');
+        card.id = `slider-card-${key}`;
+        card.className = `slider-card rounded-2xl px-4 py-2.5 border transition-all flex flex-col justify-center ${
+          isLocked
+            ? 'is-locked border-slate-700/60'
+            : 'bg-slate-900/90 border-slate-700/90 hover:border-slate-600 shadow-md'
+        }`;
+
+        const formattedVal = v.step < 0.1
+          ? v.val.toFixed(2)
+          : (v.step < 1 ? v.val.toFixed(1) : v.val.toFixed(0));
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg ${v.color.bg} ${v.color.border} border flex items-center justify-center font-mono-num font-black text-base ${v.color.text}">
+                ${v.symbol}
+              </span>
+              <span class="font-bold text-sm text-slate-100">${v.name}</span>
+              ${isLocked ? '<span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">Held Constant</span>' : ''}
+            </div>
+
+            <div class="flex items-center gap-2.5">
+              <span id="val-readout-${key}" class="font-mono-num text-lg font-black ${v.color.text}">
+                ${formattedVal} <span class="text-xs font-bold text-slate-400">${v.unit}</span>
+              </span>
+
+              <button
+                id="lock-btn-${key}"
+                title="${isLocked ? 'Locked (Held Constant)' : 'Click to hold this variable constant'}"
+                class="p-1.5 rounded-lg border transition ${
+                  isLocked
+                    ? 'bg-amber-500/25 border-amber-400 text-amber-300'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
+                }"
+              >
+                ${
+                  isLocked
+                    ? `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
+                    : `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z"/></svg>`
+                }
+              </button>
+            </div>
+          </div>
+
+          <input
+            id="range-${key}"
+            type="range"
+            class="sim-slider"
+            style="--thumb-color: ${v.color.hex};"
+            min="${v.min}"
+            max="${v.max}"
+            step="${v.step}"
+            value="${v.val}"
+            ${isLocked ? 'disabled' : ''}
+          />
+        `;
+
+        slidersContainer.appendChild(card);
+
+        // Lock button toggles which variable is held constant
+        const lockBtn = document.getElementById(`lock-btn-${key}`);
+        lockBtn.onclick = () => {
+          slide.lockedKey = key;
+          renderSliders();
+        };
+
+        // Slider input handler
+        const rangeEl = document.getElementById(`range-${key}`);
+        rangeEl.addEventListener('input', (e) => {
+          if (slide.lockedKey === key) return;
+          v.val = parseFloat(e.target.value);
+          slide.recalculate(key);
+          syncSliderValues();
+          updateEquationDisplay();
+        });
+      });
+    }
+
+    // Sync All Slider Thumbs & Numeric Readouts Without Rebuilding DOM
+    function syncSliderValues() {
+      const slide = SLIDES[currentSlideIndex];
+      Object.keys(slide.vars).forEach((key) => {
+        const v = slide.vars[key];
+        const rangeEl = document.getElementById(`range-${key}`);
+        const readoutEl = document.getElementById(`val-readout-${key}`);
+        if (rangeEl) rangeEl.value = v.val;
+        if (readoutEl) {
+          const formattedVal = v.step < 0.1
+            ? v.val.toFixed(2)
+            : (v.step < 1 ? v.val.toFixed(1) : v.val.toFixed(0));
+          readoutEl.innerHTML = `${formattedVal} <span class="text-xs font-bold text-slate-400">${v.unit}</span>`;
+        }
+      });
+    }
+
+    // Update Symbolic & Substituted Equation Banner
+    function updateEquationDisplay() {
+      const slide = SLIDES[currentSlideIndex];
+      symbolicEqEl.innerHTML = slide.renderSymbolic();
+      numericEqEl.innerHTML = slide.renderNumeric();
+    }
+
+    // Action Trigger Button Handler (Replay cycle / Fire pulse / Transformer demo)
+    document.getElementById('action-trigger-btn').onclick = () => {
+      const slide = SLIDES[currentSlideIndex];
+      simTime = 0;
+      pulseEffect = 1.0;
+
+      if (slide.id === 'p-i2r') {
+        // Toggle between High Current (200 A) and Stepped-Up High Voltage (50 A -> 16x less heat loss!)
+        transformerMode = !transformerMode;
+        slide.lockedKey = 'R';
+        if (transformerMode) {
+          slide.vars.I.val = 50;
+          actionBtnLabel.textContent = 'Revert to High Current';
+        } else {
+          slide.vars.I.val = 200;
+          actionBtnLabel.textContent = 'Test Step-Up Transformer';
+        }
+        slide.recalculate('I');
+        renderSliders();
+        updateEquationDisplay();
+      }
+    };
+
+    // Navigation Controls & Keyboard Shortcuts
+    document.getElementById('prev-slide-btn').onclick = () => switchSlide(currentSlideIndex - 1);
+    document.getElementById('next-slide-btn').onclick = () => switchSlide(currentSlideIndex + 1);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        switchSlide(currentSlideIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        switchSlide(currentSlideIndex - 1);
+      }
+    });
+
+    // Responsive High-DPI Canvas Resizer
+    function resizeCanvas() {
+      const wrapper = document.getElementById('canvas-wrapper');
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // =========================================================================
+    // 60FPS INTERACTIVE PHYSICS VISUALIZATIONS (1 PER EQUATION SLIDE)
+    // =========================================================================
+
+    function drawRoundedRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+    }
+
+    // 1. Q = It : Smartphone Fast-Charging Station
+    function drawSlideQIt(w, h, dt) {
+      const { Q, I, t } = SLIDES[0].vars;
+      simTime += dt;
+
+      // Cycle duration scales visually with t (compressed so classroom sees progress smoothly)
+      const visualDuration = Math.max(2.5, t.val / 12);
+      const progress = Math.min(1, (simTime % (visualDuration + 1.2)) / visualDuration);
+      const deliveredQ = Q.val * progress;
+
+      stageStatusPill.textContent = progress >= 1 ? 'Charge Complete!' : `Charging... ${(progress * 100).toFixed(0)}%`;
+      captionLeft.textContent = `Current I = ${I.val.toFixed(1)} A pushes ${I.val.toFixed(1)} Coulombs through the cable every second.`;
+      captionRight.textContent = `Delivered: ${deliveredQ.toFixed(0)} / ${Q.val.toFixed(0)} C`;
+
+      // Charger Adapter Box (Left)
+      const chargerX = w * 0.1;
+      const chargerY = h * 0.34;
+      const chargerW = w * 0.18;
+      const chargerH = h * 0.32;
+
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      drawRoundedRect(chargerX, chargerY, chargerW, chargerH, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      // Charger Label & Current Readout
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '800 14px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText('FAST CHARGER', chargerX + chargerW / 2, chargerY + 28);
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '800 22px "JetBrains Mono"';
+      ctx.fillText(`${I.val.toFixed(1)} A`, chargerX + chargerW / 2, chargerY + chargerH / 2 + 8);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 12px Inter';
+      ctx.fillText(`${I.val.toFixed(1)} C / sec`, chargerX + chargerW / 2, chargerY + chargerH - 18);
+
+      // Smartphone Battery Chassis (Right)
+      const phoneX = w * 0.56;
+      const phoneY = h * 0.22;
+      const phoneW = w * 0.32;
+      const phoneH = h * 0.56;
+
+      // Phone Outer Body
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 4;
+      drawRoundedRect(phoneX, phoneY, phoneW, phoneH, 24);
+      ctx.fill();
+      ctx.stroke();
+
+      // Battery Cap
+      ctx.fillStyle = '#64748b';
+      drawRoundedRect(phoneX + phoneW * 0.35, phoneY - 10, phoneW * 0.3, 10, 4);
+      ctx.fill();
+
+      // Battery Fill Level (scales with both Q capacity & cycle progress)
+      const maxCapacityRef = 600;
+      const capacityFraction = clamp(Q.val / maxCapacityRef, 0.12, 1.0);
+      const activeFillRatio = capacityFraction * progress;
+
+      const innerPad = 14;
+      const innerW = phoneW - innerPad * 2;
+      const innerH = phoneH - innerPad * 2;
+      const fillH = innerH * activeFillRatio;
+
+      // Target Capacity Ghost Outline
+      const targetH = innerH * capacityFraction;
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 2;
+      drawRoundedRect(phoneX + innerPad, phoneY + innerPad + (innerH - targetH), innerW, targetH, 12);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Active Emerald Charge Fill
+      if (fillH > 2) {
+        const grad = ctx.createLinearGradient(0, phoneY + phoneH, 0, phoneY);
+        grad.addColorStop(0, '#059669');
+        grad.addColorStop(1, '#34d399');
+        ctx.fillStyle = grad;
+        drawRoundedRect(phoneX + innerPad, phoneY + innerPad + (innerH - fillH), innerW, fillH, 12);
+        ctx.fill();
+      }
+
+      // Charge Text Inside Phone
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 26px "JetBrains Mono"';
+      ctx.fillText(`${deliveredQ.toFixed(0)} C`, phoneX + phoneW / 2, phoneY + phoneH / 2 - 4);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '700 13px Inter';
+      ctx.fillText(`Target: ${Q.val.toFixed(0)} C in ${t.val.toFixed(0)} s`, phoneX + phoneW / 2, phoneY + phoneH / 2 + 22);
+
+      // Charging Cable Connecting Charger -> Phone
+      const cableStartX = chargerX + chargerW;
+      const cableEndX = phoneX;
+      const cableY = h * 0.5;
+
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.moveTo(cableStartX, cableY);
+      ctx.lineTo(cableEndX, cableY);
+      ctx.stroke();
+
+      // Animated Coulomb Charge Packets flowing along the cable (Speed & density ~ Current I)
+      const numPackets = Math.max(3, Math.round(I.val * 1.6));
+      const speed = I.val * 55;
+      const cableLen = cableEndX - cableStartX;
+
+      for (let i = 0; i < numPackets; i++) {
+        const offset = ((simTime * speed) + (i * (cableLen / numPackets))) % cableLen;
+        const px = cableStartX + offset;
+
+        ctx.fillStyle = '#34d399';
+        ctx.shadowColor = '#34d399';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(px, cableY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#064e3b';
+        ctx.font = '900 9px Inter';
+        ctx.fillText('+', px, cableY + 3);
+      }
+
+      // Timeline Progress Bar at Top of Stage
+      const barX = w * 0.1;
+      const barW = w * 0.78;
+      const barY = h * 0.86;
+      ctx.fillStyle = '#1e293b';
+      drawRoundedRect(barX, barY, barW, 10, 5);
+      ctx.fill();
+
+      ctx.fillStyle = '#c084fc';
+      drawRoundedRect(barX, barY, barW * progress, 10, 5);
+      ctx.fill();
+
+      ctx.fillStyle = '#e9d5ff';
+      ctx.font = '700 12px "JetBrains Mono"';
+      ctx.fillText(`Elapsed Time: ${(t.val * progress).toFixed(1)} s / ${t.val.toFixed(0)} s`, w * 0.49, barY - 8);
+    }
+
+    // 2. V = IR : Stage Dimmer Switch & Spotlight Circuit
+    function drawSlideVIR(w, h, dt) {
+      const { V, I, R } = SLIDES[1].vars;
+      simTime += dt;
+
+      stageStatusPill.textContent = `Circuit Current: ${I.val.toFixed(2)} A`;
+      captionLeft.textContent = `Higher Resistance (${R.val.toFixed(1)} Ω) restricts electron flow unless Voltage (${V.val.toFixed(1)} V) increases.`;
+      captionRight.textContent = `Lamp Power: ${(V.val * I.val).toFixed(1)} W`;
+
+      // Circuit Loop Coordinates
+      const leftX = w * 0.14;
+      const rightX = w * 0.62;
+      const topY = h * 0.25;
+      const botY = h * 0.76;
+
+      // Wire Track
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(leftX, topY, rightX - leftX, botY - topY);
+
+      // Animated Electron Flow around the circuit loop (Speed proportional to Current I)
+      const perimeter = 2 * ((rightX - leftX) + (botY - topY));
+      const electronCount = 24;
+      const flowSpeed = I.val * 65;
+
+      for (let i = 0; i < electronCount; i++) {
+        const dist = ((simTime * flowSpeed) + (i * (perimeter / electronCount))) % perimeter;
+        let ex, ey;
+        const topW = rightX - leftX;
+        const sideH = botY - topY;
+
+        if (dist < topW) {
+          ex = leftX + dist;
+          ey = topY;
+        } else if (dist < topW + sideH) {
+          ex = rightX;
+          ey = topY + (dist - topW);
+        } else if (dist < topW * 2 + sideH) {
+          ex = rightX - (dist - topW - sideH);
+          ey = botY;
+        } else {
+          ex = leftX;
+          ey = botY - (dist - topW * 2 - sideH);
+        }
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(ex, ey, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // Battery Pack on Left Wire (Visualizes Voltage V)
+      const batW = 68;
+      const batH = 110;
+      const batX = leftX - batW / 2;
+      const batY = (topY + botY) / 2 - batH / 2;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 3;
+      drawRoundedRect(batX, batY, batW, batH, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      // Voltage Level Fill inside Battery
+      const vFrac = clamp(V.val / 24, 0.08, 1);
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
+      drawRoundedRect(batX + 4, batY + batH - (batH - 8) * vFrac - 4, batW - 8, (batH - 8) * vFrac, 8);
+      ctx.fill();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '900 16px "JetBrains Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${V.val.toFixed(1)}V`, leftX, batY + batH / 2 + 5);
+      ctx.fillStyle = '#fde68a';
+      ctx.font = '700 11px Inter';
+      ctx.fillText('SUPPLY', leftX, batY - 8);
+
+      // Variable Resistor / Dimmer Coil on Bottom Wire (Visualizes Resistance R)
+      const resW = 150;
+      const resH = 44;
+      const resX = (leftX + rightX) / 2 - resW / 2;
+      const resY = botY - resH / 2;
+
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#fb7185';
+      ctx.lineWidth = 3;
+      drawRoundedRect(resX, resY, resW, resH, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      // Zig-zag resistor line whose thickness/density reflects Resistance R
+      ctx.strokeStyle = '#fb7185';
+      ctx.lineWidth = 2 + (R.val / 20) * 4;
+      ctx.beginPath();
+      const zigSteps = Math.max(4, Math.round(R.val * 0.8));
+      for (let s = 0; s <= zigSteps; s++) {
+        const zx = resX + 14 + (s / zigSteps) * (resW - 28);
+        const zy = resY + resH / 2 + (s % 2 === 0 ? -10 : 10);
+        if (s === 0) ctx.moveTo(zx, zy);
+        else ctx.lineTo(zx, zy);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#fda4af';
+      ctx.font = '800 14px "JetBrains Mono"';
+      ctx.fillText(`Dimmer: ${R.val.toFixed(1)} Ω`, (leftX + rightX) / 2, resY + resH + 18);
+
+      // Stage Spotlight Lamp on Right Wire (Brightness proportional to Power = V * I)
+      const lampX = rightX;
+      const lampY = (topY + botY) / 2;
+      const brightness = clamp((V.val * I.val) / 100, 0.05, 1.0);
+
+      // Spotlight Light Cone
+      const coneGrad = ctx.createLinearGradient(lampX, lampY, w * 0.96, lampY);
+      coneGrad.addColorStop(0, `rgba(253, 224, 71, ${0.15 + brightness * 0.75})`);
+      coneGrad.addColorStop(1, 'rgba(253, 224, 71, 0)');
+
+      ctx.fillStyle = coneGrad;
+      ctx.beginPath();
+      ctx.moveTo(lampX + 10, lampY - 22);
+      ctx.lineTo(w * 0.96, lampY - 125);
+      ctx.lineTo(w * 0.96, lampY + 125);
+      ctx.lineTo(lampX + 10, lampY + 22);
+      ctx.closePath();
+      ctx.fill();
+
+      // Lamp Housing & Glowing Bulb
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 3;
+      drawRoundedRect(lampX - 26, lampY - 30, 52, 60, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = `rgba(254, 240, 138, ${0.25 + brightness * 0.75})`;
+      ctx.shadowColor = '#fde047';
+      ctx.shadowBlur = brightness * 35;
+      ctx.beginPath();
+      ctx.arc(lampX + 14, lampY, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Ammeter Badge on Top Wire
+      const ammX = (leftX + rightX) / 2;
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(ammX, topY, 26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '900 13px "JetBrains Mono"';
+      ctx.fillText(`${I.val.toFixed(1)}A`, ammX, topY + 5);
+    }
+
+    // 3. E = Pt : Electric Kettle Boiling Water
+    function drawSlideEPt(w, h, dt) {
+      const { E, P, t } = SLIDES[2].vars;
+      simTime += dt;
+
+      // Visual heating progress over time t
+      const visualBoilDuration = Math.max(2.2, t.val / 18);
+      const progress = Math.min(1, (simTime % (visualBoilDuration + 1.4)) / visualBoilDuration);
+      const currentEnergy = E.val * progress;
+      const waterTemp = Math.min(100, 20 + (currentEnergy / 120) * 80); // 120 kJ boils 1 mug/small kettle
+
+      stageStatusPill.textContent = waterTemp >= 99.5 ? 'Boiling Point Reached (100°C)!' : `Heating Water: ${waterTemp.toFixed(0)}°C`;
+      captionLeft.textContent = `At ${P.val.toFixed(1)} kW, the kettle transfers ${P.val.toFixed(1)} kJ of thermal energy every second.`;
+      captionRight.textContent = `Energy Used: ${currentEnergy.toFixed(0)} / ${E.val.toFixed(0)} kJ`;
+
+      // Kettle Body Geometry
+      const kx = w * 0.24;
+      const ky = h * 0.24;
+      const kw = w * 0.34;
+      const kh = h * 0.54;
+
+      // Kettle Handle
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.moveTo(kx + kw, ky + 35);
+      ctx.quadraticCurveTo(kx + kw + 58, ky + kh * 0.5, kx + kw, ky + kh - 35);
+      ctx.stroke();
+
+      // Kettle Glass Carafe
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 4;
+      drawRoundedRect(kx, ky, kw, kh, 22);
+      ctx.fill();
+      ctx.stroke();
+
+      // Water Color shifts from Cool Blue (20°C) to Hot Magenta/Red (100°C)
+      const heatRatio = clamp((waterTemp - 20) / 80, 0, 1);
+      const waterH = kh * 0.68;
+      const waterY = ky + kh - waterH - 12;
+
+      const waterGrad = ctx.createLinearGradient(0, waterY, 0, waterY + waterH);
+      waterGrad.addColorStop(0, heatRatio > 0.8 ? 'rgba(244, 114, 182, 0.55)' : 'rgba(56, 189, 248, 0.45)');
+      waterGrad.addColorStop(1, heatRatio > 0.8 ? 'rgba(239, 68, 68, 0.7)' : 'rgba(37, 99, 235, 0.65)');
+
+      ctx.fillStyle = waterGrad;
+      drawRoundedRect(kx + 8, waterY, kw - 16, waterH, 14);
+      ctx.fill();
+
+      // Glowing Heating Element Coil at Bottom (Glow intensity = Power P)
+      const powerIntensity = clamp(P.val / 3.0, 0.15, 1.0);
+      ctx.strokeStyle = `rgba(251, 146, 60, ${0.4 + powerIntensity * 0.6})`;
+      ctx.shadowColor = '#f97316';
+      ctx.shadowBlur = powerIntensity * 25;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(kx + 24, ky + kh - 24);
+      ctx.lineTo(kx + kw - 24, ky + kh - 24);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Rising Steam & Bubbles proportional to Power P & Temperature
+      const bubbleCount = Math.round(6 + powerIntensity * 18 * heatRatio);
+      for (let i = 0; i < bubbleCount; i++) {
+        const bx = kx + 25 + ((i * 37) % (kw - 50));
+        const bSpeed = 40 + powerIntensity * 110;
+        const by = (waterY + waterH - 16) - ((simTime * bSpeed + i * 29) % (waterH - 12));
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.beginPath();
+        ctx.arc(bx, by, 3 + (i % 3), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Kettle Power & Temp Overlay Readout
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 24px "JetBrains Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${waterTemp.toFixed(0)}°C`, kx + kw / 2, waterY + waterH / 2 - 4);
+      ctx.fillStyle = '#fed7aa';
+      ctx.font = '800 13px "JetBrains Mono"';
+      ctx.fillText(`Element: ${P.val.toFixed(1)} kW`, kx + kw / 2, waterY + waterH / 2 + 18);
+
+      // Right-Side Smart Joule Meter & Timer Gauge
+      const meterX = w * 0.69;
+      const meterY = h * 0.24;
+      const meterW = w * 0.21;
+      const meterH = h * 0.54;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 3;
+      drawRoundedRect(meterX, meterY, meterW, meterH, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f472b6';
+      ctx.font = '800 13px Inter';
+      ctx.fillText('ENERGY METER', meterX + meterW / 2, meterY + 26);
+
+      // Vertical Energy Bar
+      const barW = 36;
+      const barH = meterH * 0.52;
+      const barX = meterX + meterW / 2 - barW / 2;
+      const barY = meterY + 42;
+
+      ctx.fillStyle = '#1e293b';
+      drawRoundedRect(barX, barY, barW, barH, 8);
+      ctx.fill();
+
+      const eFrac = clamp(currentEnergy / 360, 0.03, 1);
+      ctx.fillStyle = '#f472b6';
+      drawRoundedRect(barX, barY + barH * (1 - eFrac), barW, barH * eFrac, 8);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 18px "JetBrains Mono"';
+      ctx.fillText(`${currentEnergy.toFixed(0)} kJ`, meterX + meterW / 2, meterY + meterH - 36);
+      ctx.fillStyle = '#c084fc';
+      ctx.font = '700 12px "JetBrains Mono"';
+      ctx.fillText(`Time: ${(t.val * progress).toFixed(0)}s / ${t.val.toFixed(0)}s`, meterX + meterW / 2, meterY + meterH - 14);
+    }
+
+    // 4. E = QV : High-Voltage Defibrillator Capacitor Discharge
+    function drawSlideEQV(w, h, dt) {
+      const { E, Q, V } = SLIDES[3].vars;
+      simTime += dt;
+      pulseEffect = Math.max(0, pulseEffect - dt * 1.4);
+
+      stageStatusPill.textContent = pulseEffect > 0.1 ? 'DISCHARGING PULSE!' : `Capacitor Charged: ${E.val.toFixed(0)} J Ready`;
+      captionLeft.textContent = `Each 1.0 C of charge carries ${V.val.toFixed(0)} Joules of energy across the voltage gap.`;
+      captionRight.textContent = `Total Pulse Energy: ${E.val.toFixed(0)} J`;
+
+      // Two Capacitor Plates (Left = Positive Plate, Right = Negative Plate)
+      // Plate separation visually reflects Voltage V
+      const gapRatio = clamp((V.val - 500) / 2500, 0.15, 1.0);
+      const centerX = w * 0.44;
+      const halfGap = w * (0.11 + gapRatio * 0.13);
+
+      const leftPlateX = centerX - halfGap;
+      const rightPlateX = centerX + halfGap;
+      const plateY = h * 0.24;
+      const plateH = h * 0.52;
+
+      // Electric Field Lines across the gap (Brightness scales with Voltage V)
+      const fieldLines = 7;
+      for (let i = 0; i < fieldLines; i++) {
+        const fy = plateY + 24 + (i / (fieldLines - 1)) * (plateH - 48);
+        ctx.strokeStyle = `rgba(251, 191, 36, ${0.15 + gapRatio * 0.45})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(leftPlateX + 14, fy);
+        ctx.lineTo(rightPlateX - 14, fy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Draw Left Plate (+) and Right Plate (-)
+      ctx.fillStyle = '#065f46';
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 3;
+      drawRoundedRect(leftPlateX - 12, plateY, 24, plateH, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#38bdf8';
+      drawRoundedRect(rightPlateX - 12, plateY, 24, plateH, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // Stored Charges on Plate (Number of charge dots scales with Q)
+      const chargeDots = Math.max(3, Math.round(Q.val * 60));
+      for (let i = 0; i < chargeDots; i++) {
+        const cy = plateY + 18 + ((i + 0.5) / chargeDots) * (plateH - 36);
+        ctx.fillStyle = '#34d399';
+        ctx.beginPath();
+        ctx.arc(leftPlateX, cy, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Animated Charge Carriers crossing the Voltage Gap carrying V Joules each
+      const carrierCount = Math.max(2, Math.round(Q.val * 32));
+      const arcSpeed = 0.7 + gapRatio * 1.1 + pulseEffect * 2.5;
+
+      for (let i = 0; i < carrierCount; i++) {
+        const prog = ((simTime * arcSpeed) + (i / carrierCount)) % 1;
+        const cx = leftPlateX + prog * (rightPlateX - leftPlateX);
+        const baseY = plateY + 35 + ((i * 53) % (plateH - 70));
+        const jitterY = Math.sin(simTime * 18 + i * 3) * (4 + pulseEffect * 12);
+
+        // Energy halo around each charge packet (scales with Voltage V)
+        ctx.fillStyle = `rgba(244, 114, 182, ${0.25 + gapRatio * 0.45})`;
+        ctx.beginPath();
+        ctx.arc(cx, baseY + jitterY, 8 + gapRatio * 9, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#34d399';
+        ctx.beginPath();
+        ctx.arc(cx, baseY + jitterY, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Voltage Potential Difference Callout Arrow
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(leftPlateX, plateY - 16);
+      ctx.lineTo(rightPlateX, plateY - 16);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '800 15px "JetBrains Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(`ΔV = ${V.val.toFixed(0)} V`, centerX, plateY - 24);
+
+      ctx.fillStyle = '#34d399';
+      ctx.font = '800 13px "JetBrains Mono"';
+      ctx.fillText(`Q = ${Q.val.toFixed(2)} C`, leftPlateX, plateY + plateH + 22);
+
+      // Right-Side Heart / Defibrillator Pulse Monitor
+      const monX = w * 0.75;
+      const monY = h * 0.26;
+      const monW = w * 0.19;
+      const monH = h * 0.48;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = pulseEffect > 0.1 ? '#f472b6' : '#475569';
+      ctx.lineWidth = 3;
+      drawRoundedRect(monX, monY, monW, monH, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f472b6';
+      ctx.font = '800 12px Inter';
+      ctx.fillText('SHOCK DELIVERY', monX + monW / 2, monY + 24);
+
+      // ECG Waveform
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let x = 0; x < monW - 24; x += 3) {
+        const phase = (x / (monW - 24)) * Math.PI * 4 - simTime * 6;
+        const spike = Math.sin(phase) > 0.92 ? -24 * (0.5 + pulseEffect) : Math.sin(phase * 2) * 3;
+        const wy = monY + monH * 0.5 + spike;
+        if (x === 0) ctx.moveTo(monX + 12 + x, wy);
+        else ctx.lineTo(monX + 12 + x, wy);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 22px "JetBrains Mono"';
+      ctx.fillText(`${E.val.toFixed(0)} J`, monX + monW / 2, monY + monH - 22);
+    }
+
+    // 5. P = VI : Electric Vehicle (EV) Supercharger
+    function drawSlidePVI(w, h, dt) {
+      const { P, V, I } = SLIDES[4].vars;
+      simTime += dt;
+      pulseEffect = Math.max(0, pulseEffect - dt * 1.2);
+
+      // Calculate miles of range added per minute (~3.5 miles per kWh)
+      const milesPerMin = ((P.val / 60) * 3.5).toFixed(1);
+      stageStatusPill.textContent = `Charging Speed: +${milesPerMin} miles / min`;
+      captionLeft.textContent = `${V.val.toFixed(0)} V electrical pressure × ${I.val.toFixed(0)} A flow = ${P.val.toFixed(1)} kW charging power.`;
+      captionRight.textContent = `Power: ${P.val.toFixed(1)} kW`;
+
+      // Supercharger Pillar (Left)
+      const pilX = w * 0.1;
+      const pilY = h * 0.24;
+      const pilW = w * 0.19;
+      const pilH = h * 0.56;
+
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#fb923c';
+      ctx.lineWidth = 3;
+      drawRoundedRect(pilX, pilY, pilW, pilH, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#fb923c';
+      ctx.font = '900 13px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText('EV CHARGER', pilX + pilW / 2, pilY + 26);
+
+      // Voltage & Current Sub-badges inside Charger Pillar
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
+      drawRoundedRect(pilX + 12, pilY + 42, pilW - 24, 46, 10);
+      ctx.fill();
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '800 17px "JetBrains Mono"';
+      ctx.fillText(`${V.val.toFixed(0)} V`, pilX + pilW / 2, pilY + 71);
+
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+      drawRoundedRect(pilX + 12, pilY + 98, pilW - 24, 46, 10);
+      ctx.fill();
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(`${I.val.toFixed(0)} A`, pilX + pilW / 2, pilY + 127);
+
+      // High-Power Charging Cable (Thickness scales with Current I, Glow scales with Voltage V)
+      const cableStartX = pilX + pilW;
+      const cableEndX = w * 0.48;
+      const cableY = h * 0.62;
+      const cableThickness = 8 + (I.val / 500) * 14;
+
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = cableThickness;
+      ctx.beginPath();
+      ctx.moveTo(cableStartX, cableY);
+      ctx.quadraticCurveTo((cableStartX + cableEndX) / 2, cableY + 48, cableEndX, cableY);
+      ctx.stroke();
+
+      // Flowing Power Pulses along cable
+      const pulseCount = Math.max(3, Math.round(I.val / 45));
+      const speed = 0.6 + (I.val / 500) * 1.8;
+      for (let i = 0; i < pulseCount; i++) {
+        const tParam = ((simTime * speed) + (i / pulseCount)) % 1;
+        const px = (1 - tParam) * (1 - tParam) * cableStartX +
+                   2 * (1 - tParam) * tParam * ((cableStartX + cableEndX) / 2) +
+                   tParam * tParam * cableEndX;
+        const py = (1 - tParam) * (1 - tParam) * cableY +
+                   2 * (1 - tParam) * tParam * (cableY + 48) +
+                   tParam * tParam * cableY;
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.shadowColor = '#fb923c';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(px, py, 5 + (V.val / 800) * 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // Stylized Electric Vehicle Silhouette (Right)
+      const carX = w * 0.48;
+      const carY = h * 0.44;
+      const carW = w * 0.44;
+      const carH = h * 0.26;
+
+      // Car Chassis
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(carX, carY + carH * 0.55);
+      ctx.lineTo(carX + carW * 0.18, carY + carH * 0.45);
+      ctx.lineTo(carX + carW * 0.36, carY);
+      ctx.lineTo(carX + carW * 0.74, carY);
+      ctx.lineTo(carX + carW * 0.92, carY + carH * 0.45);
+      ctx.lineTo(carX + carW, carY + carH * 0.55);
+      ctx.lineTo(carX + carW, carY + carH);
+      ctx.lineTo(carX, carY + carH);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // EV Floor Battery Pack (Animated fill bar inside chassis)
+      const packX = carX + carW * 0.22;
+      const packY = carY + carH * 0.62;
+      const packW = carW * 0.56;
+      const packH = carH * 0.24;
+
+      ctx.fillStyle = '#1e293b';
+      drawRoundedRect(packX, packY, packW, packH, 6);
+      ctx.fill();
+
+      const fillCycle = (simTime * (0.08 + (P.val / 350) * 0.45)) % 1;
+      ctx.fillStyle = '#34d399';
+      drawRoundedRect(packX + 2, packY + 2, (packW - 4) * fillCycle, packH - 4, 4);
+      ctx.fill();
+
+      // Wheels
+      ctx.fillStyle = '#020617';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 4;
+      [carX + carW * 0.2, carX + carW * 0.8].forEach((wx) => {
+        ctx.beginPath();
+        ctx.arc(wx, carY + carH, 22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      // Top-Right Power Speedometer Gauge (P = V * I)
+      const gaugeX = w * 0.69;
+      const gaugeY = h * 0.28;
+      const radius = 58;
+
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.arc(gaugeX, gaugeY, radius, Math.PI * 0.8, Math.PI * 2.2);
+      ctx.stroke();
+
+      const pFrac = clamp(P.val / 350, 0.02, 1);
+      ctx.strokeStyle = '#fb923c';
+      ctx.beginPath();
+      ctx.arc(gaugeX, gaugeY, radius, Math.PI * 0.8, Math.PI * (0.8 + 1.4 * pFrac));
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 20px "JetBrains Mono"';
+      ctx.fillText(`${P.val.toFixed(0)}`, gaugeX, gaugeY + 4);
+      ctx.fillStyle = '#fdba74';
+      ctx.font = '800 11px Inter';
+      ctx.fillText('kW POWER', gaugeX, gaugeY + 20);
+    }
+
+    // 6. P = I²R : National Grid Overhead Power Lines (Quadratic Heating Effect)
+    function drawSlidePI2R(w, h, dt) {
+      const { P, I, R } = SLIDES[5].vars;
+      simTime += dt;
+
+      // Heat severity ratio (0 = cool, 1 = extreme thermal loss)
+      const heatRatio = clamp(P.val / 1500, 0, 1);
+      const isDanger = P.val > 800;
+
+      stageStatusPill.textContent = isDanger
+        ? `WARNING: Extreme Cable Heating (${P.val.toFixed(0)} kW Lost!)`
+        : `Efficient Transmission (${P.val.toFixed(0)} kW Heat Loss)`;
+      captionLeft.textContent = `Because Current is SQUARED (I²), halving Current cuts wasted heat by 4×!`;
+      captionRight.textContent = `Wasted Heat: ${P.val.toFixed(0)} kW`;
+
+      // Power Station (Left) & Town Substation (Right)
+      const leftPylonX = w * 0.24;
+      const rightPylonX = w * 0.76;
+      const groundY = h * 0.80;
+      const pylonTopY = h * 0.26;
+
+      // Ground Line
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.06, groundY);
+      ctx.lineTo(w * 0.94, groundY);
+      ctx.stroke();
+
+      // Helper to draw steel lattice transmission pylon
+      function drawPylon(px) {
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        // A-frame legs
+        ctx.moveTo(px - 26, groundY);
+        ctx.lineTo(px - 8, pylonTopY);
+        ctx.lineTo(px + 8, pylonTopY);
+        ctx.lineTo(px + 26, groundY);
+        // Cross-arms
+        ctx.moveTo(px - 34, pylonTopY + 24);
+        ctx.lineTo(px + 34, pylonTopY + 24);
+        ctx.moveTo(px - 26, pylonTopY + 56);
+        ctx.lineTo(px + 26, pylonTopY + 56);
+        // Lattice bracing
+        ctx.moveTo(px - 18, groundY - 45);
+        ctx.lineTo(px + 14, pylonTopY + 56);
+        ctx.moveTo(px + 18, groundY - 45);
+        ctx.lineTo(px - 14, pylonTopY + 56);
+        ctx.stroke();
+      }
+
+      drawPylon(leftPylonX);
+      drawPylon(rightPylonX);
+
+      // Sagging Overhead Cables between Pylons (Color shifts from Cool Sky -> Orange -> White-Hot Red with P = I^2R)
+      const cableColor = heatRatio < 0.25
+        ? '#38bdf8'
+        : (heatRatio < 0.6 ? '#fb923c' : '#ef4444');
+
+      // Thermal Sag increases slightly when cables get hot!
+      const sag = 28 + heatRatio * 34;
+
+      [pylonTopY + 24, pylonTopY + 56].forEach((armY, idx) => {
+        const midX = (leftPylonX + rightPylonX) / 2;
+        const midY = armY + sag;
+
+        // Thermal Glow Aura around hot cables
+        if (heatRatio > 0.08) {
+          ctx.strokeStyle = `rgba(239, 68, 68, ${heatRatio * 0.55})`;
+          ctx.lineWidth = 10 + heatRatio * 24;
+          ctx.beginPath();
+          ctx.moveTo(leftPylonX, armY);
+          ctx.quadraticCurveTo(midX, midY, rightPylonX, armY);
+          ctx.stroke();
+        }
+
+        // Core Transmission Wire (Thickness reflects Resistance R: thinner wire = higher R)
+        ctx.strokeStyle = cableColor;
+        ctx.lineWidth = Math.max(2.5, 7 - (R.val / 20) * 4.5);
+        ctx.beginPath();
+        ctx.moveTo(leftPylonX, armY);
+        ctx.quadraticCurveTo(midX, midY, rightPylonX, armY);
+        ctx.stroke();
+
+        // Rising Wavy Heat Dissipation Arrows proportional to P = I²R
+        const waveCount = Math.round(2 + heatRatio * 10);
+        for (let k = 0; k < waveCount; k++) {
+          const frac = (k + 0.5) / waveCount;
+          const wx = leftPylonX + frac * (rightPylonX - leftPylonX);
+          const wireY = (1 - frac) * (1 - frac) * armY + 2 * (1 - frac) * frac * midY + frac * frac * armY;
+          const rise = ((simTime * (35 + heatRatio * 65) + k * 19) % 42);
+
+          ctx.strokeStyle = `rgba(251, 146, 60, ${(1 - rise / 42) * (0.3 + heatRatio * 0.7)})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(wx + Math.sin(rise * 0.25) * 4, wireY - 6 - rise);
+          ctx.lineTo(wx + Math.sin((rise + 10) * 0.25) * 4, wireY - 16 - rise);
+          ctx.stroke();
+        }
+      });
+
+      // Central Quadratic Comparison Callout Card
+      const boxW = w * 0.36;
+      const boxH = 66;
+      const boxX = w * 0.5 - boxW / 2;
+      const boxY = h * 0.58;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.strokeStyle = cableColor;
+      ctx.lineWidth = 2.5;
+      drawRoundedRect(boxX, boxY, boxW, boxH, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '800 13px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Current: ${I.val.toFixed(0)} A  →  I² = ${(I.val * I.val).toLocaleString()} A²`, w * 0.5, boxY + 25);
+
+      ctx.fillStyle = cableColor;
+      ctx.font = '900 16px "JetBrains Mono"';
+      ctx.fillText(`Heat Loss = ${P.val.toFixed(0)} kW`, w * 0.5, boxY + 50);
+
+      // Left Power Station & Right City Labels
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '800 12px Inter';
+      ctx.fillText('POWER STATION', leftPylonX - 45, groundY - 14);
+      ctx.fillText('NATIONAL GRID TOWN', rightPylonX + 35, groundY - 14);
+    }
+
+    // Main 60FPS Animation Loop
+    let lastTimestamp = 0;
+    function animate(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      const wrapper = document.getElementById('canvas-wrapper');
+      const w = wrapper.clientWidth;
+      const h = wrapper.clientHeight;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Subtle Engineering Grid Backdrop inside Canvas
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
+      ctx.lineWidth = 1;
+      const gridSize = 36;
+      for (let x = 0; x < w; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Render Active Slide Simulation
+      const slide = SLIDES[currentSlideIndex];
+      switch (slide.id) {
+        case 'q-it':  drawSlideQIt(w, h, dt); break;
+        case 'v-ir':  drawSlideVIR(w, h, dt); break;
+        case 'e-pt':  drawSlideEPt(w, h, dt); break;
+        case 'e-qv':  drawSlideEQV(w, h, dt); break;
+        case 'p-vi':  drawSlidePVI(w, h, dt); break;
+        case 'p-i2r': drawSlidePI2R(w, h, dt); break;
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // Boot Application
+    window.addEventListener('DOMContentLoaded', () => {
+      initTabs();
+      switchSlide(0);
+      resizeCanvas();
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
