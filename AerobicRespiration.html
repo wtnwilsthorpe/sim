@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Aerobic Respiration: Interactive Classroom Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-paper: #fdfefe;
+      --line-blue: #e2eef8;
+      --ink: #1a202c;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #eef4f9;
+      font-family: 'Nunito', sans-serif;
+      color: var(--ink);
+    }
+
+    /* Main Stage Container that auto-fits any screen aspect ratio */
+    #viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 50%, #ffffff 0%, #eaf1f8 100%);
+    }
+
+    /* Crisp SVG Canvas that scales cleanly to any display */
+    #scene {
+      width: 100%;
+      height: 100%;
+      max-width: 100vw;
+      max-height: 100vh;
+      display: block;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #scene:active {
+      cursor: grabbing;
+    }
+
+    .display-font {
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+    }
+
+    /* Interactive Stage Card Hover & Focus Effects */
+    .stage-group {
+      cursor: pointer;
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), filter 0.45s ease;
+    }
+
+    .stage-card-bg {
+      transition: stroke-width 0.25s ease, filter 0.25s ease;
+    }
+
+    .stage-group:hover .stage-card-bg {
+      filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.16));
+    }
+
+    /* Dimming unselected stages when zoomed/focused */
+    .has-focus .stage-group:not(.is-focused) {
+      opacity: 0.28;
+      filter: grayscale(25%);
+    }
+
+    .has-focus .connector-arrow:not(.is-focused-arrow) {
+      opacity: 0.22;
+    }
+
+    .connector-arrow {
+      transition: opacity 0.45s ease;
+    }
+
+    /* Floating Presentation Dock */
+    #control-dock {
+      position: fixed;
+      bottom: clamp(10px, 1.8vh, 22px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 2px solid #cbd5e1;
+      border-radius: 9999px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 96vw;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+    }
+
+    #control-dock.dock-hidden {
+      transform: translate(-50%, 140%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .nav-pill {
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 600;
+      font-size: clamp(12px, 1.1vw, 15px);
+      padding: 7px 13px;
+      border-radius: 9999px;
+      border: 2px solid transparent;
+      background: #f1f5f9;
+      color: #334155;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-pill:hover {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+    }
+
+    .nav-pill.active {
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+      transform: translateY(-1px);
+    }
+
+    .nav-pill[data-target="overview"].active { background: #1e293b; }
+    .nav-pill[data-target="stage1"].active { background: #16a34a; }
+    .nav-pill[data-target="stage2"].active { background: #0284c7; }
+    .nav-pill[data-target="stage3"].active { background: #ea580c; }
+    .nav-pill[data-target="stage5"].active { background: #65a30d; }
+    .nav-pill[data-target="stage4"].active { background: #7e22ce; }
+    .nav-pill[data-target="equation"].active { background: #d97706; }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 9999px;
+      background: #f1f5f9;
+      border: 1.5px solid #cbd5e1;
+      color: #1e293b;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .icon-btn.active-toggle {
+      background: #fef08a;
+      border-color: #eab308;
+      color: #854d0e;
+    }
+
+    /* Laser pointer dot */
+    #laser-dot {
+      position: fixed;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(239,68,68,0.95) 40%, rgba(239,68,68,0) 75%);
+      box-shadow: 0 0 18px 6px rgba(239, 68, 68, 0.65);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 100;
+      display: none;
+    }
+
+    /* Presenter Info Banner when zoomed in */
+    #focus-banner {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-130%);
+      z-index: 45;
+      background: rgba(15, 23, 42, 0.9);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 9999px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: clamp(14px, 1.3vw, 18px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: auto;
+    }
+
+    #focus-banner.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Floating Show/Hide Toolbar button */
+    #dock-toggle-btn {
+      position: fixed;
+      bottom: 14px;
+      right: 16px;
+      z-index: 55;
+      background: rgba(255,255,255,0.92);
+      border: 2px solid #cbd5e1;
+      border-radius: 9999px;
+      padding: 8px 12px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+
+    @media (max-width: 1050px) {
+      #control-dock {
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 6px 10px;
+      }
+      .hide-mobile {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="viewport">
+    <!-- Top Banner shown when zoomed into a specific section -->
+    <div id="focus-banner">
+      <span id="focus-banner-title">Zoomed View</span>
+      <button onclick="focusSection('overview')" class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full text-sm font-bold transition">
+        ✕ Reset Zoom (Esc)
+      </button>
+    </div>
+
+    <!-- Main Vector Classroom Diagram (1600 x 1000 logical coordinate space, auto-fits any screen) -->
+    <svg id="scene" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Notebook Paper Grid Pattern -->
+        <pattern id="notebook-lines" width="1600" height="36" patternUnits="userSpaceOnUse">
+          <rect width="1600" height="36" fill="#fcfdff" />
+          <line x1="0" y1="35" x2="1600" y2="35" stroke="#e2eef8" stroke-width="2" />
+        </pattern>
+
+        <!-- Drop Shadow Filter for Cards -->
+        <filter id="card-shadow" x="-6%" y="-6%" width="112%" height="114%">
+          <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.10" />
+        </filter>
+
+        <!-- Glow Filter for Energy & Highlights -->
+        <filter id="energy-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <!-- Arrowhead Markers -->
+        <marker id="arrow-green" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 1 1 L 11 6 L 1 11 z" fill="#65a30d" />
+        </marker>
+        <marker id="arrow-blue" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 1 1 L 11 6 L 1 11 z" fill="#0284c7" />
+        </marker>
+        <marker id="arrow-red" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 1 1 L 11 6 L 1 11 z" fill="#dc2626" />
+        </marker>
+        <marker id="arrow-orange" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 1 1 L 11 6 L 1 11 z" fill="#f59e0b" />
+        </marker>
+        <marker id="arrow-purple" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 1 1 L 11 6 L 1 11 z" fill="#7e22ce" />
+        </marker>
+
+        <!-- Reusable Molecule Symbols -->
+        <g id="sym-glucose">
+          <polygon points="0,-16 14,-8 14,8 0,16 -14,8 -14,-8" fill="#a855f7" stroke="#3b0764" stroke-width="2.5" stroke-linejoin="round" />
+          <polygon points="0,-9 8,-4.5 8,4.5 0,9 -8,4.5 -8,-4.5" fill="#c084fc" opacity="0.6" />
+        </g>
+
+        <g id="sym-o2">
+          <circle cx="-6" cy="0" r="10" fill="#0ea5e9" stroke="#0c4a6e" stroke-width="2.5" />
+          <circle cx="7" cy="2" r="9" fill="#38bdf8" stroke="#0c4a6e" stroke-width="2.5" />
+          <text x="0" y="5" text-anchor="middle" fill="#ffffff" font-family="Fredoka, sans-serif" font-weight="700" font-size="11">O₂</text>
+        </g>
+
+        <g id="sym-co2">
+          <circle cx="0" cy="0" r="10" fill="#334155" stroke="#0f172a" stroke-width="2" />
+          <circle cx="-11" cy="-3" r="8.5" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" />
+          <circle cx="11" cy="-3" r="8.5" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" />
+          <text x="0" y="18" text-anchor="middle" fill="#dc2626" font-family="Fredoka, sans-serif" font-weight="800" font-size="11">CO₂</text>
+        </g>
+
+        <g id="sym-rbc">
+          <ellipse cx="0" cy="0" rx="18" ry="12" fill="#dc2626" stroke="#7f1d1d" stroke-width="2.2" />
+          <ellipse cx="0" cy="0" rx="9" ry="5" fill="#991b1b" opacity="0.65" />
+        </g>
+
+        <g id="sym-h2o">
+          <path d="M 0 -13 C 8 -2 12 4 12 9 A 12 12 0 1 1 -12 9 C -12 4 -8 -2 0 -13 Z" fill="#0ea5e9" stroke="#0369a1" stroke-width="2" />
+          <text x="0" y="13" text-anchor="middle" fill="#ffffff" font-family="Fredoka, sans-serif" font-weight="700" font-size="8.5">H₂O</text>
+        </g>
+      </defs>
+
+      <!-- Background Notebook Sheet -->
+      <rect x="0" y="0" width="1600" height="1000" fill="url(#notebook-lines)" />
+      <!-- Subtle Red Margin Line -->
+      <line x1="52" y1="0" x2="52" y2="1000" stroke="#fecaca" stroke-width="2.5" opacity="0.65" />
+
+      <!-- =================================================================== -->
+      <!-- TITLE HEADER (Top Center)                                           -->
+      <!-- =================================================================== -->
+      <g id="header-title" class="stage-group" onclick="focusSection('overview')">
+        <rect x="520" y="16" width="560" height="114" rx="34" fill="#ffffff" stroke="#ec4899" stroke-width="4.5" filter="url(#card-shadow)" />
+        <text x="800" y="66" text-anchor="middle" class="display-font" font-size="44" font-weight="700" fill="#111827">
+          Aerobic Respiration:
+        </text>
+        <text x="800" y="110" text-anchor="middle" class="display-font" font-size="37" font-weight="700" fill="#1e293b">
+          How it works in the body
+        </text>
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- CONNECTING FLOW ARROWS BETWEEN STAGES & BODY                        -->
+      <!-- =================================================================== -->
+      <g id="connectors">
+        <!-- 1. Digestive -> Body Vessels -->
+        <path id="conn-1" class="connector-arrow" d="M 525 275 Q 615 275 680 390" fill="none" stroke="#65a30d" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-green)" marker-start="url(#arrow-green)" />
+        <!-- 2. Air -> Body Nose/Mouth -->
+        <path id="conn-2" class="connector-arrow" d="M 1115 195 Q 1005 195 965 255 Q 925 275 895 270" fill="none" stroke="#0284c7" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-blue)" />
+        <!-- 3. Body Arm Vessels <-> Circulatory System -->
+        <path id="conn-3" class="connector-arrow" d="M 662 465 Q 615 540 535 565" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-orange)" marker-start="url(#arrow-orange)" />
+        <!-- 3 -> 5. Circulatory -> Cell Membrane -->
+        <path id="conn-3-5" class="connector-arrow" d="M 380 805 Q 400 885 520 885" fill="none" stroke="#65a30d" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-green)" />
+        <!-- 5 -> 4. Cell Membrane -> Mitochondria -->
+        <path id="conn-5-4" class="connector-arrow" d="M 1075 845 Q 1190 830 1275 735" fill="none" stroke="#7e22ce" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-purple)" />
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- CENTRAL HUMAN ANATOMY FIGURE                                        -->
+      <!-- =================================================================== -->
+      <g id="stage-body" class="stage-group" onclick="focusSection('body')">
+        <!-- Subtle click hitbox -->
+        <rect x="605" y="145" width="390" height="625" rx="30" fill="transparent" />
+
+        <!-- Head & Neck & Torso Silhouette -->
+        <g stroke="#1e293b" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+          <!-- Torso + Arms -->
+          <path d="M 745 315
+                   L 745 340
+                   C 685 352 642 375 632 435
+                   L 605 745
+                   L 658 745
+                   L 682 475
+                   L 695 745
+                   L 905 745
+                   L 918 475
+                   L 942 745
+                   L 995 745
+                   L 968 435
+                   C 958 375 915 352 855 340
+                   L 855 315 Z"
+                fill="#f8d5c2" />
+
+          <!-- Head Profile facing right -->
+          <path d="M 745 320
+                   C 715 300 702 265 706 225
+                   C 710 175 752 152 802 155
+                   C 848 158 874 185 874 220
+                   L 892 248
+                   C 895 254 890 260 880 262
+                   L 876 272
+                   L 882 280
+                   L 874 288
+                   C 874 308 858 318 835 318
+                   L 835 342"
+                fill="#f8d5c2" />
+        </g>
+
+        <!-- Airway & Esophagus inside Head/Neck -->
+        <!-- Nasal & Oral Cavity + Trachea (Blue/Pink) -->
+        <path d="M 884 252 Q 835 245 812 268 L 806 395" fill="none" stroke="#38bdf8" stroke-width="11" stroke-linecap="round" />
+        <path d="M 884 252 Q 835 245 812 268 L 806 395" fill="none" stroke="#0369a1" stroke-width="2.5" stroke-dasharray="6 4" />
+        <!-- Esophagus to Stomach -->
+        <path d="M 875 276 Q 825 272 798 292 L 792 520" fill="none" stroke="#f472b6" stroke-width="8" stroke-linecap="round" />
+
+        <!-- Major Arteries (Red) & Veins (Blue) -->
+        <g fill="none" stroke-linecap="round">
+          <!-- Left Arm Vessels -->
+          <path d="M 765 385 Q 680 390 662 455 L 628 735" stroke="#dc2626" stroke-width="5.5" />
+          <path d="M 772 396 Q 690 402 672 462 L 638 735" stroke="#2563eb" stroke-width="5" />
+          <!-- Right Arm Vessels -->
+          <path d="M 835 385 Q 920 390 938 455 L 972 735" stroke="#dc2626" stroke-width="5.5" />
+          <path d="M 828 396 Q 910 402 928 462 L 962 735" stroke="#2563eb" stroke-width="5" />
+          <!-- Lower Body Vessels -->
+          <path d="M 785 460 L 745 735" stroke="#dc2626" stroke-width="5" />
+          <path d="M 815 460 L 855 735" stroke="#2563eb" stroke-width="5" />
+        </g>
+
+        <!-- Lungs inside Chest (Animated Breathing) -->
+        <g id="body-lungs-group" transform="translate(800, 425)">
+          <!-- Left Lung (Viewer's Left) -->
+          <path d="M -12 -45 C -48 -42 -78 10 -74 62 C -70 84 -35 82 -12 72 Z" fill="#fda4af" stroke="#881337" stroke-width="3" />
+          <!-- Right Lung (Viewer's Right) -->
+          <path d="M 12 -45 C 48 -42 78 10 74 62 C 70 84 35 82 12 72 Z" fill="#fda4af" stroke="#881337" stroke-width="3" />
+          <!-- Bronchi branches -->
+          <path d="M 0 -55 L 0 -25 M 0 -25 L -32 15 M 0 -25 L 32 15" stroke="#0284c7" stroke-width="5" stroke-linecap="round" />
+        </g>
+
+        <!-- Heart inside Chest (Animated Beating) -->
+        <g id="body-heart-group" transform="translate(804, 435)">
+          <path d="M -8 -18 C -24 -28 -36 -8 -24 14 C -14 30 4 38 12 36 C 24 32 32 10 22 -10 C 16 -22 2 -24 -8 -18 Z"
+                fill="#ef4444" stroke="#7f1d1d" stroke-width="3" />
+          <!-- Aorta / Vena Cava -->
+          <path d="M -6 -18 L -6 -32 M 4 -18 L 8 -30" stroke="#2563eb" stroke-width="5" stroke-linecap="round" />
+        </g>
+
+        <!-- Liver -->
+        <path d="M 722 518 C 722 496 775 494 812 505 C 792 538 752 556 724 552 Z"
+              fill="#9a3412" stroke="#431407" stroke-width="3" />
+
+        <!-- Stomach -->
+        <path d="M 792 510 C 825 504 868 522 862 554 C 856 582 802 586 772 568 C 758 560 765 544 782 544 C 795 544 795 524 792 510 Z"
+              fill="#f472b6" stroke="#831843" stroke-width="3" />
+
+        <!-- Small & Large Intestines -->
+        <g fill="#fb923c" stroke="#7c2d12" stroke-width="2.8" stroke-linejoin="round">
+          <rect x="724" y="585" width="152" height="106" rx="26" fill="#fdba74" />
+          <path d="M 744 606 Q 800 595 854 608 Q 862 626 800 628 Q 740 630 746 648 Q 800 652 852 650 Q 856 670 800 672 L 800 715"
+                fill="none" stroke="#9a3412" stroke-width="11" stroke-linecap="round" />
+          <path d="M 744 606 Q 800 595 854 608 Q 862 626 800 628 Q 740 630 746 648 Q 800 652 852 650 Q 856 670 800 672 L 800 715"
+                fill="none" stroke="#fed7aa" stroke-width="5" stroke-linecap="round" />
+        </g>
+
+        <!-- Dynamic Particle Layer inside Human Body -->
+        <g id="body-particles"></g>
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- STAGE 1: DIGESTIVE SYSTEM (Top Left - Green Theme)                  -->
+      <!-- =================================================================== -->
+      <g id="stage-1" class="stage-group" onclick="focusSection('stage1')">
+        <!-- Main Card Path matching original notched shape -->
+        <path class="stage-card-bg"
+              d="M 45 28 L 455 28 Q 485 28 485 58 L 485 195 Q 485 222 512 222 L 515 222 Q 540 222 540 248 L 540 375 Q 540 402 512 402 L 45 402 Q 18 402 18 375 L 18 58 Q 18 28 45 28 Z"
+              fill="#ffffff" stroke="#15803d" stroke-width="5" filter="url(#card-shadow)" />
+
+        <!-- Number Badge 1 -->
+        <circle cx="58" cy="70" r="28" fill="#86efac" stroke="#14532d" stroke-width="4" />
+        <text x="58" y="81" text-anchor="middle" class="display-font" font-size="32" font-weight="700" fill="#14532d">1</text>
+
+        <!-- Heading + Underline -->
+        <text x="102" y="80" class="display-font" font-size="33" font-weight="700" fill="#111827">Digestive system</text>
+        <line x1="102" y1="92" x2="395" y2="92" stroke="#15803d" stroke-width="5" stroke-linecap="round" />
+
+        <!-- High-Contrast Body Text -->
+        <text x="52" y="136" font-size="25" font-weight="800" fill="#1e293b">
+          Breaks down food
+        </text>
+        <text x="52" y="170" font-size="25" font-weight="800" fill="#1e293b">
+          and absorbs <tspan fill="#16a34a" font-weight="900">glucose</tspan>
+        </text>
+        <text x="52" y="204" font-size="25" font-weight="800" fill="#1e293b">
+          into the bloodstream.
+        </text>
+
+        <!-- Illustration: Bread & Chicken Drumstick -->
+        <g id="digestive-food" transform="translate(88, 305)">
+          <!-- Toast / Bread -->
+          <g transform="translate(-32, -8) rotate(-10)">
+            <path d="M -28 -25 C -36 -38 -15 -48 0 -44 C 15 -48 36 -38 28 -25 L 26 28 C 26 34 20 38 14 38 L -14 38 C -20 38 -26 34 -26 28 Z"
+                  fill="#d97706" stroke="#451a03" stroke-width="3.5" />
+            <path d="M -21 -22 C -27 -31 -12 -39 0 -36 C 12 -39 27 -31 21 -22 L 19 24 L -19 24 Z"
+                  fill="#fef3c7" />
+            <circle cx="-6" cy="-8" r="2" fill="#d97706" />
+            <circle cx="8" cy="4" r="2.2" fill="#d97706" />
+            <circle cx="-4" cy="14" r="1.8" fill="#d97706" />
+          </g>
+          <!-- Chicken Drumstick -->
+          <g transform="translate(36, 8) rotate(35)">
+            <rect x="-6" y="12" width="12" height="32" rx="4" fill="#fef9c3" stroke="#451a03" stroke-width="3" />
+            <circle cx="-6" cy="44" r="6.5" fill="#fef9c3" stroke="#451a03" stroke-width="3" />
+            <circle cx="6" cy="44" r="6.5" fill="#fef9c3" stroke="#451a03" stroke-width="3" />
+            <path d="M -22 -12 C -24 -34 24 -34 22 -12 C 20 6 12 18 0 18 C -12 18 -20 6 -22 -12 Z"
+                  fill="#b45309" stroke="#451a03" stroke-width="3.5" />
+            <ellipse cx="-7" cy="-16" rx="5" ry="9" fill="#f59e0b" opacity="0.6" />
+          </g>
+        </g>
+
+        <!-- Blue Arrow: Food -> Stomach -->
+        <path d="M 168 310 L 208 310" stroke="#0284c7" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-blue)" />
+
+        <!-- Illustration: Stomach (Animated churning) -->
+        <g id="digestive-stomach" transform="translate(275, 305)">
+          <path d="M -18 -58 L -6 -58 L -6 -32 C 18 -38 52 -18 48 18 C 44 52 -2 58 -28 38 C -42 28 -48 44 -56 44 L -62 32 C -50 22 -36 16 -24 22 C -12 28 14 26 18 10 C 22 -6 2 -16 -18 -14 Z"
+                fill="#f472b6" stroke="#831843" stroke-width="3.8" stroke-linejoin="round" />
+          <!-- Stomach inner highlight -->
+          <path d="M 12 -14 C 28 -8 34 8 28 22" fill="none" stroke="#fbcfe8" stroke-width="4" stroke-linecap="round" />
+        </g>
+
+        <!-- Blue Arrow: Stomach -> Glucose -->
+        <path d="M 332 310 L 372 310" stroke="#0284c7" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-blue)" />
+
+        <!-- Illustration: Cluster of Purple Glucose Hexagons -->
+        <g id="digestive-glucose-cluster" transform="translate(445, 295)">
+          <use href="#sym-glucose" x="-22" y="-20" />
+          <use href="#sym-glucose" x="12" y="-34" />
+          <use href="#sym-glucose" x="34" y="-4" />
+          <use href="#sym-glucose" x="18" y="28" />
+          <use href="#sym-glucose" x="-18" y="24" />
+          <text x="5" y="68" text-anchor="middle" class="display-font" font-size="25" font-weight="700" fill="#7e22ce">glucose</text>
+        </g>
+
+        <!-- Animated Digestive Particles -->
+        <g id="stage1-particles"></g>
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- STAGE 2: RESPIRATORY SYSTEM (Top Right - Blue Theme)                -->
+      <!-- =================================================================== -->
+      <g id="stage-2" class="stage-group" onclick="focusSection('stage2')">
+        <rect class="stage-card-bg" x="1125" y="24" width="452" height="404" rx="28"
+              fill="#ffffff" stroke="#0369a1" stroke-width="5" filter="url(#card-shadow)" />
+
+        <!-- Number Badge 2 -->
+        <circle cx="1168" cy="68" r="28" fill="#bae6fd" stroke="#0c4a6e" stroke-width="4" />
+        <text x="1168" y="79" text-anchor="middle" class="display-font" font-size="32" font-weight="700" fill="#0c4a6e">2</text>
+
+        <!-- Heading + Underline -->
+        <text x="1210" y="78" class="display-font" font-size="32" font-weight="700" fill="#111827">Respiratory system</text>
+        <line x1="1210" y1="90" x2="1540" y2="90" stroke="#0369a1" stroke-width="5" stroke-linecap="round" />
+
+        <!-- Body Text -->
+        <text x="1162" y="134" font-size="25" font-weight="800" fill="#1e293b">
+          Takes <tspan fill="#0284c7" font-weight="900">oxygen</tspan> into
+        </text>
+        <text x="1162" y="168" font-size="25" font-weight="800" fill="#1e293b">
+          the body and removes
+        </text>
+        <text x="1162" y="202" font-size="25" font-weight="800" fill="#dc2626">
+          carbon dioxide<tspan fill="#1e293b">.</tspan>
+        </text>
+
+        <!-- Lungs Diagram (Animated Expansion/Contraction) -->
+        <g id="resp-lungs" transform="translate(1355, 325)">
+          <!-- Trachea with cartilage rings -->
+          <rect x="-11" y="-82" width="22" height="58" rx="6" fill="#7dd3fc" stroke="#0c4a6e" stroke-width="3.5" />
+          <line x1="-10" y1="-70" x2="10" y2="-70" stroke="#0c4a6e" stroke-width="2.5" />
+          <line x1="-10" y1="-58" x2="10" y2="-58" stroke="#0c4a6e" stroke-width="2.5" />
+          <line x1="-10" y1="-46" x2="10" y2="-46" stroke="#0c4a6e" stroke-width="2.5" />
+
+          <!-- Left Lung -->
+          <path d="M -12 -32 C -54 -34 -92 18 -86 72 C -80 94 -34 90 -12 76 Z"
+                fill="#fda4af" stroke="#881337" stroke-width="3.8" stroke-linejoin="round" />
+          <!-- Right Lung -->
+          <path d="M 12 -32 C 54 -34 92 18 86 72 C 80 94 34 90 12 76 Z"
+                fill="#fda4af" stroke="#881337" stroke-width="3.8" stroke-linejoin="round" />
+
+          <!-- Bronchioles tree -->
+          <g stroke="#0284c7" stroke-width="4" stroke-linecap="round" fill="none">
+            <path d="M 0 -28 L -34 8 M -34 8 L -56 26 M -34 8 L -28 42" />
+            <path d="M 0 -28 L 34 8 M 34 8 L 56 26 M 34 8 L 28 42" />
+          </g>
+        </g>
+
+        <!-- O2 Intake Label & Arrow -->
+        <g transform="translate(1195, 292)">
+          <text x="0" y="0" text-anchor="middle" class="display-font" font-size="30" font-weight="700" fill="#0f172a">O₂</text>
+          <path d="M 28 -4 L 74 12" stroke="#0284c7" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-blue)" />
+          <!-- Motion lines -->
+          <line x1="-45" y1="-16" x2="-30" y2="-10" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="-50" y1="0" x2="-32" y2="0" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="-45" y1="16" x2="-30" y2="10" stroke="#0284c7" stroke-width="3.5" stroke-linecap="round" />
+        </g>
+
+        <!-- CO2 Exhale Label & Arrow -->
+        <g transform="translate(1515, 292)">
+          <text x="0" y="0" text-anchor="middle" class="display-font" font-size="30" font-weight="700" fill="#dc2626">CO₂</text>
+          <path d="M -78 14 L -32 -2" stroke="#dc2626" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-red)" />
+          <!-- Motion lines -->
+          <line x1="34" y1="-16" x2="50" y2="-22" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="38" y1="0" x2="56" y2="0" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="34" y1="16" x2="50" y2="22" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round" />
+        </g>
+
+        <!-- Animated O2 and CO2 Molecules in Stage 2 -->
+        <g id="stage2-particles"></g>
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- STAGE 3: CIRCULATORY SYSTEM (Bottom Left - Orange/Yellow Theme)     -->
+      <!-- =================================================================== -->
+      <g id="stage-3" class="stage-group" onclick="focusSection('stage3')">
+        <rect class="stage-card-bg" x="18" y="422" width="510" height="378" rx="28"
+              fill="#ffffff" stroke="#ea580c" stroke-width="5" filter="url(#card-shadow)" />
+
+        <!-- Number Badge 3 -->
+        <circle cx="58" cy="466" r="28" fill="#fde047" stroke="#854d0e" stroke-width="4" />
+        <text x="58" y="477" text-anchor="middle" class="display-font" font-size="32" font-weight="700" fill="#854d0e">3</text>
+
+        <!-- Heading + Underline -->
+        <text x="102" y="476" class="display-font" font-size="33" font-weight="700" fill="#111827">Circulatory system</text>
+        <line x1="102" y1="488" x2="425" y2="488" stroke="#ea580c" stroke-width="5" stroke-linecap="round" />
+
+        <!-- Body Text -->
+        <text x="48" y="532" font-size="24" font-weight="800" fill="#1e293b">
+          Transports <tspan fill="#7e22ce" font-weight="900">glucose</tspan> and
+        </text>
+        <text x="48" y="564" font-size="24" font-weight="800" fill="#1e293b">
+          <tspan fill="#0284c7" font-weight="900">oxygen</tspan> to cells and
+        </text>
+        <text x="48" y="596" font-size="24" font-weight="800" fill="#1e293b">
+          carries away
+        </text>
+        <text x="48" y="628" font-size="24" font-weight="900" fill="#dc2626">
+          carbon dioxide<tspan fill="#1e293b">.</tspan>
+        </text>
+
+        <!-- Detailed Beating Heart Illustration -->
+        <g id="circ-heart" transform="translate(432, 578)">
+          <!-- Superior Vena Cava & Aorta -->
+          <path d="M -26 -42 L -26 -68 L -12 -68 L -12 -45" fill="#3b82f6" stroke="#1e293b" stroke-width="3.5" />
+          <path d="M -10 -46 C -10 -78 24 -78 24 -44 L 12 -42 C 12 -58 -2 -58 -2 -45 Z" fill="#ef4444" stroke="#1e293b" stroke-width="3.5" />
+          <path d="M 18 -38 L 36 -50 L 42 -38 L 24 -26" fill="#3b82f6" stroke="#1e293b" stroke-width="3.5" />
+
+          <!-- Main Heart Chambers -->
+          <path d="M -12 -44
+                   C -42 -56 -64 -20 -44 18
+                   C -28 46 6 62 20 56
+                   C 42 46 52 8 36 -24
+                   C 26 -44 4 -48 -12 -44 Z"
+                fill="#ef4444" stroke="#1e293b" stroke-width="4" stroke-linejoin="round" />
+          <!-- Coronary Vessels -->
+          <path d="M -8 -24 Q 4 4 -12 32 M 2 -12 Q 20 2 16 28" fill="none" stroke="#991b1b" stroke-width="3" stroke-linecap="round" />
+
+          <!-- Heartbeat Action Lines -->
+          <line x1="-64" y1="-15" x2="-78" y2="-22" stroke="#16a34a" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="-66" y1="5" x2="-82" y2="5" stroke="#16a34a" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="56" y1="-10" x2="72" y2="-16" stroke="#16a34a" stroke-width="3.5" stroke-linecap="round" />
+          <line x1="58" y1="10" x2="74" y2="10" stroke="#16a34a" stroke-width="3.5" stroke-linecap="round" />
+        </g>
+
+        <!-- Cross-Section Blood Vessel Cylinder -->
+        <g transform="translate(46, 678)">
+          <!-- Outer Vessel Wall -->
+          <rect x="18" y="0" width="420" height="84" fill="#ef4444" stroke="#7f1d1d" stroke-width="4" />
+          <!-- Inner Blood Lumen -->
+          <rect x="18" y="10" width="420" height="64" fill="#fca5a5" />
+          <!-- Left Opening Ellipse -->
+          <ellipse cx="18" cy="42" rx="16" ry="42" fill="#dc2626" stroke="#7f1d1d" stroke-width="4" />
+          <ellipse cx="18" cy="42" rx="9" ry="30" fill="#7f1d1d" />
+          <!-- Right Opening Ellipse -->
+          <ellipse cx="438" cy="42" rx="16" ry="42" fill="#fca5a5" stroke="#7f1d1d" stroke-width="4" />
+          <ellipse cx="438" cy="42" rx="10" ry="31" fill="#b91c1c" />
+
+          <!-- Clip path for flowing blood contents -->
+          <clipPath id="vessel-clip">
+            <rect x="14" y="10" width="428" height="64" rx="12" />
+          </clipPath>
+
+          <!-- Animated Blood Stream (RBCs, Glucose, O2, CO2) -->
+          <g id="stage3-particles" clip-path="url(#vessel-clip)"></g>
+        </g>
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- STAGE 5: CELL MEMBRANE (Bottom Center - Light Green Theme)          -->
+      <!-- =================================================================== -->
+      <g id="stage-5" class="stage-group" onclick="focusSection('stage5')">
+        <rect class="stage-card-bg" x="528" y="772" width="546" height="206" rx="28"
+              fill="#ffffff" stroke="#65a30d" stroke-width="5" filter="url(#card-shadow)" />
+
+        <!-- Number Badge 5 -->
+        <circle cx="566" cy="812" r="26" fill="#bef264" stroke="#365314" stroke-width="4" />
+        <text x="566" y="823" text-anchor="middle" class="display-font" font-size="30" font-weight="700" fill="#365314">5</text>
+
+        <!-- Heading + Underline -->
+        <text x="606" y="821" class="display-font" font-size="31" font-weight="700" fill="#111827">Cell membrane</text>
+        <line x1="606" y1="831" x2="862" y2="831" stroke="#65a30d" stroke-width="4.5" stroke-linecap="round" />
+
+        <!-- Body Text -->
+        <text x="554" y="868" font-size="22" font-weight="800" fill="#1e293b">
+          Allows <tspan fill="#7e22ce" font-weight="900">glucose</tspan> and
+        </text>
+        <text x="554" y="898" font-size="22" font-weight="800" fill="#1e293b">
+          <tspan fill="#0284c7" font-weight="900">oxygen</tspan> to enter
+        </text>
+        <text x="554" y="928" font-size="22" font-weight="800" fill="#1e293b">
+          cells and <tspan fill="#dc2626" font-weight="900">carbon</tspan>
+        </text>
+        <text x="554" y="958" font-size="22" font-weight="800" fill="#1e293b">
+          <tspan fill="#dc2626" font-weight="900">dioxide</tspan> to leave.
+        </text>
+
+        <!-- Cell & Membrane Diagram -->
+        <g transform="translate(972, 875)">
+          <!-- Outer Double-Layer Membrane -->
+          <circle cx="0" cy="0" r="82" fill="#fef08a" stroke="#1e293b" stroke-width="4" />
+          <circle cx="0" cy="0" r="71" fill="#fef9c3" stroke="#ca8a04" stroke-width="3" />
+
+          <!-- Nucleus -->
+          <circle cx="14" cy="14" r="24" fill="#a855f7" stroke="#3b0764" stroke-width="3.5" />
+          <circle cx="8" cy="8" r="7" fill="#d8b4fe" opacity="0.7" />
+
+          <!-- Membrane Transport Pores / Channels -->
+          <ellipse cx="-68" cy="-24" rx="10" ry="12" fill="#7e22ce" stroke="#1e293b" stroke-width="3" />
+          <ellipse cx="-68" cy="26" rx="10" ry="12" fill="#0284c7" stroke="#1e293b" stroke-width="3" />
+          <ellipse cx="64" cy="36" rx="10" ry="11" fill="#dc2626" stroke="#1e293b" stroke-width="3" />
+
+          <!-- Glucose Entering -->
+          <use href="#sym-glucose" x="-142" y="-32" />
+          <text x="-142" y="-4" text-anchor="middle" class="display-font" font-size="16" font-weight="700" fill="#7e22ce">glucose</text>
+          <path d="M -120 -30 L -84 -25" stroke="#7e22ce" stroke-width="4.5" stroke-linecap="round" marker-end="url(#arrow-purple)" />
+
+          <!-- Oxygen Entering -->
+          <g transform="translate(-142, 34)">
+            <circle cx="0" cy="0" r="18" fill="#0284c7" stroke="#0c4a6e" stroke-width="3" />
+            <text x="0" y="6" text-anchor="middle" class="display-font" font-size="16" font-weight="700" fill="#ffffff">O₂</text>
+          </g>
+          <path d="M -118 32 L -84 27" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round" marker-end="url(#arrow-blue)" />
+
+          <!-- CO2 Exiting -->
+          <path d="M 42 32 L 104 42" stroke="#dc2626" stroke-width="5" stroke-linecap="round" marker-end="url(#arrow-red)" />
+          <text x="128" y="34" text-anchor="middle" class="display-font" font-size="20" font-weight="700" fill="#dc2626">CO₂</text>
+        </g>
+
+        <!-- Animated Membrane Crossing Particles -->
+        <g id="stage5-particles"></g>
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- STAGE 4: MITOCHONDRIA (Middle Right - Purple Theme)                 -->
+      <!-- =================================================================== -->
+      <g id="stage-4" class="stage-group" onclick="focusSection('stage4')">
+        <rect class="stage-card-bg" x="1032" y="452" width="546" height="335" rx="28"
+              fill="#ffffff" stroke="#7e22ce" stroke-width="5" filter="url(#card-shadow)" />
+
+        <!-- Number Badge 4 -->
+        <circle cx="1074" cy="496" r="28" fill="#e9d5ff" stroke="#581c87" stroke-width="4" />
+        <text x="1074" y="507" text-anchor="middle" class="display-font" font-size="32" font-weight="700" fill="#581c87">4</text>
+
+        <!-- Heading + Underline -->
+        <text x="1116" y="506" class="display-font" font-size="33" font-weight="700" fill="#111827">Mitochondria</text>
+        <line x1="1116" y1="518" x2="1365" y2="518" stroke="#7e22ce" stroke-width="5" stroke-linecap="round" />
+
+        <!-- Body Text -->
+        <text x="1062" y="564" font-size="25" font-weight="800" fill="#1e293b">
+          The site of <tspan fill="#16a34a" font-weight="900">aerobic</tspan>
+        </text>
+        <text x="1062" y="598" font-size="25" font-weight="800" fill="#1e293b">
+          respiration where
+        </text>
+        <g>
+          <rect x="1058" y="608" width="96" height="34" rx="8" fill="#fef08a" />
+          <text x="1062" y="633" font-size="25" font-weight="900" fill="#b45309">
+            energy <tspan fill="#1e293b" font-weight="800">is released.</tspan>
+          </text>
+        </g>
+
+        <!-- Detailed 3D Cutaway Mitochondrion Illustration -->
+        <g id="mito-organelle" transform="translate(1432, 622) rotate(-32)">
+          <!-- Outer Membrane -->
+          <rect x="-118" y="-56" width="236" height="112" rx="56" fill="#f97316" stroke="#1e293b" stroke-width="4.5" />
+          <!-- Intermembrane Space -->
+          <rect x="-104" y="-44" width="208" height="88" rx="44" fill="#fde047" stroke="#78350f" stroke-width="3" />
+          <!-- Inner Matrix with Folded Cristae -->
+          <path d="M -86 -20
+                   C -86 -32 -65 -32 -65 -14 L -65 10 C -65 18 -52 18 -52 10 L -52 -16
+                   C -52 -32 -28 -32 -28 -14 L -28 12 C -28 20 -15 20 -15 12 L -15 -16
+                   C -15 -32 10 -32 10 -14 L 10 12 C 10 20 23 20 23 12 L 23 -16
+                   C 23 -32 48 -32 48 -14 L 48 12 C 48 20 61 20 61 12 L 61 -14
+                   C 61 -32 86 -32 86 -14 L 86 14
+                   C 86 34 62 34 62 24 L 62 28
+                   C 62 36 36 36 36 24 L 36 28
+                   C 36 36 10 36 10 24 L 10 28
+                   C 10 36 -16 36 -16 24 L -16 28
+                   C -16 36 -42 36 -42 24 L -42 28
+                   C -42 36 -86 36 -86 14 Z"
+                fill="#3b82f6" stroke="#1e3a8a" stroke-width="3.5" stroke-linejoin="round" />
+        </g>
+
+        <!-- Glowing ENERGY Starburst Badge (Animated Pulse) -->
+        <g id="mito-energy-badge" transform="translate(1465, 742)" filter="url(#energy-glow)">
+          <polygon points="0,-34 14,-18 42,-28 32,-8 64,-12 46,6 68,22 38,22 44,42 16,28 0,44 -16,28 -44,42 -38,22 -68,22 -46,6 -64,-12 -32,-8 -42,-28 -14,-18"
+                   fill="#facc15" stroke="#854d0e" stroke-width="3" stroke-linejoin="round" />
+          <text x="0" y="9" text-anchor="middle" class="display-font" font-size="24" font-weight="700" fill="#1e293b">ENERGY</text>
+        </g>
+
+        <!-- Animated ATP Sparks & Reactants inside Stage 4 -->
+        <g id="stage4-particles"></g>
+      </g>
+
+      <!-- =================================================================== -->
+      <!-- SUMMARY WORD EQUATION BOX (Bottom Right)                            -->
+      <!-- =================================================================== -->
+      <g id="stage-equation" class="stage-group" onclick="focusSection('equation')">
+        <!-- Cloud-styled Equation Card -->
+        <!-- Glowing Lightbulb Icon + Energy Released Badge -->
+        <g id="eq-lightbulb" transform="translate(1204, 878)">
+          <!-- Rays -->
+          <g stroke="#eab308" stroke-width="4" stroke-linecap="round">
+            <line x1="0" y1="-44" x2="0" y2="-54" />
+            <line x1="-32" y1="-30" x2="-40" y2="-38" />
+            <line x1="32" y1="-30" x2="40" y2="-38" />
+            <line x1="-40" y1="0" x2="-50" y2="0" />
+            <line x1="40" y1="0" x2="50" y2="0" />
+          </g>
+          <!-- Bulb Glass -->
+          <path d="M -22 -8 C -22 -24 -12 -34 0 -34 C 12 -34 22 -24 22 -8 C 22 4 12 10 12 20 L -12 20 C -12 10 -22 4 -22 -8 Z"
+                fill="#fde047" stroke="#1e293b" stroke-width="3.5" />
+          <!-- Filament -->
+          <path d="M -6 18 L -6 2 L 0 -4 L 6 2 L 6 18" fill="none" stroke="#b45309" stroke-width="2.5" />
+          <!-- Screw Base -->
+          <rect x="-11" y="20" width="22" height="7" rx="2" fill="#94a3b8" stroke="#1e293b" stroke-width="2.5" />
+          <rect x="-10" y="27" width="20" height="7" rx="2" fill="#64748b" stroke="#1e293b" stroke-width="2.5" />
+          <path d="M -6 34 L 6 34 L 3 39 L -3 39 Z" fill="#334155" />
+          <!-- Energy Label Pill -->
+          <rect x="-42" y="45" width="84" height="24" rx="12" fill="#fef08a" stroke="#d97706" stroke-width="2.5" />
+          <text x="0" y="62" text-anchor="middle" class="display-font" font-size="15" font-weight="700" fill="#b45309">+ ENERGY</text>
+        </g>
+
+        <!-- Equation Text -->
+        <text x="1406" y="858" text-anchor="middle" class="display-font" font-size="29" font-weight="700" fill="#111827">
+          <tspan fill="#7e22ce">Glucose</tspan> + <tspan fill="#0284c7">Oxygen</tspan>
+        </text>
+
+        <!-- Down Arrow -->
+        <path d="M 1406 874 L 1406 908" stroke="#1d4ed8" stroke-width="6.5" stroke-linecap="round" marker-end="url(#arrow-blue)" />
+
+        <text x="1406" y="948" text-anchor="middle" class="display-font" font-size="28" font-weight="700">
+          <tspan fill="#dc2626">Carbon dioxide</tspan>
+          <tspan fill="#111827"> + </tspan>
+          <tspan fill="#0284c7">Water</tspan>
+        </text>
+      </g>
+
+    </svg>
+  </div>
+
+  <!-- Laser Pointer Dot -->
+  <div id="laser-dot"></div>
+
+  <!-- Floating Presentation Control Bar -->
+  <div id="control-dock">
+    <button class="nav-pill active" data-target="overview" onclick="focusSection('overview')" title="Fit Full Diagram (Esc)">
+      <span>🔍 Overview</span>
+    </button>
+    <button class="nav-pill" data-target="stage1" onclick="focusSection('stage1')">
+      <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span> 1. Digestive
+    </button>
+    <button class="nav-pill" data-target="stage2" onclick="focusSection('stage2')">
+      <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> 2. Respiratory
+    </button>
+    <button class="nav-pill" data-target="stage3" onclick="focusSection('stage3')">
+      <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span> 3. Circulatory
+    </button>
+    <button class="nav-pill" data-target="stage5" onclick="focusSection('stage5')">
+      <span class="w-2.5 h-2.5 rounded-full bg-lime-500"></span> 5. Cell Membrane
+    </button>
+    <button class="nav-pill" data-target="stage4" onclick="focusSection('stage4')">
+      <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span> 4. Mitochondria
+    </button>
+    <button class="nav-pill" data-target="equation" onclick="focusSection('equation')">
+      <span>💡 Equation</span>
+    </button>
+
+    <div class="h-6 w-px bg-slate-300 mx-1 hide-mobile"></div>
+
+    <!-- Step Prev/Next -->
+    <button class="icon-btn" onclick="stepSequence(-1)" title="Previous Step (Left Arrow)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="icon-btn" onclick="stepSequence(1)" title="Next Step (Right Arrow)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+
+    <!-- Play/Pause -->
+    <button id="btn-play-pause" class="icon-btn" onclick="togglePlay()" title="Play / Pause Animation (Space)">
+      <svg id="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      <svg id="icon-play" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </button>
+
+    <!-- Speed Cycle -->
+    <button id="btn-speed" class="nav-pill hide-mobile" onclick="cycleSpeed()" title="Animation Speed">
+      1.0x
+    </button>
+
+    <!-- Laser Pointer Toggle -->
+    <button id="btn-laser" class="icon-btn hide-mobile" onclick="toggleLaser()" title="Teacher Laser Pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+    </button>
+
+    <!-- Fullscreen Toggle -->
+    <button class="icon-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen Display">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+    </button>
+  </div>
+
+  <!-- Toggle Toolbar Visibility for Clean Smartboard View -->
+  <button id="dock-toggle-btn" onclick="toggleDock()" title="Hide/Show Controls">
+    Controls
+  </button>
+
+  <script>
+    /**
+     * AEROBIC RESPIRATION CLASSROOM SIMULATION ENGINE
+     * Smooth SVG ViewBox Camera Zoom/Pan + 60fps Molecular & Organ Animations
+     */
+
+    const svg = document.getElementById('scene');
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    // Predefined camera framing boxes [x, y, width, height] in 1600x1000 logical coordinates
+    const CAMERA_TARGETS = {
+      overview: { box: [0, 0, 1600, 1000], label: 'Full Overview', elements: [], arrows: [] },
+      stage1:   { box: [5, 10, 560, 415],  label: '1. Digestive System — Absorbing Glucose', elements: ['stage-1', 'stage-body'], arrows: ['conn-1'] },
+      stage2:   { box: [1085, 10, 510, 435], label: '2. Respiratory System — Gas Exchange (O₂ & CO₂)', elements: ['stage-2', 'stage-body'], arrows: ['conn-2'] },
+      stage3:   { box: [5, 408, 550, 410],  label: '3. Circulatory System — Transport in Blood', elements: ['stage-3', 'stage-body'], arrows: ['conn-3', 'conn-3-5'] },
+      stage5:   { box: [505, 752, 600, 240], label: '5. Cell Membrane — Diffusion Into & Out of Cells', elements: ['stage-5'], arrows: ['conn-3-5', 'conn-5-4'] },
+      stage4:   { box: [1010, 435, 585, 370], label: '4. Mitochondria — Aerobic Respiration Releases Energy', elements: ['stage-4'], arrows: ['conn-5-4'] },
+      equation: { box: [1125, 795, 470, 195], label: 'Aerobic Respiration Word Equation', elements: ['stage-equation'], arrows: [] },
+      body:     { box: [565, 140, 470, 635], label: 'Human Body Systems Overview', elements: ['stage-body'], arrows: ['conn-1', 'conn-2', 'conn-3'] }
+    };
+
+    const STEP_ORDER = ['overview', 'stage1', 'stage2', 'stage3', 'stage5', 'stage4', 'equation'];
+
+    let currentFocus = 'overview';
+    let currentViewBox = [0, 0, 1600, 1000];
+    let targetViewBox = [0, 0, 1600, 1000];
+
+    let isPlaying = true;
+    let simSpeed = 1.0;
+    let simTime = 0;
+    let lastTimestamp = 0;
+    let laserEnabled = false;
+
+    // Interactive Drag-to-Pan & Wheel-Zoom state
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let dragStartViewBox = [0, 0, 1600, 1000];
+
+    /**
+     * Smoothly transitions the SVG camera viewBox and highlights active stages
+     */
+    function focusSection(key) {
+      if (!CAMERA_TARGETS[key]) return;
+      currentFocus = key;
+      const cfg = CAMERA_TARGETS[key];
+      targetViewBox = [...cfg.box];
+
+      // Update dock active pill
+      document.querySelectorAll('.nav-pill[data-target]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === key);
+      });
+
+      // Update spotlight dimming
+      const banner = document.getElementById('focus-banner');
+      const bannerTitle = document.getElementById('focus-banner-title');
+
+      if (key === 'overview') {
+        svg.classList.remove('has-focus');
+        document.querySelectorAll('.stage-group').forEach(el => el.classList.remove('is-focused'));
+        document.querySelectorAll('.connector-arrow').forEach(el => el.classList.remove('is-focused-arrow'));
+        banner.classList.remove('visible');
+      } else {
+        svg.classList.add('has-focus');
+        document.querySelectorAll('.stage-group').forEach(el => {
+          el.classList.toggle('is-focused', cfg.elements.includes(el.id));
+        });
+        document.querySelectorAll('.connector-arrow').forEach(el => {
+          el.classList.toggle('is-focused-arrow', cfg.arrows.includes(el.id));
+        });
+        bannerTitle.textContent = cfg.label;
+        banner.classList.add('visible');
+      }
+    }
+
+    function stepSequence(dir) {
+      const idx = STEP_ORDER.indexOf(currentFocus);
+      const nextIdx = (idx + dir + STEP_ORDER.length) % STEP_ORDER.length;
+      focusSection(STEP_ORDER[nextIdx]);
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      document.getElementById('icon-pause').classList.toggle('hidden', !isPlaying);
+      document.getElementById('icon-play').classList.toggle('hidden', isPlaying);
+    }
+
+    function cycleSpeed() {
+      const speeds = [0.5, 1.0, 1.5];
+      const next = speeds[(speeds.indexOf(simSpeed) + 1) % speeds.length];
+      simSpeed = next;
+      document.getElementById('btn-speed').textContent = simSpeed.toFixed(1) + 'x';
+    }
+
+    function toggleLaser() {
+      laserEnabled = !laserEnabled;
+      const btn = document.getElementById('btn-laser');
+      const dot = document.getElementById('laser-dot');
+      btn.classList.toggle('active-toggle', laserEnabled);
+      dot.style.display = laserEnabled ? 'block' : 'none';
+    }
+
+    function toggleDock() {
+      document.getElementById('control-dock').classList.toggle('dock-hidden');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Track cursor for teacher laser pointer
+    window.addEventListener('pointermove', (e) => {
+      if (laserEnabled) {
+        const dot = document.getElementById('laser-dot');
+        dot.style.left = e.clientX + 'px';
+        dot.style.top = e.clientY + 'px';
+      }
+
+      if (isDragging) {
+        const rect = svg.getBoundingClientRect();
+        const scaleX = currentViewBox[2] / rect.width;
+        const scaleY = currentViewBox[3] / rect.height;
+        const dx = (e.clientX - dragStart.x) * scaleX;
+        const dy = (e.clientY - dragStart.y) * scaleY;
+        targetViewBox[0] = Math.max(-150, Math.min(1600 - targetViewBox[2] + 150, dragStartViewBox[0] - dx));
+        targetViewBox[1] = Math.max(-100, Math.min(1000 - targetViewBox[3] + 100, dragStartViewBox[1] - dy));
+      }
+    });
+
+    svg.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      isDragging = true;
+      dragStart = { x: e.clientX, y: e.clientY };
+      dragStartViewBox = [...targetViewBox];
+    });
+
+    window.addEventListener('pointerup', () => {
+      isDragging = false;
+    });
+
+    // Mouse Wheel Zoom around cursor
+    svg.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 1.12 : 0.88;
+      const newW = Math.max(320, Math.min(1600, targetViewBox[2] * zoomFactor));
+      const newH = Math.max(200, Math.min(1000, targetViewBox[3] * zoomFactor));
+
+      const rect = svg.getBoundingClientRect();
+      const relX = (e.clientX - rect.left) / rect.width;
+      const relY = (e.clientY - rect.top) / rect.height;
+
+      targetViewBox[0] += (targetViewBox[2] - newW) * relX;
+      targetViewBox[1] += (targetViewBox[3] - newH) * relY;
+      targetViewBox[2] = newW;
+      targetViewBox[3] = newH;
+    }, { passive: false });
+
+    // Keyboard shortcuts for classroom presenter remotes / keyboards
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' || e.key === '0') focusSection('overview');
+      else if (e.key === 'ArrowRight') stepSequence(1);
+      else if (e.key === 'ArrowLeft') stepSequence(-1);
+      else if (e.key === '1') focusSection('stage1');
+      else if (e.key === '2') focusSection('stage2');
+      else if (e.key === '3') focusSection('stage3');
+      else if (e.key === '4') focusSection('stage4');
+      else if (e.key === '5') focusSection('stage5');
+      else if (e.key === ' ') {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
+
+    /**
+     * PARTICLE SYSTEM INITIALIZATION
+     * Populates SVG groups with animated molecules and blood cells
+     */
+    function createEl(tag, attrs = {}) {
+      const el = document.createElementNS(SVG_NS, tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        el.setAttribute(k, v);
+      }
+      return el;
+    }
+
+    // 1. Blood Vessel Particles (Stage 3)
+    const vesselContainer = document.getElementById('stage3-particles');
+    const vesselParticles = [];
+    for (let i = 0; i < 7; i++) {
+      const rbc = createEl('use', { href: '#sym-rbc' });
+      vesselContainer.appendChild(rbc);
+      vesselParticles.push({ el: rbc, phase: i / 7, y: 24 + (i % 3) * 18, speed: 0.14, dir: 1 });
+    }
+    for (let i = 0; i < 4; i++) {
+      const gluc = createEl('use', { href: '#sym-glucose', transform: 'scale(0.8)' });
+      vesselContainer.appendChild(gluc);
+      vesselParticles.push({ el: gluc, phase: (i + 0.3) / 4, y: 26 + (i % 2) * 30, speed: 0.16, dir: 1, scale: 0.82 });
+    }
+    for (let i = 0; i < 4; i++) {
+      const o2 = createEl('use', { href: '#sym-o2' });
+      vesselContainer.appendChild(o2);
+      vesselParticles.push({ el: o2, phase: (i + 0.6) / 4, y: 34 + (i % 2) * 20, speed: 0.16, dir: 1, scale: 0.9 });
+    }
+    for (let i = 0; i < 3; i++) {
+      const co2 = createEl('use', { href: '#sym-co2' });
+      vesselContainer.appendChild(co2);
+      vesselParticles.push({ el: co2, phase: (i + 0.15) / 3, y: 28 + (i % 2) * 26, speed: 0.15, dir: 1, scale: 0.85 });
+    }
+
+    // 2. Central Human Body Circulatory & Airway Flow Particles
+    const bodyContainer = document.getElementById('body-particles');
+    const bodyFlows = [];
+
+    // Helper to sample quadratic/linear paths
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function samplePolyline(pts, t) {
+      const totalSegs = pts.length - 1;
+      const scaled = Math.min(totalSegs - 0.0001, Math.max(0, t * totalSegs));
+      const idx = Math.floor(scaled);
+      const localT = scaled - idx;
+      return {
+        x: lerp(pts[idx][0], pts[idx + 1][0], localT),
+        y: lerp(pts[idx][1], pts[idx + 1][1], localT)
+      };
+    }
+
+    // Glucose from intestines -> heart -> arms/legs
+    const glucoseBodyPaths = [
+      [[780, 610], [785, 510], [795, 435], [715, 395], [662, 465], [635, 690]],
+      [[815, 610], [810, 510], [805, 435], [885, 395], [938, 465], [965, 690]]
+    ];
+    glucoseBodyPaths.forEach((path, pIdx) => {
+      for (let i = 0; i < 3; i++) {
+        const el = createEl('use', { href: '#sym-glucose' });
+        bodyContainer.appendChild(el);
+        bodyFlows.push({ el, path, phase: (i / 3 + pIdx * 0.5) % 1, speed: 0.18, scale: 0.62 });
+      }
+    });
+
+    // O2 from nose -> trachea -> lungs -> heart -> body
+    const o2BodyPaths = [
+      [[885, 252], [812, 268], [806, 395], [765, 430], [705, 405], [645, 660]],
+      [[885, 252], [812, 268], [806, 395], [840, 430], [895, 405], [955, 660]]
+    ];
+    o2BodyPaths.forEach((path, pIdx) => {
+      for (let i = 0; i < 3; i++) {
+        const el = createEl('use', { href: '#sym-o2' });
+        bodyContainer.appendChild(el);
+        bodyFlows.push({ el, path, phase: (i / 3 + pIdx * 0.4) % 1, speed: 0.21, scale: 0.68 });
+      }
+    });
+
+    // CO2 from body -> heart -> lungs -> nose out
+    const co2BodyPath = [[750, 700], [795, 530], [805, 435], [806, 320], [815, 268], [895, 250]];
+    for (let i = 0; i < 3; i++) {
+      const el = createEl('use', { href: '#sym-co2' });
+      bodyContainer.appendChild(el);
+      bodyFlows.push({ el, path: co2BodyPath, phase: i / 3, speed: 0.17, scale: 0.65 });
+    }
+
+    // 3. Stage 2 Respiratory Particles (O2 entering lungs, CO2 leaving lungs)
+    const stage2Container = document.getElementById('stage2-particles');
+    const respParticles = [];
+    for (let i = 0; i < 3; i++) {
+      const o2 = createEl('use', { href: '#sym-o2' });
+      stage2Container.appendChild(o2);
+      respParticles.push({
+        el: o2,
+        path: [[1175, 285], [1280, 315], [1325, 345]],
+        phase: i / 3,
+        speed: 0.35,
+        scale: 0.9
+      });
+
+      const co2 = createEl('use', { href: '#sym-co2' });
+      stage2Container.appendChild(co2);
+      respParticles.push({
+        el: co2,
+        path: [[1390, 340], [1445, 305], [1535, 282]],
+        phase: (i + 0.5) / 3,
+        speed: 0.35,
+        scale: 0.85
+      });
+    }
+
+    // 4. Stage 5 Cell Membrane Crossing Particles
+    const stage5Container = document.getElementById('stage5-particles');
+    const memParticles = [];
+    for (let i = 0; i < 2; i++) {
+      const g = createEl('use', { href: '#sym-glucose' });
+      stage5Container.appendChild(g);
+      memParticles.push({
+        el: g,
+        path: [[825, 842], [904, 851], [952, 856]],
+        phase: i / 2,
+        speed: 0.32,
+        scale: 0.72
+      });
+
+      const o = createEl('use', { href: '#sym-o2' });
+      stage5Container.appendChild(o);
+      memParticles.push({
+        el: o,
+        path: [[825, 908], [904, 901], [952, 895]],
+        phase: (i + 0.5) / 2,
+        speed: 0.32,
+        scale: 0.75
+      });
+
+      const c = createEl('use', { href: '#sym-co2' });
+      stage5Container.appendChild(c);
+      memParticles.push({
+        el: c,
+        path: [[1005, 898], [1036, 911], [1085, 918]],
+        phase: i / 2,
+        speed: 0.32,
+        scale: 0.72
+      });
+    }
+
+    // 5. Stage 4 Mitochondria Energy Sparks & Reactants
+    const stage4Container = document.getElementById('stage4-particles');
+    const mitoParticles = [];
+    for (let i = 0; i < 6; i++) {
+      const spark = createEl('circle', { r: '5', fill: '#fef08a', stroke: '#d97706', 'stroke-width': '1.5' });
+      stage4Container.appendChild(spark);
+      const angle = (i / 6) * Math.PI * 2;
+      mitoParticles.push({
+        el: spark,
+        cx: 1435,
+        cy: 625,
+        angle,
+        phase: i / 6
+      });
+    }
+    // Subtle CO2 & H2O byproduct particles emerging from Mitochondria
+    const mitoByproducts = [];
+    for (let i = 0; i < 2; i++) {
+      const co2 = createEl('use', { href: '#sym-co2' });
+      stage4Container.appendChild(co2);
+      mitoByproducts.push({ el: co2, phase: i * 0.5, startX: 1380, startY: 590, dx: -55, dy: -45, scale: 0.75 });
+
+      const h2o = createEl('use', { href: '#sym-h2o' });
+      stage4Container.appendChild(h2o);
+      mitoByproducts.push({ el: h2o, phase: (i * 0.5 + 0.25) % 1, startX: 1365, startY: 635, dx: -65, dy: -20, scale: 0.85 });
+    }
+
+    /**
+     * MAIN 60FPS ANIMATION LOOP
+     */
+    function animate(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      // 1. Smoothly interpolate SVG Camera ViewBox (60fps damping)
+      const ease = 1 - Math.pow(0.0015, dt);
+      let viewChanged = false;
+      for (let i = 0; i < 4; i++) {
+        const diff = targetViewBox[i] - currentViewBox[i];
+        if (Math.abs(diff) > 0.05) {
+          currentViewBox[i] += diff * ease;
+          viewChanged = true;
+        } else {
+          currentViewBox[i] = targetViewBox[i];
+        }
+      }
+      if (viewChanged) {
+        svg.setAttribute('viewBox', currentViewBox.map(v => v.toFixed(2)).join(' '));
+      }
+
+      // 2. Advance biological simulation time when playing
+      if (isPlaying) {
+        simTime += dt * simSpeed;
+      }
+
+      // Breathing Lungs Animation (smooth sinusoidal expansion)
+      const breath = 1 + 0.065 * Math.sin(simTime * 2.4);
+      document.getElementById('resp-lungs').setAttribute('transform', `translate(1355, 325) scale(${breath.toFixed(4)})`);
+      document.getElementById('body-lungs-group').setAttribute('transform', `translate(800, 425) scale(${breath.toFixed(4)})`);
+
+      // Double-pump Heartbeat Animation
+      const beatCycle = (simTime * 1.4) % 1;
+      const lub = Math.exp(-Math.pow((beatCycle - 0.15) * 14, 2)) * 0.12;
+      const dub = Math.exp(-Math.pow((beatCycle - 0.35) * 14, 2)) * 0.08;
+      const heartScale = 1 + lub + dub;
+      document.getElementById('circ-heart').setAttribute('transform', `translate(432, 578) scale(${heartScale.toFixed(4)})`);
+      document.getElementById('body-heart-group').setAttribute('transform', `translate(804, 435) scale(${heartScale.toFixed(4)})`);
+
+      // Stomach gentle peristalsis wave
+      const stomachScaleX = 1 + 0.035 * Math.sin(simTime * 3.1);
+      const stomachScaleY = 1 - 0.03 * Math.sin(simTime * 3.1);
+      document.getElementById('digestive-stomach').setAttribute('transform', `translate(275, 305) scale(${stomachScaleX.toFixed(4)}, ${stomachScaleY.toFixed(4)})`);
+
+      // Mitochondria Energy Starburst & Lightbulb Pulse
+      const energyPulse = 1 + 0.08 * Math.sin(simTime * 4.5);
+      document.getElementById('mito-energy-badge').setAttribute('transform', `translate(1465, 742) scale(${energyPulse.toFixed(4)})`);
+      const bulbGlow = 0.85 + 0.15 * Math.sin(simTime * 4.5);
+      document.getElementById('eq-lightbulb').setAttribute('opacity', bulbGlow.toFixed(3));
+
+      // Update Blood Vessel Stream (Stage 3)
+      vesselParticles.forEach(p => {
+        const t = (p.phase + simTime * p.speed) % 1;
+        const x = p.dir === 1 ? (24 + t * 408) : (432 - t * 408);
+        const yOff = Math.sin(t * Math.PI * 4 + p.phase * 10) * 3;
+        const sc = p.scale || 1;
+        p.el.setAttribute('transform', `translate(${x.toFixed(1)}, ${(p.y + yOff).toFixed(1)}) scale(${sc})`);
+      });
+
+      // Update Central Body Molecules
+      bodyFlows.forEach(f => {
+        const t = (f.phase + simTime * f.speed) % 1;
+        const pos = samplePolyline(f.path, t);
+        f.el.setAttribute('transform', `translate(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) scale(${f.scale})`);
+      });
+
+      // Update Stage 2 Respiratory Molecules
+      respParticles.forEach(p => {
+        const t = (p.phase + simTime * p.speed) % 1;
+        const pos = samplePolyline(p.path, t);
+        const fade = Math.sin(t * Math.PI);
+        p.el.setAttribute('transform', `translate(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) scale(${p.scale})`);
+        p.el.setAttribute('opacity', fade.toFixed(2));
+      });
+
+      // Update Stage 5 Membrane Crossing Molecules
+      memParticles.forEach(p => {
+        const t = (p.phase + simTime * p.speed) % 1;
+        const pos = samplePolyline(p.path, t);
+        const fade = Math.sin(t * Math.PI);
+        p.el.setAttribute('transform', `translate(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) scale(${p.scale})`);
+        p.el.setAttribute('opacity', fade.toFixed(2));
+      });
+
+      // Update Stage 4 Mitochondrial ATP Sparks
+      mitoParticles.forEach(s => {
+        const t = (s.phase + simTime * 0.55) % 1;
+        const dist = 15 + t * 88;
+        const x = s.cx + Math.cos(s.angle + simTime * 0.4) * dist;
+        const y = s.cy + Math.sin(s.angle + simTime * 0.4) * dist * 0.7;
+        s.el.setAttribute('cx', x.toFixed(1));
+        s.el.setAttribute('cy', y.toFixed(1));
+        s.el.setAttribute('opacity', (1 - t).toFixed(2));
+      });
+
+      // Update Stage 4 CO2 & H2O Byproducts
+      mitoByproducts.forEach(b => {
+        const t = (b.phase + simTime * 0.35) % 1;
+        const x = b.startX + b.dx * t;
+        const y = b.startY + b.dy * t;
+        const fade = Math.sin(t * Math.PI);
+        b.el.setAttribute('transform', `translate(${x.toFixed(1)}, ${y.toFixed(1)}) scale(${b.scale})`);
+        b.el.setAttribute('opacity', fade.toFixed(2));
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // Start simulation immediately on load
+    window.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
