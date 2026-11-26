@@ -17,29 +17,31 @@
     html, body {
       margin: 0;
       padding: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
+      min-height: 100dvh;
       overflow: hidden;
       background-color: #060913;
       font-family: 'Inter', sans-serif;
       color: #f8fafc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: grid;
+      place-items: center;
     }
 
-    /* Strict 16:9 Presentation Slide Container scaled smoothly to fit any projector/screen */
+    /* Responsive 16:9 Presentation Slide Container centered cleanly on any viewport */
     #slide-deck {
-      width: min(100vw, calc(100vh * (16 / 9)));
-      height: min(100vh, calc(100vw * (9 / 16)));
-      aspect-ratio: 16 / 9;
+      width: min(98dvw, calc(96dvh * (16 / 9)));
+      height: min(96dvh, calc(98dvw * (9 / 16)));
+      max-width: 1920px;
+      max-height: 1080px;
       background: radial-gradient(circle at 75% 30%, #131d36 0%, #0b1120 65%, #070b14 100%);
-      border: 1px solid rgba(148, 163, 184, 0.18);
+      border: 1px solid rgba(148, 163, 184, 0.22);
       box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       position: relative;
+      margin: auto;
     }
 
     .font-mono-num {
@@ -52,7 +54,7 @@
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 12px;
+      height: 10px;
       border-radius: 999px;
       background: #1e293b;
       outline: none;
@@ -64,8 +66,8 @@
     input[type="range"].sim-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 26px;
-      height: 26px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: var(--thumb-color, #38bdf8);
       border: 3px solid #ffffff;
@@ -84,8 +86,8 @@
     }
 
     input[type="range"].sim-slider::-moz-range-thumb {
-      width: 26px;
-      height: 26px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: var(--thumb-color, #38bdf8);
       border: 3px solid #ffffff;
@@ -116,10 +118,15 @@
       transform: translateY(-1px);
     }
 
-    /* Subtle pulse on equation values when updated */
     .eq-token {
       display: inline-block;
       transition: transform 0.15s ease, text-shadow 0.15s ease;
+    }
+
+    #sim-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
@@ -128,114 +135,108 @@
   <!-- Main 16:9 Slide Container -->
   <div id="slide-deck" class="rounded-xl">
 
-    <!-- TOP NAVIGATION BAR (6 Equations + Presenter Step Controls) -->
-    <header class="w-full px-5 pt-3 pb-2.5 bg-slate-950/80 border-b border-slate-800/90 flex items-center justify-between gap-3 shrink-0">
-      <div class="flex items-center gap-2.5 shrink-0">
-        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-          <svg class="w-5 h-5 text-slate-950" fill="currentColor" viewBox="0 0 24 24">
+    <!-- TOP NAVIGATION BAR -->
+    <header class="w-full px-4 py-2 bg-slate-950/80 border-b border-slate-800/90 flex items-center justify-between gap-2 shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+          <svg class="w-4 h-4 text-slate-950" fill="currentColor" viewBox="0 0 24 24">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
           </svg>
         </div>
-        <div>
-          <div class="text-xs font-extrabold tracking-widest uppercase text-amber-400 leading-none">Physics Interactive</div>
-          <div class="text-sm font-bold text-slate-200 leading-tight">Electrical Equations</div>
+        <div class="hidden sm:block">
+          <div class="text-[10px] font-extrabold tracking-widest uppercase text-amber-400 leading-none">Physics Interactive</div>
+          <div class="text-xs font-bold text-slate-200 leading-tight">Electrical Equations</div>
         </div>
       </div>
 
       <!-- 6 Equation Tabs -->
-      <nav id="equation-tabs" class="flex items-center gap-1.5 flex-1 justify-center">
+      <nav id="equation-tabs" class="flex items-center gap-1 flex-1 justify-center flex-wrap">
         <!-- Populated dynamically by JS -->
       </nav>
 
-      <!-- Prev / Next Slide Buttons for Projector Clicker / Mouse -->
+      <!-- Prev / Next Slide Buttons -->
       <div class="flex items-center gap-1.5 shrink-0">
-        <button id="prev-slide-btn" title="Previous Slide (Left Arrow)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <button id="prev-slide-btn" title="Previous Slide (Left Arrow)" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           Prev
         </button>
-        <span id="slide-counter" class="font-mono-num text-xs font-bold text-slate-400 px-1.5">1 / 6</span>
-        <button id="next-slide-btn" title="Next Slide (Right Arrow)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition">
+        <span id="slide-counter" class="font-mono-num text-xs font-bold text-slate-400 px-1">1 / 6</span>
+        <button id="next-slide-btn" title="Next Slide (Right Arrow)" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 transition">
           Next
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
     </header>
 
-    <!-- SLIDE HEADER BANNER (Title, Real-World Context, Why It Matters) -->
-    <section class="px-6 pt-3 pb-2 flex items-center justify-between gap-4 shrink-0">
-      <div class="flex items-center gap-3.5 min-w-0">
-        <span id="slide-badge" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shrink-0">
+    <!-- SLIDE HEADER BANNER -->
+    <section class="px-5 pt-2 pb-1.5 flex items-center justify-between gap-3 shrink-0">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span id="slide-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shrink-0">
           Context
         </span>
-        <h1 id="slide-title" class="text-2xl font-black tracking-tight text-white truncate">
+        <h1 id="slide-title" class="text-lg lg:text-xl font-black tracking-tight text-white truncate">
           Charge Flow in Fast-Charging
         </h1>
       </div>
 
-      <div id="slide-takeaway" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-1.5 text-sm font-semibold text-slate-200 flex items-center gap-2 shrink-0 max-w-[54%]">
-        <span class="text-amber-400 font-black text-base">★</span>
+      <div id="slide-takeaway" class="bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1 text-xs font-semibold text-slate-200 hidden md:flex items-center gap-2 shrink-0 max-w-[52%]">
+        <span class="text-amber-400 font-black text-sm">★</span>
         <span id="takeaway-text" class="truncate">Higher current delivers more coulombs of charge in less time.</span>
       </div>
     </section>
 
-    <!-- MAIN SLIDE WORKSPACE: Left Controls & Live Equation | Right Interactive Visual Canvas -->
-    <main class="flex-1 px-6 pb-4 pt-1 grid grid-cols-12 gap-5 min-h-0">
+    <!-- MAIN SLIDE WORKSPACE -->
+    <main class="flex-1 px-5 pb-3.5 pt-1 grid grid-cols-12 gap-4 min-h-0">
 
-      <!-- LEFT COLUMN (5 cols): Big Equation Display + 3 Interactive Sliders -->
-      <div class="col-span-5 flex flex-col justify-between gap-3 min-h-0">
+      <!-- LEFT COLUMN (5 cols): Equation Display + 3 Interactive Sliders -->
+      <div class="col-span-5 flex flex-col justify-between gap-2 min-h-0">
 
         <!-- Dynamic Formula & Live Substituted Numbers Card -->
-        <div class="bg-slate-900/95 border-2 border-slate-700/90 rounded-2xl px-4 py-3 shadow-xl flex flex-col items-center justify-center shrink-0">
-          <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Live Relationship</div>
-          <!-- Symbolic Formula -->
-          <div id="symbolic-equation" class="text-3xl font-black tracking-wide mb-1 flex items-center justify-center gap-2">
-            <!-- Populated by JS -->
-          </div>
-          <!-- Substituted Values -->
-          <div id="numeric-equation" class="font-mono-num text-lg font-extrabold bg-slate-950/90 px-3.5 py-1 rounded-xl border border-slate-800 text-slate-100">
-            <!-- Populated by JS -->
-          </div>
+        <div class="bg-slate-900/95 border-2 border-slate-700/90 rounded-2xl px-3 py-2 shadow-xl flex flex-col items-center justify-center shrink-0">
+          <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Live Relationship</div>
+          <div id="symbolic-equation" class="text-2xl lg:text-3xl font-black tracking-wide mb-1 flex items-center justify-center gap-2"></div>
+          <div id="numeric-equation" class="font-mono-num text-sm lg:text-base font-extrabold bg-slate-950/90 px-3 py-0.5 rounded-xl border border-slate-800 text-slate-100"></div>
         </div>
 
         <!-- Helper Instruction -->
-        <div class="flex items-center justify-between px-1 text-xs text-slate-400 font-semibold shrink-0">
-          <span>Drag any unlocked slider to test:</span>
+        <div class="flex items-center justify-between px-1 text-[11px] text-slate-400 font-semibold shrink-0">
+          <span>Drag unlocked slider:</span>
           <span class="flex items-center gap-1 text-amber-300">
-            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
-            Click lock to hold constant
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+            Lock holds constant
           </span>
         </div>
 
         <!-- 3 Variable Sliders Container -->
-        <div id="sliders-container" class="flex-1 flex flex-col justify-between gap-2.5 min-h-0">
+        <div id="sliders-container" class="flex-1 flex flex-col justify-between gap-2 min-h-0">
           <!-- 3 Slider Cards injected by JS -->
         </div>
 
       </div>
 
       <!-- RIGHT COLUMN (7 cols): Live Animated Physics Stage -->
-      <div class="col-span-7 bg-slate-950/90 border-2 border-slate-800 rounded-2xl relative overflow-hidden flex flex-col shadow-2xl">
+      <div class="col-span-7 bg-slate-950/90 border-2 border-slate-800 rounded-2xl relative overflow-hidden flex flex-col shadow-2xl min-h-0">
         <!-- Top Overlay Bar inside Visual Stage -->
-        <div class="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
-          <div id="stage-status-pill" class="px-3.5 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700/80 text-xs font-bold text-slate-200 shadow-lg">
+        <div class="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between gap-2 pointer-events-none">
+          <div id="stage-status-pill" class="px-3 py-1 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700/80 text-xs font-bold text-slate-200 shadow-lg truncate">
             Live Simulation Active
           </div>
 
-          <button id="action-trigger-btn" class="pointer-events-auto px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center gap-1.5 transition transform active:scale-95">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+          <button id="action-trigger-btn" class="pointer-events-auto px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-[11px] uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center gap-1.5 transition transform active:scale-95 shrink-0">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
             <span id="action-btn-label">Replay Cycle</span>
           </button>
         </div>
 
         <!-- Responsive Full-Area HTML5 Canvas -->
-        <div id="canvas-wrapper" class="w-full h-full relative">
+        <div id="canvas-wrapper" class="w-full h-full relative min-h-0 flex items-center justify-center">
           <canvas id="sim-canvas"></canvas>
         </div>
 
         <!-- Bottom Physics Insight Caption inside Stage -->
-        <div id="stage-caption" class="absolute bottom-3 left-3 right-3 z-10 px-4 py-2 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700/80 text-xs font-semibold text-slate-200 flex items-center justify-between pointer-events-none">
-          <span id="caption-left">1 Amp = 1 Coulomb of charge passing every second.</span>
-          <span id="caption-right" class="font-mono-num font-bold text-cyan-300">Rate: 4.0 C/s</span>
+        <div id="stage-caption" class="absolute bottom-2.5 left-2.5 right-2.5 z-10 px-3 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur border border-slate-700/80 text-[11px] font-semibold text-slate-200 flex items-center justify-between gap-2 pointer-events-none">
+          <span id="caption-left" class="truncate">1 Amp = 1 Coulomb of charge passing every second.</span>
+          <span id="caption-right" class="font-mono-num font-bold text-cyan-300 shrink-0">Rate: 4.0 C/s</span>
         </div>
       </div>
 
@@ -243,24 +244,16 @@
   </div>
 
   <script>
-    /**
-     * ELECTRICAL EQUATIONS CLASSROOM SIMULATION
-     * Designed as a 16:9 presentation slide deck with 6 interactive physics simulations.
-     * Supports locking any of the 3 variables so adjusting one dynamically calculates the unlocked partner.
-     */
-
-    // Color Palette Tokens for Physical Quantities (Consistent across all slides)
     const COLORS = {
-      Q: { hex: '#34d399', text: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-400/40' }, // Charge (Emerald)
-      I: { hex: '#38bdf8', text: 'text-sky-400',     bg: 'bg-sky-500/15',     border: 'border-sky-400/40' },     // Current (Cyan/Sky)
-      t: { hex: '#c084fc', text: 'text-purple-400',  bg: 'bg-purple-500/15',  border: 'border-purple-400/40' },  // Time (Purple)
-      V: { hex: '#fbbf24', text: 'text-amber-400',   bg: 'bg-amber-500/15',   border: 'border-amber-400/40' },   // Voltage (Amber/Gold)
-      R: { hex: '#fb7185', text: 'text-rose-400',    bg: 'bg-rose-500/15',    border: 'border-rose-400/40' },    // Resistance (Rose/Red)
-      E: { hex: '#f472b6', text: 'text-pink-400',    bg: 'bg-pink-500/15',    border: 'border-pink-400/40' },    // Energy (Pink/Magenta)
-      P: { hex: '#fb923c', text: 'text-orange-400',  bg: 'bg-orange-500/15',  border: 'border-orange-400/40' }   // Power (Orange)
+      Q: { hex: '#34d399', text: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-400/40' },
+      I: { hex: '#38bdf8', text: 'text-sky-400',     bg: 'bg-sky-500/15',     border: 'border-sky-400/40' },
+      t: { hex: '#c084fc', text: 'text-purple-400',  bg: 'bg-purple-500/15',  border: 'border-purple-400/40' },
+      V: { hex: '#fbbf24', text: 'text-amber-400',   bg: 'bg-amber-500/15',   border: 'border-amber-400/40' },
+      R: { hex: '#fb7185', text: 'text-rose-400',    bg: 'bg-rose-500/15',    border: 'border-rose-400/40' },
+      E: { hex: '#f472b6', text: 'text-pink-400',    bg: 'bg-pink-500/15',    border: 'border-pink-400/40' },
+      P: { hex: '#fb923c', text: 'text-orange-400',  bg: 'bg-orange-500/15',  border: 'border-orange-400/40' }
     };
 
-    // Definitions for all 6 Equation Slides
     const SLIDES = [
       {
         id: 'q-it',
@@ -274,11 +267,10 @@
           I: { symbol: 'I', name: 'Current', unit: 'A', min: 0.5, max: 10, step: 0.1, val: 3.0, color: COLORS.I },
           t: { symbol: 't', name: 'Time',    unit: 's', min: 5,  max: 120, step: 1,   val: 60,  color: COLORS.t }
         },
-        lockedKey: 't', // Hold Time constant by default so sliding I updates Q (and vice versa)
+        lockedKey: 't',
         recalculate(changedKey) {
           const v = this.vars;
           const locked = this.lockedKey;
-          // Formula: Q = I * t
           if (changedKey === 'I') {
             if (locked === 't') {
               v.Q.val = clamp(round(v.I.val * v.t.val, 1), v.Q.min, v.Q.max);
@@ -338,11 +330,10 @@
           I: { symbol: 'I', name: 'Current',    unit: 'A', min: 0.2, max: 6.0, step: 0.1, val: 2.0, color: COLORS.I },
           R: { symbol: 'R', name: 'Resistance', unit: 'Ω', min: 1,   max: 20, step: 0.5, val: 6.0,  color: COLORS.R }
         },
-        lockedKey: 'R', // Hold Resistance constant by default
+        lockedKey: 'R',
         recalculate(changedKey) {
           const v = this.vars;
           const locked = this.lockedKey;
-          // Formula: V = I * R
           if (changedKey === 'V') {
             if (locked === 'R') {
               v.I.val = clamp(round(v.V.val / v.R.val, 2), v.I.min, v.I.max);
@@ -402,11 +393,10 @@
           P: { symbol: 'P', name: 'Power',  unit: 'kW', min: 0.5, max: 3.0, step: 0.1, val: 2.0, color: COLORS.P },
           t: { symbol: 't', name: 'Time',   unit: 's',  min: 10,  max: 180, step: 1,   val: 60,  color: COLORS.t }
         },
-        lockedKey: 'E', // Hold Energy needed to boil water constant by default!
+        lockedKey: 'E',
         recalculate(changedKey) {
           const v = this.vars;
           const locked = this.lockedKey;
-          // Formula: E (kJ) = P (kW) * t (s)
           if (changedKey === 'P') {
             if (locked === 'E') {
               v.t.val = clamp(round(v.E.val / v.P.val, 1), v.t.min, v.t.max);
@@ -466,11 +456,10 @@
           Q: { symbol: 'Q', name: 'Charge',  unit: 'C', min: 0.02, max: 0.25, step: 0.01, val: 0.10, color: COLORS.Q },
           V: { symbol: 'V', name: 'Voltage', unit: 'V', min: 500,  max: 3000, step: 50,   val: 2000, color: COLORS.V }
         },
-        lockedKey: 'Q', // Hold Capacitor Charge capacity fixed by default
+        lockedKey: 'Q',
         recalculate(changedKey) {
           const v = this.vars;
           const locked = this.lockedKey;
-          // Formula: E = Q * V
           if (changedKey === 'V') {
             if (locked === 'Q') {
               v.E.val = clamp(round(v.Q.val * v.V.val, 1), v.E.min, v.E.max);
@@ -530,11 +519,10 @@
           V: { symbol: 'V', name: 'Voltage', unit: 'V',  min: 230, max: 800, step: 10,  val: 800, color: COLORS.V },
           I: { symbol: 'I', name: 'Current', unit: 'A',  min: 10,  max: 500, step: 5,   val: 200, color: COLORS.I }
         },
-        lockedKey: 'V', // Hold Charger Architecture Voltage fixed by default
+        lockedKey: 'V',
         recalculate(changedKey) {
           const v = this.vars;
           const locked = this.lockedKey;
-          // Formula: P (kW) = (V * I) / 1000
           if (changedKey === 'I') {
             if (locked === 'V') {
               v.P.val = clamp(round((v.V.val * v.I.val) / 1000, 1), v.P.min, v.P.max);
@@ -594,11 +582,10 @@
           I: { symbol: 'I', name: 'Current',    unit: 'A',  min: 10,  max: 500,  step: 5,   val: 200, color: COLORS.I },
           R: { symbol: 'R', name: 'Resistance', unit: 'Ω',  min: 1,   max: 20,   step: 0.5, val: 5.0, color: COLORS.R }
         },
-        lockedKey: 'R', // Hold Transmission Cable Resistance fixed by default
+        lockedKey: 'R',
         recalculate(changedKey) {
           const v = this.vars;
           const locked = this.lockedKey;
-          // Formula: P (kW) = (I^2 * R) / 1000
           if (changedKey === 'I') {
             if (locked === 'R') {
               v.P.val = clamp(round((v.I.val * v.I.val * v.R.val) / 1000, 1), v.P.min, v.P.max);
@@ -647,7 +634,6 @@
       }
     ];
 
-    // Helper Math Utilities
     function clamp(val, min, max) {
       return Math.min(Math.max(val, min), max);
     }
@@ -657,13 +643,11 @@
       return Math.round(val * factor) / factor;
     }
 
-    // Application State
     let currentSlideIndex = 0;
-    let simTime = 0;         // Elapsed animation timer for cyclic simulations
-    let pulseEffect = 0;     // Visual burst trigger when user clicks the action button
-    let transformerMode = false; // Used on P = I^2R slide when clicking "Test Step-Up Transformer"
+    let simTime = 0;
+    let pulseEffect = 0;
+    let transformerMode = false;
 
-    // DOM References
     const tabsContainer = document.getElementById('equation-tabs');
     const slideBadge = document.getElementById('slide-badge');
     const slideTitle = document.getElementById('slide-title');
@@ -676,22 +660,27 @@
     const stageStatusPill = document.getElementById('stage-status-pill');
     const captionLeft = document.getElementById('caption-left');
     const captionRight = document.getElementById('caption-right');
+    const canvasWrapper = document.getElementById('canvas-wrapper');
     const canvas = document.getElementById('sim-canvas');
     const ctx = canvas.getContext('2d');
 
-    // Initialize Navigation Tabs
+    // Virtual Coordinate System (guarantees exact centering & proportions on all monitors/projectors)
+    const VW = 1000;
+    const VH = 620;
+    let cssW = 1000;
+    let cssH = 620;
+
     function initTabs() {
       tabsContainer.innerHTML = '';
       SLIDES.forEach((slide, idx) => {
         const btn = document.createElement('button');
-        btn.className = `nav-tab px-3.5 py-1.5 rounded-xl font-mono-num text-sm font-extrabold border border-slate-700/90 bg-slate-900/90 text-slate-300 hover:text-white hover:border-slate-500 ${idx === currentSlideIndex ? 'active' : ''}`;
+        btn.className = `nav-tab px-2.5 py-1 rounded-xl font-mono-num text-xs lg:text-sm font-extrabold border border-slate-700/90 bg-slate-900/90 text-slate-300 hover:text-white hover:border-slate-500 ${idx === currentSlideIndex ? 'active' : ''}`;
         btn.textContent = slide.tabLabel;
         btn.onclick = () => switchSlide(idx);
         tabsContainer.appendChild(btn);
       });
     }
 
-    // Switch Active Slide
     function switchSlide(index) {
       currentSlideIndex = (index + SLIDES.length) % SLIDES.length;
       simTime = 0;
@@ -700,12 +689,10 @@
 
       const slide = SLIDES[currentSlideIndex];
 
-      // Update Tab Active Styling
       Array.from(tabsContainer.children).forEach((tab, idx) => {
         tab.classList.toggle('active', idx === currentSlideIndex);
       });
 
-      // Update Header Metadata
       slideCounter.textContent = `${currentSlideIndex + 1} / ${SLIDES.length}`;
       slideBadge.textContent = slide.contextBadge;
       slideTitle.textContent = slide.title;
@@ -714,9 +701,9 @@
 
       renderSliders();
       updateEquationDisplay();
+      resizeCanvas();
     }
 
-    // Build the 3 Interactive Variable Sliders for the Active Slide
     function renderSliders() {
       const slide = SLIDES[currentSlideIndex];
       slidersContainer.innerHTML = '';
@@ -727,7 +714,7 @@
 
         const card = document.createElement('div');
         card.id = `slider-card-${key}`;
-        card.className = `slider-card rounded-2xl px-4 py-2.5 border transition-all flex flex-col justify-center ${
+        card.className = `slider-card rounded-2xl px-3.5 py-2 border transition-all flex flex-col justify-center ${
           isLocked
             ? 'is-locked border-slate-700/60'
             : 'bg-slate-900/90 border-slate-700/90 hover:border-slate-600 shadow-md'
@@ -738,24 +725,24 @@
           : (v.step < 1 ? v.val.toFixed(1) : v.val.toFixed(0));
 
         card.innerHTML = `
-          <div class="flex items-center justify-between mb-1.5">
-            <div class="flex items-center gap-2">
-              <span class="w-7 h-7 rounded-lg ${v.color.bg} ${v.color.border} border flex items-center justify-center font-mono-num font-black text-base ${v.color.text}">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-6 h-6 rounded-lg ${v.color.bg} ${v.color.border} border flex items-center justify-center font-mono-num font-black text-sm ${v.color.text} shrink-0">
                 ${v.symbol}
               </span>
-              <span class="font-bold text-sm text-slate-100">${v.name}</span>
-              ${isLocked ? '<span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">Held Constant</span>' : ''}
+              <span class="font-bold text-xs lg:text-sm text-slate-100 truncate">${v.name}</span>
+              ${isLocked ? '<span class="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30 shrink-0">Constant</span>' : ''}
             </div>
 
-            <div class="flex items-center gap-2.5">
-              <span id="val-readout-${key}" class="font-mono-num text-lg font-black ${v.color.text}">
+            <div class="flex items-center gap-2 shrink-0">
+              <span id="val-readout-${key}" class="font-mono-num text-sm lg:text-base font-black ${v.color.text}">
                 ${formattedVal} <span class="text-xs font-bold text-slate-400">${v.unit}</span>
               </span>
 
               <button
                 id="lock-btn-${key}"
                 title="${isLocked ? 'Locked (Held Constant)' : 'Click to hold this variable constant'}"
-                class="p-1.5 rounded-lg border transition ${
+                class="p-1 rounded-lg border transition ${
                   isLocked
                     ? 'bg-amber-500/25 border-amber-400 text-amber-300'
                     : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
@@ -763,8 +750,8 @@
               >
                 ${
                   isLocked
-                    ? `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
-                    : `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z"/></svg>`
+                    ? `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
+                    : `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z"/></svg>`
                 }
               </button>
             </div>
@@ -785,14 +772,12 @@
 
         slidersContainer.appendChild(card);
 
-        // Lock button toggles which variable is held constant
         const lockBtn = document.getElementById(`lock-btn-${key}`);
         lockBtn.onclick = () => {
           slide.lockedKey = key;
           renderSliders();
         };
 
-        // Slider input handler
         const rangeEl = document.getElementById(`range-${key}`);
         rangeEl.addEventListener('input', (e) => {
           if (slide.lockedKey === key) return;
@@ -804,7 +789,6 @@
       });
     }
 
-    // Sync All Slider Thumbs & Numeric Readouts Without Rebuilding DOM
     function syncSliderValues() {
       const slide = SLIDES[currentSlideIndex];
       Object.keys(slide.vars).forEach((key) => {
@@ -821,21 +805,18 @@
       });
     }
 
-    // Update Symbolic & Substituted Equation Banner
     function updateEquationDisplay() {
       const slide = SLIDES[currentSlideIndex];
       symbolicEqEl.innerHTML = slide.renderSymbolic();
       numericEqEl.innerHTML = slide.renderNumeric();
     }
 
-    // Action Trigger Button Handler (Replay cycle / Fire pulse / Transformer demo)
     document.getElementById('action-trigger-btn').onclick = () => {
       const slide = SLIDES[currentSlideIndex];
       simTime = 0;
       pulseEffect = 1.0;
 
       if (slide.id === 'p-i2r') {
-        // Toggle between High Current (200 A) and Stepped-Up High Voltage (50 A -> 16x less heat loss!)
         transformerMode = !transformerMode;
         slide.lockedKey = 'R';
         if (transformerMode) {
@@ -851,7 +832,6 @@
       }
     };
 
-    // Navigation Controls & Keyboard Shortcuts
     document.getElementById('prev-slide-btn').onclick = () => switchSlide(currentSlideIndex - 1);
     document.getElementById('next-slide-btn').onclick = () => switchSlide(currentSlideIndex + 1);
 
@@ -863,25 +843,35 @@
       }
     });
 
-    // Responsive High-DPI Canvas Resizer
+    // ResizeObserver tracks exact container layout across all screens & zoom levels
     function resizeCanvas() {
-      const wrapper = document.getElementById('canvas-wrapper');
-      if (!wrapper) return;
-      const rect = wrapper.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!canvasWrapper) return;
+      const rect = canvasWrapper.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      cssW = rect.width;
+      cssH = rect.height;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
     }
+
+    const resizeObserver = new ResizeObserver(() => resizeCanvas());
+    resizeObserver.observe(canvasWrapper);
     window.addEventListener('resize', resizeCanvas);
 
     // =========================================================================
-    // 60FPS INTERACTIVE PHYSICS VISUALIZATIONS (1 PER EQUATION SLIDE)
+    // 60FPS INTERACTIVE PHYSICS VISUALIZATIONS (Drawn in centered Virtual Space)
     // =========================================================================
 
     function drawRoundedRect(x, y, w, h, r) {
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, r);
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, w, h, r);
+      } else {
+        ctx.rect(x, y, w, h);
+      }
     }
 
     // 1. Q = It : Smartphone Fast-Charging Station
@@ -889,7 +879,6 @@
       const { Q, I, t } = SLIDES[0].vars;
       simTime += dt;
 
-      // Cycle duration scales visually with t (compressed so classroom sees progress smoothly)
       const visualDuration = Math.max(2.5, t.val / 12);
       const progress = Math.min(1, (simTime % (visualDuration + 1.2)) / visualDuration);
       const deliveredQ = Q.val * progress;
@@ -898,11 +887,10 @@
       captionLeft.textContent = `Current I = ${I.val.toFixed(1)} A pushes ${I.val.toFixed(1)} Coulombs through the cable every second.`;
       captionRight.textContent = `Delivered: ${deliveredQ.toFixed(0)} / ${Q.val.toFixed(0)} C`;
 
-      // Charger Adapter Box (Left)
-      const chargerX = w * 0.1;
+      const chargerX = w * 0.11;
       const chargerY = h * 0.34;
-      const chargerW = w * 0.18;
-      const chargerH = h * 0.32;
+      const chargerW = w * 0.21;
+      const chargerH = h * 0.30;
 
       ctx.fillStyle = '#1e293b';
       ctx.strokeStyle = '#38bdf8';
@@ -911,27 +899,25 @@
       ctx.fill();
       ctx.stroke();
 
-      // Charger Label & Current Readout
       ctx.fillStyle = '#38bdf8';
-      ctx.font = '800 14px Inter';
+      ctx.font = '800 15px Inter';
       ctx.textAlign = 'center';
-      ctx.fillText('FAST CHARGER', chargerX + chargerW / 2, chargerY + 28);
+      ctx.fillText('FAST CHARGER', chargerX + chargerW / 2, chargerY + 32);
 
       ctx.fillStyle = '#f8fafc';
-      ctx.font = '800 22px "JetBrains Mono"';
-      ctx.fillText(`${I.val.toFixed(1)} A`, chargerX + chargerW / 2, chargerY + chargerH / 2 + 8);
+      ctx.font = '800 28px "JetBrains Mono"';
+      ctx.fillText(`${I.val.toFixed(1)} A`, chargerX + chargerW / 2, chargerY + chargerH / 2 + 10);
 
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '600 12px Inter';
+      ctx.font = '600 13px Inter';
       ctx.fillText(`${I.val.toFixed(1)} C / sec`, chargerX + chargerW / 2, chargerY + chargerH - 18);
 
-      // Smartphone Battery Chassis (Right)
-      const phoneX = w * 0.56;
-      const phoneY = h * 0.22;
+      // Smartphone Battery Chassis
+      const phoneX = w * 0.57;
+      const phoneY = h * 0.21;
       const phoneW = w * 0.32;
-      const phoneH = h * 0.56;
+      const phoneH = h * 0.54;
 
-      // Phone Outer Body
       ctx.fillStyle = '#0f172a';
       ctx.strokeStyle = '#64748b';
       ctx.lineWidth = 4;
@@ -939,12 +925,10 @@
       ctx.fill();
       ctx.stroke();
 
-      // Battery Cap
       ctx.fillStyle = '#64748b';
-      drawRoundedRect(phoneX + phoneW * 0.35, phoneY - 10, phoneW * 0.3, 10, 4);
+      drawRoundedRect(phoneX + phoneW * 0.35, phoneY - 11, phoneW * 0.3, 11, 4);
       ctx.fill();
 
-      // Battery Fill Level (scales with both Q capacity & cycle progress)
       const maxCapacityRef = 600;
       const capacityFraction = clamp(Q.val / maxCapacityRef, 0.12, 1.0);
       const activeFillRatio = capacityFraction * progress;
@@ -954,7 +938,6 @@
       const innerH = phoneH - innerPad * 2;
       const fillH = innerH * activeFillRatio;
 
-      // Target Capacity Ghost Outline
       const targetH = innerH * capacityFraction;
       ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
       ctx.setLineDash([6, 4]);
@@ -963,7 +946,6 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Active Emerald Charge Fill
       if (fillH > 2) {
         const grad = ctx.createLinearGradient(0, phoneY + phoneH, 0, phoneY);
         grad.addColorStop(0, '#059669');
@@ -973,18 +955,16 @@
         ctx.fill();
       }
 
-      // Charge Text Inside Phone
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 26px "JetBrains Mono"';
+      ctx.font = '900 30px "JetBrains Mono"';
       ctx.fillText(`${deliveredQ.toFixed(0)} C`, phoneX + phoneW / 2, phoneY + phoneH / 2 - 4);
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = '700 13px Inter';
-      ctx.fillText(`Target: ${Q.val.toFixed(0)} C in ${t.val.toFixed(0)} s`, phoneX + phoneW / 2, phoneY + phoneH / 2 + 22);
+      ctx.font = '700 14px Inter';
+      ctx.fillText(`Target: ${Q.val.toFixed(0)} C in ${t.val.toFixed(0)} s`, phoneX + phoneW / 2, phoneY + phoneH / 2 + 24);
 
-      // Charging Cable Connecting Charger -> Phone
       const cableStartX = chargerX + chargerW;
       const cableEndX = phoneX;
-      const cableY = h * 0.5;
+      const cableY = h * 0.49;
 
       ctx.strokeStyle = '#334155';
       ctx.lineWidth = 14;
@@ -993,9 +973,8 @@
       ctx.lineTo(cableEndX, cableY);
       ctx.stroke();
 
-      // Animated Coulomb Charge Packets flowing along the cable (Speed & density ~ Current I)
       const numPackets = Math.max(3, Math.round(I.val * 1.6));
-      const speed = I.val * 55;
+      const speed = I.val * 65;
       const cableLen = cableEndX - cableStartX;
 
       for (let i = 0; i < numPackets; i++) {
@@ -1006,30 +985,29 @@
         ctx.shadowColor = '#34d399';
         ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(px, cableY, 6, 0, Math.PI * 2);
+        ctx.arc(px, cableY, 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#064e3b';
-        ctx.font = '900 9px Inter';
-        ctx.fillText('+', px, cableY + 3);
+        ctx.font = '900 11px Inter';
+        ctx.fillText('+', px, cableY + 4);
       }
 
-      // Timeline Progress Bar at Top of Stage
-      const barX = w * 0.1;
+      const barX = w * 0.11;
       const barW = w * 0.78;
-      const barY = h * 0.86;
+      const barY = h * 0.85;
       ctx.fillStyle = '#1e293b';
-      drawRoundedRect(barX, barY, barW, 10, 5);
+      drawRoundedRect(barX, barY, barW, 12, 6);
       ctx.fill();
 
       ctx.fillStyle = '#c084fc';
-      drawRoundedRect(barX, barY, barW * progress, 10, 5);
+      drawRoundedRect(barX, barY, barW * progress, 12, 6);
       ctx.fill();
 
       ctx.fillStyle = '#e9d5ff';
-      ctx.font = '700 12px "JetBrains Mono"';
-      ctx.fillText(`Elapsed Time: ${(t.val * progress).toFixed(1)} s / ${t.val.toFixed(0)} s`, w * 0.49, barY - 8);
+      ctx.font = '700 14px "JetBrains Mono"';
+      ctx.fillText(`Elapsed Time: ${(t.val * progress).toFixed(1)} s / ${t.val.toFixed(0)} s`, w * 0.50, barY - 10);
     }
 
     // 2. V = IR : Stage Dimmer Switch & Spotlight Circuit
@@ -1041,21 +1019,18 @@
       captionLeft.textContent = `Higher Resistance (${R.val.toFixed(1)} Ω) restricts electron flow unless Voltage (${V.val.toFixed(1)} V) increases.`;
       captionRight.textContent = `Lamp Power: ${(V.val * I.val).toFixed(1)} W`;
 
-      // Circuit Loop Coordinates
-      const leftX = w * 0.14;
+      const leftX = w * 0.15;
       const rightX = w * 0.62;
-      const topY = h * 0.25;
-      const botY = h * 0.76;
+      const topY = h * 0.24;
+      const botY = h * 0.75;
 
-      // Wire Track
       ctx.strokeStyle = '#334155';
       ctx.lineWidth = 10;
       ctx.strokeRect(leftX, topY, rightX - leftX, botY - topY);
 
-      // Animated Electron Flow around the circuit loop (Speed proportional to Current I)
       const perimeter = 2 * ((rightX - leftX) + (botY - topY));
       const electronCount = 24;
-      const flowSpeed = I.val * 65;
+      const flowSpeed = I.val * 75;
 
       for (let i = 0; i < electronCount; i++) {
         const dist = ((simTime * flowSpeed) + (i * (perimeter / electronCount))) % perimeter;
@@ -1081,14 +1056,13 @@
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 8;
         ctx.beginPath();
-        ctx.arc(ex, ey, 5, 0, Math.PI * 2);
+        ctx.arc(ex, ey, 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
 
-      // Battery Pack on Left Wire (Visualizes Voltage V)
-      const batW = 68;
-      const batH = 110;
+      const batW = 78;
+      const batH = 124;
       const batX = leftX - batW / 2;
       const batY = (topY + botY) / 2 - batH / 2;
 
@@ -1099,23 +1073,21 @@
       ctx.fill();
       ctx.stroke();
 
-      // Voltage Level Fill inside Battery
       const vFrac = clamp(V.val / 24, 0.08, 1);
       ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
       drawRoundedRect(batX + 4, batY + batH - (batH - 8) * vFrac - 4, batW - 8, (batH - 8) * vFrac, 8);
       ctx.fill();
 
       ctx.fillStyle = '#fbbf24';
-      ctx.font = '900 16px "JetBrains Mono"';
+      ctx.font = '900 18px "JetBrains Mono"';
       ctx.textAlign = 'center';
-      ctx.fillText(`${V.val.toFixed(1)}V`, leftX, batY + batH / 2 + 5);
+      ctx.fillText(`${V.val.toFixed(1)}V`, leftX, batY + batH / 2 + 6);
       ctx.fillStyle = '#fde68a';
-      ctx.font = '700 11px Inter';
-      ctx.fillText('SUPPLY', leftX, batY - 8);
+      ctx.font = '700 12px Inter';
+      ctx.fillText('SUPPLY', leftX, batY - 10);
 
-      // Variable Resistor / Dimmer Coil on Bottom Wire (Visualizes Resistance R)
-      const resW = 150;
-      const resH = 44;
+      const resW = 175;
+      const resH = 48;
       const resX = (leftX + rightX) / 2 - resW / 2;
       const resY = botY - resH / 2;
 
@@ -1126,70 +1098,65 @@
       ctx.fill();
       ctx.stroke();
 
-      // Zig-zag resistor line whose thickness/density reflects Resistance R
       ctx.strokeStyle = '#fb7185';
-      ctx.lineWidth = 2 + (R.val / 20) * 4;
+      ctx.lineWidth = 2.5 + (R.val / 20) * 4;
       ctx.beginPath();
       const zigSteps = Math.max(4, Math.round(R.val * 0.8));
       for (let s = 0; s <= zigSteps; s++) {
-        const zx = resX + 14 + (s / zigSteps) * (resW - 28);
-        const zy = resY + resH / 2 + (s % 2 === 0 ? -10 : 10);
+        const zx = resX + 16 + (s / zigSteps) * (resW - 32);
+        const zy = resY + resH / 2 + (s % 2 === 0 ? -11 : 11);
         if (s === 0) ctx.moveTo(zx, zy);
         else ctx.lineTo(zx, zy);
       }
       ctx.stroke();
 
       ctx.fillStyle = '#fda4af';
-      ctx.font = '800 14px "JetBrains Mono"';
-      ctx.fillText(`Dimmer: ${R.val.toFixed(1)} Ω`, (leftX + rightX) / 2, resY + resH + 18);
+      ctx.font = '800 15px "JetBrains Mono"';
+      ctx.fillText(`Dimmer: ${R.val.toFixed(1)} Ω`, (leftX + rightX) / 2, resY + resH + 22);
 
-      // Stage Spotlight Lamp on Right Wire (Brightness proportional to Power = V * I)
       const lampX = rightX;
       const lampY = (topY + botY) / 2;
       const brightness = clamp((V.val * I.val) / 100, 0.05, 1.0);
 
-      // Spotlight Light Cone
       const coneGrad = ctx.createLinearGradient(lampX, lampY, w * 0.96, lampY);
       coneGrad.addColorStop(0, `rgba(253, 224, 71, ${0.15 + brightness * 0.75})`);
       coneGrad.addColorStop(1, 'rgba(253, 224, 71, 0)');
 
       ctx.fillStyle = coneGrad;
       ctx.beginPath();
-      ctx.moveTo(lampX + 10, lampY - 22);
-      ctx.lineTo(w * 0.96, lampY - 125);
-      ctx.lineTo(w * 0.96, lampY + 125);
-      ctx.lineTo(lampX + 10, lampY + 22);
+      ctx.moveTo(lampX + 10, lampY - 26);
+      ctx.lineTo(w * 0.96, lampY - 145);
+      ctx.lineTo(w * 0.96, lampY + 145);
+      ctx.lineTo(lampX + 10, lampY + 26);
       ctx.closePath();
       ctx.fill();
 
-      // Lamp Housing & Glowing Bulb
       ctx.fillStyle = '#1e293b';
       ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 3;
-      drawRoundedRect(lampX - 26, lampY - 30, 52, 60, 12);
+      drawRoundedRect(lampX - 28, lampY - 34, 56, 68, 12);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = `rgba(254, 240, 138, ${0.25 + brightness * 0.75})`;
       ctx.shadowColor = '#fde047';
-      ctx.shadowBlur = brightness * 35;
+      ctx.shadowBlur = brightness * 38;
       ctx.beginPath();
-      ctx.arc(lampX + 14, lampY, 18, 0, Math.PI * 2);
+      ctx.arc(lampX + 16, lampY, 20, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Ammeter Badge on Top Wire
       const ammX = (leftX + rightX) / 2;
       ctx.fillStyle = '#0f172a';
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(ammX, topY, 26, 0, Math.PI * 2);
+      ctx.arc(ammX, topY, 30, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = '#38bdf8';
-      ctx.font = '900 13px "JetBrains Mono"';
+      ctx.font = '900 15px "JetBrains Mono"';
       ctx.fillText(`${I.val.toFixed(1)}A`, ammX, topY + 5);
     }
 
@@ -1198,88 +1165,79 @@
       const { E, P, t } = SLIDES[2].vars;
       simTime += dt;
 
-      // Visual heating progress over time t
       const visualBoilDuration = Math.max(2.2, t.val / 18);
       const progress = Math.min(1, (simTime % (visualBoilDuration + 1.4)) / visualBoilDuration);
       const currentEnergy = E.val * progress;
-      const waterTemp = Math.min(100, 20 + (currentEnergy / 120) * 80); // 120 kJ boils 1 mug/small kettle
+      const waterTemp = Math.min(100, 20 + (currentEnergy / 120) * 80);
 
       stageStatusPill.textContent = waterTemp >= 99.5 ? 'Boiling Point Reached (100°C)!' : `Heating Water: ${waterTemp.toFixed(0)}°C`;
       captionLeft.textContent = `At ${P.val.toFixed(1)} kW, the kettle transfers ${P.val.toFixed(1)} kJ of thermal energy every second.`;
       captionRight.textContent = `Energy Used: ${currentEnergy.toFixed(0)} / ${E.val.toFixed(0)} kJ`;
 
-      // Kettle Body Geometry
-      const kx = w * 0.24;
-      const ky = h * 0.24;
+      const kx = w * 0.22;
+      const ky = h * 0.23;
       const kw = w * 0.34;
       const kh = h * 0.54;
 
-      // Kettle Handle
       ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 14;
+      ctx.lineWidth = 16;
       ctx.beginPath();
-      ctx.moveTo(kx + kw, ky + 35);
-      ctx.quadraticCurveTo(kx + kw + 58, ky + kh * 0.5, kx + kw, ky + kh - 35);
+      ctx.moveTo(kx + kw, ky + 40);
+      ctx.quadraticCurveTo(kx + kw + 64, ky + kh * 0.5, kx + kw, ky + kh - 40);
       ctx.stroke();
 
-      // Kettle Glass Carafe
       ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
       ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 4;
-      drawRoundedRect(kx, ky, kw, kh, 22);
+      drawRoundedRect(kx, ky, kw, kh, 24);
       ctx.fill();
       ctx.stroke();
 
-      // Water Color shifts from Cool Blue (20°C) to Hot Magenta/Red (100°C)
       const heatRatio = clamp((waterTemp - 20) / 80, 0, 1);
       const waterH = kh * 0.68;
-      const waterY = ky + kh - waterH - 12;
+      const waterY = ky + kh - waterH - 14;
 
       const waterGrad = ctx.createLinearGradient(0, waterY, 0, waterY + waterH);
       waterGrad.addColorStop(0, heatRatio > 0.8 ? 'rgba(244, 114, 182, 0.55)' : 'rgba(56, 189, 248, 0.45)');
       waterGrad.addColorStop(1, heatRatio > 0.8 ? 'rgba(239, 68, 68, 0.7)' : 'rgba(37, 99, 235, 0.65)');
 
       ctx.fillStyle = waterGrad;
-      drawRoundedRect(kx + 8, waterY, kw - 16, waterH, 14);
+      drawRoundedRect(kx + 10, waterY, kw - 20, waterH, 16);
       ctx.fill();
 
-      // Glowing Heating Element Coil at Bottom (Glow intensity = Power P)
       const powerIntensity = clamp(P.val / 3.0, 0.15, 1.0);
       ctx.strokeStyle = `rgba(251, 146, 60, ${0.4 + powerIntensity * 0.6})`;
       ctx.shadowColor = '#f97316';
-      ctx.shadowBlur = powerIntensity * 25;
-      ctx.lineWidth = 8;
+      ctx.shadowBlur = powerIntensity * 28;
+      ctx.lineWidth = 9;
       ctx.beginPath();
-      ctx.moveTo(kx + 24, ky + kh - 24);
-      ctx.lineTo(kx + kw - 24, ky + kh - 24);
+      ctx.moveTo(kx + 28, ky + kh - 26);
+      ctx.lineTo(kx + kw - 28, ky + kh - 26);
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Rising Steam & Bubbles proportional to Power P & Temperature
       const bubbleCount = Math.round(6 + powerIntensity * 18 * heatRatio);
       for (let i = 0; i < bubbleCount; i++) {
-        const bx = kx + 25 + ((i * 37) % (kw - 50));
-        const bSpeed = 40 + powerIntensity * 110;
-        const by = (waterY + waterH - 16) - ((simTime * bSpeed + i * 29) % (waterH - 12));
+        const bx = kx + 28 + ((i * 41) % (kw - 56));
+        const bSpeed = 45 + powerIntensity * 120;
+        const by = (waterY + waterH - 18) - ((simTime * bSpeed + i * 33) % (waterH - 14));
         ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
         ctx.beginPath();
-        ctx.arc(bx, by, 3 + (i % 3), 0, Math.PI * 2);
+        ctx.arc(bx, by, 3.5 + (i % 3), 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Kettle Power & Temp Overlay Readout
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 24px "JetBrains Mono"';
+      ctx.font = '900 28px "JetBrains Mono"';
       ctx.textAlign = 'center';
       ctx.fillText(`${waterTemp.toFixed(0)}°C`, kx + kw / 2, waterY + waterH / 2 - 4);
       ctx.fillStyle = '#fed7aa';
-      ctx.font = '800 13px "JetBrains Mono"';
-      ctx.fillText(`Element: ${P.val.toFixed(1)} kW`, kx + kw / 2, waterY + waterH / 2 + 18);
+      ctx.font = '800 15px "JetBrains Mono"';
+      ctx.fillText(`Element: ${P.val.toFixed(1)} kW`, kx + kw / 2, waterY + waterH / 2 + 22);
 
-      // Right-Side Smart Joule Meter & Timer Gauge
-      const meterX = w * 0.69;
-      const meterY = h * 0.24;
-      const meterW = w * 0.21;
+      const meterX = w * 0.68;
+      const meterY = h * 0.23;
+      const meterW = w * 0.22;
       const meterH = h * 0.54;
 
       ctx.fillStyle = '#0f172a';
@@ -1290,14 +1248,13 @@
       ctx.stroke();
 
       ctx.fillStyle = '#f472b6';
-      ctx.font = '800 13px Inter';
-      ctx.fillText('ENERGY METER', meterX + meterW / 2, meterY + 26);
+      ctx.font = '800 14px Inter';
+      ctx.fillText('ENERGY METER', meterX + meterW / 2, meterY + 28);
 
-      // Vertical Energy Bar
-      const barW = 36;
+      const barW = 42;
       const barH = meterH * 0.52;
       const barX = meterX + meterW / 2 - barW / 2;
-      const barY = meterY + 42;
+      const barY = meterY + 46;
 
       ctx.fillStyle = '#1e293b';
       drawRoundedRect(barX, barY, barW, barH, 8);
@@ -1309,10 +1266,10 @@
       ctx.fill();
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 18px "JetBrains Mono"';
-      ctx.fillText(`${currentEnergy.toFixed(0)} kJ`, meterX + meterW / 2, meterY + meterH - 36);
+      ctx.font = '900 20px "JetBrains Mono"';
+      ctx.fillText(`${currentEnergy.toFixed(0)} kJ`, meterX + meterW / 2, meterY + meterH - 38);
       ctx.fillStyle = '#c084fc';
-      ctx.font = '700 12px "JetBrains Mono"';
+      ctx.font = '700 13px "JetBrains Mono"';
       ctx.fillText(`Time: ${(t.val * progress).toFixed(0)}s / ${t.val.toFixed(0)}s`, meterX + meterW / 2, meterY + meterH - 14);
     }
 
@@ -1326,10 +1283,8 @@
       captionLeft.textContent = `Each 1.0 C of charge carries ${V.val.toFixed(0)} Joules of energy across the voltage gap.`;
       captionRight.textContent = `Total Pulse Energy: ${E.val.toFixed(0)} J`;
 
-      // Two Capacitor Plates (Left = Positive Plate, Right = Negative Plate)
-      // Plate separation visually reflects Voltage V
       const gapRatio = clamp((V.val - 500) / 2500, 0.15, 1.0);
-      const centerX = w * 0.44;
+      const centerX = w * 0.43;
       const halfGap = w * (0.11 + gapRatio * 0.13);
 
       const leftPlateX = centerX - halfGap;
@@ -1337,10 +1292,9 @@
       const plateY = h * 0.24;
       const plateH = h * 0.52;
 
-      // Electric Field Lines across the gap (Brightness scales with Voltage V)
       const fieldLines = 7;
       for (let i = 0; i < fieldLines; i++) {
-        const fy = plateY + 24 + (i / (fieldLines - 1)) * (plateH - 48);
+        const fy = plateY + 26 + (i / (fieldLines - 1)) * (plateH - 52);
         ctx.strokeStyle = `rgba(251, 191, 36, ${0.15 + gapRatio * 0.45})`;
         ctx.lineWidth = 2;
         ctx.setLineDash([8, 6]);
@@ -1351,74 +1305,68 @@
         ctx.setLineDash([]);
       }
 
-      // Draw Left Plate (+) and Right Plate (-)
       ctx.fillStyle = '#065f46';
       ctx.strokeStyle = '#34d399';
       ctx.lineWidth = 3;
-      drawRoundedRect(leftPlateX - 12, plateY, 24, plateH, 8);
+      drawRoundedRect(leftPlateX - 14, plateY, 28, plateH, 8);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = '#1e293b';
       ctx.strokeStyle = '#38bdf8';
-      drawRoundedRect(rightPlateX - 12, plateY, 24, plateH, 8);
+      drawRoundedRect(rightPlateX - 14, plateY, 28, plateH, 8);
       ctx.fill();
       ctx.stroke();
 
-      // Stored Charges on Plate (Number of charge dots scales with Q)
       const chargeDots = Math.max(3, Math.round(Q.val * 60));
       for (let i = 0; i < chargeDots; i++) {
-        const cy = plateY + 18 + ((i + 0.5) / chargeDots) * (plateH - 36);
+        const cy = plateY + 20 + ((i + 0.5) / chargeDots) * (plateH - 40);
         ctx.fillStyle = '#34d399';
         ctx.beginPath();
-        ctx.arc(leftPlateX, cy, 5, 0, Math.PI * 2);
+        ctx.arc(leftPlateX, cy, 5.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Animated Charge Carriers crossing the Voltage Gap carrying V Joules each
       const carrierCount = Math.max(2, Math.round(Q.val * 32));
       const arcSpeed = 0.7 + gapRatio * 1.1 + pulseEffect * 2.5;
 
       for (let i = 0; i < carrierCount; i++) {
         const prog = ((simTime * arcSpeed) + (i / carrierCount)) % 1;
         const cx = leftPlateX + prog * (rightPlateX - leftPlateX);
-        const baseY = plateY + 35 + ((i * 53) % (plateH - 70));
+        const baseY = plateY + 38 + ((i * 57) % (plateH - 76));
         const jitterY = Math.sin(simTime * 18 + i * 3) * (4 + pulseEffect * 12);
 
-        // Energy halo around each charge packet (scales with Voltage V)
         ctx.fillStyle = `rgba(244, 114, 182, ${0.25 + gapRatio * 0.45})`;
         ctx.beginPath();
-        ctx.arc(cx, baseY + jitterY, 8 + gapRatio * 9, 0, Math.PI * 2);
+        ctx.arc(cx, baseY + jitterY, 9 + gapRatio * 10, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = '#34d399';
         ctx.beginPath();
-        ctx.arc(cx, baseY + jitterY, 5, 0, Math.PI * 2);
+        ctx.arc(cx, baseY + jitterY, 5.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Voltage Potential Difference Callout Arrow
       ctx.strokeStyle = '#fbbf24';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(leftPlateX, plateY - 16);
-      ctx.lineTo(rightPlateX, plateY - 16);
+      ctx.moveTo(leftPlateX, plateY - 18);
+      ctx.lineTo(rightPlateX, plateY - 18);
       ctx.stroke();
 
       ctx.fillStyle = '#fbbf24';
-      ctx.font = '800 15px "JetBrains Mono"';
+      ctx.font = '800 17px "JetBrains Mono"';
       ctx.textAlign = 'center';
-      ctx.fillText(`ΔV = ${V.val.toFixed(0)} V`, centerX, plateY - 24);
+      ctx.fillText(`ΔV = ${V.val.toFixed(0)} V`, centerX, plateY - 26);
 
       ctx.fillStyle = '#34d399';
-      ctx.font = '800 13px "JetBrains Mono"';
-      ctx.fillText(`Q = ${Q.val.toFixed(2)} C`, leftPlateX, plateY + plateH + 22);
+      ctx.font = '800 14px "JetBrains Mono"';
+      ctx.fillText(`Q = ${Q.val.toFixed(2)} C`, leftPlateX, plateY + plateH + 24);
 
-      // Right-Side Heart / Defibrillator Pulse Monitor
-      const monX = w * 0.75;
-      const monY = h * 0.26;
-      const monW = w * 0.19;
-      const monH = h * 0.48;
+      const monX = w * 0.74;
+      const monY = h * 0.25;
+      const monW = w * 0.21;
+      const monH = h * 0.50;
 
       ctx.fillStyle = '#0f172a';
       ctx.strokeStyle = pulseEffect > 0.1 ? '#f472b6' : '#475569';
@@ -1428,25 +1376,24 @@
       ctx.stroke();
 
       ctx.fillStyle = '#f472b6';
-      ctx.font = '800 12px Inter';
-      ctx.fillText('SHOCK DELIVERY', monX + monW / 2, monY + 24);
+      ctx.font = '800 13px Inter';
+      ctx.fillText('SHOCK DELIVERY', monX + monW / 2, monY + 28);
 
-      // ECG Waveform
       ctx.strokeStyle = '#34d399';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      for (let x = 0; x < monW - 24; x += 3) {
-        const phase = (x / (monW - 24)) * Math.PI * 4 - simTime * 6;
-        const spike = Math.sin(phase) > 0.92 ? -24 * (0.5 + pulseEffect) : Math.sin(phase * 2) * 3;
+      for (let x = 0; x < monW - 28; x += 3) {
+        const phase = (x / (monW - 28)) * Math.PI * 4 - simTime * 6;
+        const spike = Math.sin(phase) > 0.92 ? -28 * (0.5 + pulseEffect) : Math.sin(phase * 2) * 3.5;
         const wy = monY + monH * 0.5 + spike;
-        if (x === 0) ctx.moveTo(monX + 12 + x, wy);
-        else ctx.lineTo(monX + 12 + x, wy);
+        if (x === 0) ctx.moveTo(monX + 14 + x, wy);
+        else ctx.lineTo(monX + 14 + x, wy);
       }
       ctx.stroke();
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 22px "JetBrains Mono"';
-      ctx.fillText(`${E.val.toFixed(0)} J`, monX + monW / 2, monY + monH - 22);
+      ctx.font = '900 25px "JetBrains Mono"';
+      ctx.fillText(`${E.val.toFixed(0)} J`, monX + monW / 2, monY + monH - 24);
     }
 
     // 5. P = VI : Electric Vehicle (EV) Supercharger
@@ -1455,16 +1402,14 @@
       simTime += dt;
       pulseEffect = Math.max(0, pulseEffect - dt * 1.2);
 
-      // Calculate miles of range added per minute (~3.5 miles per kWh)
       const milesPerMin = ((P.val / 60) * 3.5).toFixed(1);
       stageStatusPill.textContent = `Charging Speed: +${milesPerMin} miles / min`;
       captionLeft.textContent = `${V.val.toFixed(0)} V electrical pressure × ${I.val.toFixed(0)} A flow = ${P.val.toFixed(1)} kW charging power.`;
       captionRight.textContent = `Power: ${P.val.toFixed(1)} kW`;
 
-      // Supercharger Pillar (Left)
-      const pilX = w * 0.1;
+      const pilX = w * 0.09;
       const pilY = h * 0.24;
-      const pilW = w * 0.19;
+      const pilW = w * 0.20;
       const pilH = h * 0.56;
 
       ctx.fillStyle = '#1e293b';
@@ -1475,38 +1420,35 @@
       ctx.stroke();
 
       ctx.fillStyle = '#fb923c';
-      ctx.font = '900 13px Inter';
+      ctx.font = '900 14px Inter';
       ctx.textAlign = 'center';
-      ctx.fillText('EV CHARGER', pilX + pilW / 2, pilY + 26);
+      ctx.fillText('EV CHARGER', pilX + pilW / 2, pilY + 28);
 
-      // Voltage & Current Sub-badges inside Charger Pillar
       ctx.fillStyle = 'rgba(251, 191, 36, 0.15)';
-      drawRoundedRect(pilX + 12, pilY + 42, pilW - 24, 46, 10);
+      drawRoundedRect(pilX + 14, pilY + 46, pilW - 28, 52, 10);
       ctx.fill();
       ctx.fillStyle = '#fbbf24';
-      ctx.font = '800 17px "JetBrains Mono"';
-      ctx.fillText(`${V.val.toFixed(0)} V`, pilX + pilW / 2, pilY + 71);
+      ctx.font = '800 19px "JetBrains Mono"';
+      ctx.fillText(`${V.val.toFixed(0)} V`, pilX + pilW / 2, pilY + 78);
 
       ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
-      drawRoundedRect(pilX + 12, pilY + 98, pilW - 24, 46, 10);
+      drawRoundedRect(pilX + 14, pilY + 110, pilW - 28, 52, 10);
       ctx.fill();
       ctx.fillStyle = '#38bdf8';
-      ctx.fillText(`${I.val.toFixed(0)} A`, pilX + pilW / 2, pilY + 127);
+      ctx.fillText(`${I.val.toFixed(0)} A`, pilX + pilW / 2, pilY + 142);
 
-      // High-Power Charging Cable (Thickness scales with Current I, Glow scales with Voltage V)
       const cableStartX = pilX + pilW;
       const cableEndX = w * 0.48;
       const cableY = h * 0.62;
-      const cableThickness = 8 + (I.val / 500) * 14;
+      const cableThickness = 9 + (I.val / 500) * 15;
 
       ctx.strokeStyle = '#334155';
       ctx.lineWidth = cableThickness;
       ctx.beginPath();
       ctx.moveTo(cableStartX, cableY);
-      ctx.quadraticCurveTo((cableStartX + cableEndX) / 2, cableY + 48, cableEndX, cableY);
+      ctx.quadraticCurveTo((cableStartX + cableEndX) / 2, cableY + 52, cableEndX, cableY);
       ctx.stroke();
 
-      // Flowing Power Pulses along cable
       const pulseCount = Math.max(3, Math.round(I.val / 45));
       const speed = 0.6 + (I.val / 500) * 1.8;
       for (let i = 0; i < pulseCount; i++) {
@@ -1515,25 +1457,23 @@
                    2 * (1 - tParam) * tParam * ((cableStartX + cableEndX) / 2) +
                    tParam * tParam * cableEndX;
         const py = (1 - tParam) * (1 - tParam) * cableY +
-                   2 * (1 - tParam) * tParam * (cableY + 48) +
+                   2 * (1 - tParam) * tParam * (cableY + 52) +
                    tParam * tParam * cableY;
 
         ctx.fillStyle = '#fbbf24';
         ctx.shadowColor = '#fb923c';
         ctx.shadowBlur = 12;
         ctx.beginPath();
-        ctx.arc(px, py, 5 + (V.val / 800) * 4, 0, Math.PI * 2);
+        ctx.arc(px, py, 6 + (V.val / 800) * 4, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
 
-      // Stylized Electric Vehicle Silhouette (Right)
       const carX = w * 0.48;
-      const carY = h * 0.44;
-      const carW = w * 0.44;
+      const carY = h * 0.45;
+      const carW = w * 0.45;
       const carH = h * 0.26;
 
-      // Car Chassis
       ctx.fillStyle = '#0f172a';
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 3;
@@ -1550,7 +1490,6 @@
       ctx.fill();
       ctx.stroke();
 
-      // EV Floor Battery Pack (Animated fill bar inside chassis)
       const packX = carX + carW * 0.22;
       const packY = carY + carH * 0.62;
       const packW = carW * 0.56;
@@ -1565,24 +1504,22 @@
       drawRoundedRect(packX + 2, packY + 2, (packW - 4) * fillCycle, packH - 4, 4);
       ctx.fill();
 
-      // Wheels
       ctx.fillStyle = '#020617';
       ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 4.5;
       [carX + carW * 0.2, carX + carW * 0.8].forEach((wx) => {
         ctx.beginPath();
-        ctx.arc(wx, carY + carH, 22, 0, Math.PI * 2);
+        ctx.arc(wx, carY + carH, 24, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       });
 
-      // Top-Right Power Speedometer Gauge (P = V * I)
-      const gaugeX = w * 0.69;
+      const gaugeX = w * 0.70;
       const gaugeY = h * 0.28;
-      const radius = 58;
+      const radius = 64;
 
       ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 12;
+      ctx.lineWidth = 14;
       ctx.beginPath();
       ctx.arc(gaugeX, gaugeY, radius, Math.PI * 0.8, Math.PI * 2.2);
       ctx.stroke();
@@ -1594,19 +1531,18 @@
       ctx.stroke();
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 20px "JetBrains Mono"';
-      ctx.fillText(`${P.val.toFixed(0)}`, gaugeX, gaugeY + 4);
+      ctx.font = '900 24px "JetBrains Mono"';
+      ctx.fillText(`${P.val.toFixed(0)}`, gaugeX, gaugeY + 5);
       ctx.fillStyle = '#fdba74';
-      ctx.font = '800 11px Inter';
-      ctx.fillText('kW POWER', gaugeX, gaugeY + 20);
+      ctx.font = '800 12px Inter';
+      ctx.fillText('kW POWER', gaugeX, gaugeY + 23);
     }
 
-    // 6. P = I²R : National Grid Overhead Power Lines (Quadratic Heating Effect)
+    // 6. P = I²R : National Grid Overhead Power Lines
     function drawSlidePI2R(w, h, dt) {
       const { P, I, R } = SLIDES[5].vars;
       simTime += dt;
 
-      // Heat severity ratio (0 = cool, 1 = extreme thermal loss)
       const heatRatio = clamp(P.val / 1500, 0, 1);
       const isDanger = P.val > 800;
 
@@ -1616,13 +1552,11 @@
       captionLeft.textContent = `Because Current is SQUARED (I²), halving Current cuts wasted heat by 4×!`;
       captionRight.textContent = `Wasted Heat: ${P.val.toFixed(0)} kW`;
 
-      // Power Station (Left) & Town Substation (Right)
-      const leftPylonX = w * 0.24;
-      const rightPylonX = w * 0.76;
-      const groundY = h * 0.80;
-      const pylonTopY = h * 0.26;
+      const leftPylonX = w * 0.23;
+      const rightPylonX = w * 0.77;
+      const groundY = h * 0.79;
+      const pylonTopY = h * 0.25;
 
-      // Ground Line
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 4;
       ctx.beginPath();
@@ -1630,84 +1564,74 @@
       ctx.lineTo(w * 0.94, groundY);
       ctx.stroke();
 
-      // Helper to draw steel lattice transmission pylon
       function drawPylon(px) {
         ctx.strokeStyle = '#64748b';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3.5;
         ctx.beginPath();
-        // A-frame legs
-        ctx.moveTo(px - 26, groundY);
-        ctx.lineTo(px - 8, pylonTopY);
-        ctx.lineTo(px + 8, pylonTopY);
-        ctx.lineTo(px + 26, groundY);
-        // Cross-arms
-        ctx.moveTo(px - 34, pylonTopY + 24);
-        ctx.lineTo(px + 34, pylonTopY + 24);
-        ctx.moveTo(px - 26, pylonTopY + 56);
-        ctx.lineTo(px + 26, pylonTopY + 56);
-        // Lattice bracing
-        ctx.moveTo(px - 18, groundY - 45);
-        ctx.lineTo(px + 14, pylonTopY + 56);
-        ctx.moveTo(px + 18, groundY - 45);
-        ctx.lineTo(px - 14, pylonTopY + 56);
+        ctx.moveTo(px - 30, groundY);
+        ctx.lineTo(px - 9, pylonTopY);
+        ctx.lineTo(px + 9, pylonTopY);
+        ctx.lineTo(px + 30, groundY);
+        ctx.moveTo(px - 38, pylonTopY + 26);
+        ctx.lineTo(px + 38, pylonTopY + 26);
+        ctx.moveTo(px - 30, pylonTopY + 62);
+        ctx.lineTo(px + 30, pylonTopY + 62);
+        ctx.moveTo(px - 20, groundY - 50);
+        ctx.lineTo(px + 16, pylonTopY + 62);
+        ctx.moveTo(px + 20, groundY - 50);
+        ctx.lineTo(px - 16, pylonTopY + 62);
         ctx.stroke();
       }
 
       drawPylon(leftPylonX);
       drawPylon(rightPylonX);
 
-      // Sagging Overhead Cables between Pylons (Color shifts from Cool Sky -> Orange -> White-Hot Red with P = I^2R)
       const cableColor = heatRatio < 0.25
         ? '#38bdf8'
         : (heatRatio < 0.6 ? '#fb923c' : '#ef4444');
 
-      // Thermal Sag increases slightly when cables get hot!
-      const sag = 28 + heatRatio * 34;
+      const sag = 30 + heatRatio * 36;
 
-      [pylonTopY + 24, pylonTopY + 56].forEach((armY, idx) => {
+      [pylonTopY + 26, pylonTopY + 62].forEach((armY) => {
         const midX = (leftPylonX + rightPylonX) / 2;
         const midY = armY + sag;
 
-        // Thermal Glow Aura around hot cables
         if (heatRatio > 0.08) {
           ctx.strokeStyle = `rgba(239, 68, 68, ${heatRatio * 0.55})`;
-          ctx.lineWidth = 10 + heatRatio * 24;
+          ctx.lineWidth = 12 + heatRatio * 26;
           ctx.beginPath();
           ctx.moveTo(leftPylonX, armY);
           ctx.quadraticCurveTo(midX, midY, rightPylonX, armY);
           ctx.stroke();
         }
 
-        // Core Transmission Wire (Thickness reflects Resistance R: thinner wire = higher R)
         ctx.strokeStyle = cableColor;
-        ctx.lineWidth = Math.max(2.5, 7 - (R.val / 20) * 4.5);
+        ctx.lineWidth = Math.max(3, 8 - (R.val / 20) * 5);
         ctx.beginPath();
         ctx.moveTo(leftPylonX, armY);
         ctx.quadraticCurveTo(midX, midY, rightPylonX, armY);
         ctx.stroke();
 
-        // Rising Wavy Heat Dissipation Arrows proportional to P = I²R
         const waveCount = Math.round(2 + heatRatio * 10);
         for (let k = 0; k < waveCount; k++) {
           const frac = (k + 0.5) / waveCount;
           const wx = leftPylonX + frac * (rightPylonX - leftPylonX);
           const wireY = (1 - frac) * (1 - frac) * armY + 2 * (1 - frac) * frac * midY + frac * frac * armY;
-          const rise = ((simTime * (35 + heatRatio * 65) + k * 19) % 42);
+          const rise = ((simTime * (38 + heatRatio * 70) + k * 21) % 46);
 
-          ctx.strokeStyle = `rgba(251, 146, 60, ${(1 - rise / 42) * (0.3 + heatRatio * 0.7)})`;
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = `rgba(251, 146, 60, ${(1 - rise / 46) * (0.3 + heatRatio * 0.7)})`;
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.moveTo(wx + Math.sin(rise * 0.25) * 4, wireY - 6 - rise);
-          ctx.lineTo(wx + Math.sin((rise + 10) * 0.25) * 4, wireY - 16 - rise);
+          ctx.moveTo(wx + Math.sin(rise * 0.25) * 4, wireY - 8 - rise);
+          ctx.lineTo(wx + Math.sin((rise + 10) * 0.25) * 4, wireY - 18 - rise);
           ctx.stroke();
         }
       });
 
-      // Central Quadratic Comparison Callout Card
-      const boxW = w * 0.36;
-      const boxH = 66;
+      const boxW = w * 0.38;
+      const boxH = 74;
       const boxX = w * 0.5 - boxW / 2;
-      const boxY = h * 0.58;
+      const boxY = h * 0.57;
 
       ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
       ctx.strokeStyle = cableColor;
@@ -1717,19 +1641,18 @@
       ctx.stroke();
 
       ctx.fillStyle = '#f8fafc';
-      ctx.font = '800 13px Inter';
+      ctx.font = '800 14px Inter';
       ctx.textAlign = 'center';
-      ctx.fillText(`Current: ${I.val.toFixed(0)} A  →  I² = ${(I.val * I.val).toLocaleString()} A²`, w * 0.5, boxY + 25);
+      ctx.fillText(`Current: ${I.val.toFixed(0)} A  →  I² = ${(I.val * I.val).toLocaleString()} A²`, w * 0.5, boxY + 28);
 
       ctx.fillStyle = cableColor;
-      ctx.font = '900 16px "JetBrains Mono"';
-      ctx.fillText(`Heat Loss = ${P.val.toFixed(0)} kW`, w * 0.5, boxY + 50);
+      ctx.font = '900 18px "JetBrains Mono"';
+      ctx.fillText(`Heat Loss = ${P.val.toFixed(0)} kW`, w * 0.5, boxY + 56);
 
-      // Left Power Station & Right City Labels
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '800 12px Inter';
-      ctx.fillText('POWER STATION', leftPylonX - 45, groundY - 14);
-      ctx.fillText('NATIONAL GRID TOWN', rightPylonX + 35, groundY - 14);
+      ctx.font = '800 13px Inter';
+      ctx.fillText('POWER STATION', leftPylonX - 45, groundY - 16);
+      ctx.fillText('NATIONAL GRID TOWN', rightPylonX + 35, groundY - 16);
     }
 
     // Main 60FPS Animation Loop
@@ -1739,44 +1662,47 @@
       const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
       lastTimestamp = timestamp;
 
-      const wrapper = document.getElementById('canvas-wrapper');
-      const w = wrapper.clientWidth;
-      const h = wrapper.clientHeight;
+      // Reset transform and clear full physical pixel buffer
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      ctx.clearRect(0, 0, w, h);
+      // Uniformly scale and center the 1000x620 virtual simulation stage inside the canvas
+      const scale = Math.min(canvas.width / VW, canvas.height / VH);
+      const offsetX = (canvas.width - VW * scale) / 2;
+      const offsetY = (canvas.height - VH * scale) / 2;
+      ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
 
-      // Subtle Engineering Grid Backdrop inside Canvas
+      // Subtle Engineering Grid Backdrop inside Virtual Stage
       ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
       ctx.lineWidth = 1;
-      const gridSize = 36;
-      for (let x = 0; x < w; x += gridSize) {
+      const gridSize = 40;
+      for (let x = 0; x <= VW; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
+        ctx.lineTo(x, VH);
         ctx.stroke();
       }
-      for (let y = 0; y < h; y += gridSize) {
+      for (let y = 0; y <= VH; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
+        ctx.lineTo(VW, y);
         ctx.stroke();
       }
 
       // Render Active Slide Simulation
       const slide = SLIDES[currentSlideIndex];
       switch (slide.id) {
-        case 'q-it':  drawSlideQIt(w, h, dt); break;
-        case 'v-ir':  drawSlideVIR(w, h, dt); break;
-        case 'e-pt':  drawSlideEPt(w, h, dt); break;
-        case 'e-qv':  drawSlideEQV(w, h, dt); break;
-        case 'p-vi':  drawSlidePVI(w, h, dt); break;
-        case 'p-i2r': drawSlidePI2R(w, h, dt); break;
+        case 'q-it':  drawSlideQIt(VW, VH, dt); break;
+        case 'v-ir':  drawSlideVIR(VW, VH, dt); break;
+        case 'e-pt':  drawSlideEPt(VW, VH, dt); break;
+        case 'e-qv':  drawSlideEQV(VW, VH, dt); break;
+        case 'p-vi':  drawSlidePVI(VW, VH, dt); break;
+        case 'p-i2r': drawSlidePI2R(VW, VH, dt); break;
       }
 
       requestAnimationFrame(animate);
     }
 
-    // Boot Application
     window.addEventListener('DOMContentLoaded', () => {
       initTabs();
       switchSlide(0);
